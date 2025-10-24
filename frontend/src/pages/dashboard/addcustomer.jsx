@@ -232,7 +232,7 @@ const StepperCustomerForm = () => {
             {step}
           </div>
           <div className="text-xs mt-2 text-gray-700 font-medium text-center">
-            {step === 1 ? 'Customer' : step === 2 ? 'Grower' : 'Review'}
+            {step === 1 ? 'Customer(ग्राहक)' : step === 2 ? 'Grower(उत्पादक )' : 'Review(जाँच करना)'}
           </div>
         </div>
       ))}
@@ -245,7 +245,7 @@ const StepperCustomerForm = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6">
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
-                Name <span className="text-red-500">*</span>
+                Name (नाम) <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -257,9 +257,10 @@ const StepperCustomerForm = () => {
               />
               {errors.name && <span className="text-red-500 text-sm mt-1">{errors.name}</span>}
             </div>
+
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
-                Phone Number <span className="text-red-500">*</span>
+                Phone Number (फ़ोन नंबर) <span className="text-red-500">*</span>
               </label>
               <input
                 type="tel"
@@ -271,8 +272,11 @@ const StepperCustomerForm = () => {
               />
               {errors.phoneNumber && <span className="text-red-500 text-sm mt-1">{errors.phoneNumber}</span>}
             </div>
+
             <div className="flex flex-col">
-              <label className="mb-1 font-medium text-gray-700">Staff Phone Number</label>
+              <label className="mb-1 font-medium text-gray-700">
+                Staff Phone Number (स्टाफ फ़ोन नंबर)
+              </label>
               <input
                 type="tel"
                 name="staffPhoneNumber"
@@ -283,8 +287,11 @@ const StepperCustomerForm = () => {
               />
               {errors.staffPhoneNumber && <span className="text-red-500 text-sm mt-1">{errors.staffPhoneNumber}</span>}
             </div>
+
             <div className="flex flex-col">
-              <label className="mb-1 font-medium text-gray-700">Profile Pic</label>
+              <label className="mb-1 font-medium text-gray-700">
+                Profile Pic (प्रोफ़ाइल चित्र)
+              </label>
               <input
                 type="file"
                 name="profilePic"
@@ -293,10 +300,11 @@ const StepperCustomerForm = () => {
               />
               {errors.profilePic && <span className="text-red-500 text-sm mt-1">{errors.profilePic}</span>}
             </div>
+
             <div className="flex flex-wrap gap-4 md:col-span-2">
               <div className="flex-1 flex flex-col">
                 <label className="mb-1 font-medium text-gray-700">
-                  State <span className="text-red-500">*</span>
+                  State (राज्य) <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="state"
@@ -306,16 +314,15 @@ const StepperCustomerForm = () => {
                 >
                   <option value="">Select state</option>
                   {Object.keys(statesAndCities).map((state) => (
-                    <option key={state} value={state}>
-                      {state}
-                    </option>
+                    <option key={state} value={state}>{state}</option>
                   ))}
                 </select>
                 {errors.state && <span className="text-red-500 text-sm mt-1">{errors.state}</span>}
               </div>
+
               <div className="flex-1 flex flex-col">
                 <label className="mb-1 font-medium text-gray-700">
-                  City <span className="text-red-500">*</span>
+                  City (शहर) <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="city"
@@ -326,16 +333,15 @@ const StepperCustomerForm = () => {
                 >
                   <option value="">Select city</option>
                   {cities.map((city) => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
+                    <option key={city} value={city}>{city}</option>
                   ))}
                 </select>
                 {errors.city && <span className="text-red-500 text-sm mt-1">{errors.city}</span>}
               </div>
+
               <div className="flex-1 flex flex-col">
                 <label className="mb-1 font-medium text-gray-700">
-                  Pincode <span className="text-red-500">*</span>
+                  Pincode (पिनकोड) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -348,8 +354,11 @@ const StepperCustomerForm = () => {
                 {errors.pincode && <span className="text-red-500 text-sm mt-1">{errors.pincode}</span>}
               </div>
             </div>
+
             <div className="flex flex-col md:col-span-2">
-              <label className="mb-1 font-medium text-gray-700">Street Address <span className="text-red-500">*</span></label>
+              <label className="mb-1 font-medium text-gray-700">
+                Street Address (सड़क पता) <span className="text-red-500">*</span>
+              </label>
               <textarea
                 name="address"
                 value={formData.address}
@@ -370,7 +379,7 @@ const StepperCustomerForm = () => {
                 id="isActive"
               />
               <label htmlFor="isActive" className="ml-2 block text-gray-700 font-medium">
-                Active
+                Active (सक्रिय)
               </label>
             </div>
           </div>
@@ -383,59 +392,134 @@ const StepperCustomerForm = () => {
                 <h3 className="text-lg font-semibold mb-4 text-gray-700">Grower {index + 1}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col">
-                    <label className="mb-1 font-medium text-gray-700">System Type <span className="text-red-500">*</span></label>
-                    <select name="systemType" value={grower.systemType} onChange={(e) => handleGrowerChange(index, e)} className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`systemType_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}>
+                    <label className="mb-1 font-medium text-gray-700">
+                      System Type (सिस्टम प्रकार) <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="systemType"
+                      value={grower.systemType}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`systemType_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    >
                       <option value="">Select system type</option>
                       {systemTypes.map((s, i) => <option key={i} value={s}>{s}</option>)}
                     </select>
                     {errors[`systemType_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`systemType_${index}`]}</span>}
                     {grower.systemType === 'Other' && (
-                      <input type="text" name="systemTypeOther" value={grower.systemTypeOther} onChange={(e) => handleGrowerChange(index, e)} placeholder="Specify other" className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`systemTypeOther_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`} />
+                      <input
+                        type="text"
+                        name="systemTypeOther"
+                        value={grower.systemTypeOther}
+                        onChange={(e) => handleGrowerChange(index, e)}
+                        placeholder="Specify other"
+                        className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`systemTypeOther_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                      />
                     )}
                     {errors[`systemTypeOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`systemTypeOther_${index}`]}</span>}
                   </div>
+
                   <div className="flex flex-col">
-                    <label className="mb-1 font-medium text-gray-700">No. of Plants <span className="text-red-500">*</span></label>
-                    <input type="number" name="numPlants" value={grower.numPlants} onChange={(e) => handleGrowerChange(index, e)} min="0" className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`numPlants_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`} />
+                    <label className="mb-1 font-medium text-gray-700">
+                      No. of Plants (पौधों की संख्या) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="numPlants"
+                      value={grower.numPlants}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      min="0"
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`numPlants_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    />
                     {errors[`numPlants_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`numPlants_${index}`]}</span>}
                   </div>
+
                   <div className="flex flex-col">
-                    <label className="mb-1 font-medium text-gray-700">No. of Levels <span className="text-red-500">*</span></label>
-                    <input type="number" name="numLevels" value={grower.numLevels} onChange={(e) => handleGrowerChange(index, e)} min="0" className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`numLevels_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`} />
+                    <label className="mb-1 font-medium text-gray-700">
+                      No. of Levels (स्तरों की संख्या) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="numLevels"
+                      value={grower.numLevels}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      min="0"
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`numLevels_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    />
                     {errors[`numLevels_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`numLevels_${index}`]}</span>}
                   </div>
+
                   <div className="flex flex-col">
-                    <label className="mb-1 font-medium text-gray-700">Setup Dimension <span className="text-red-500">*</span></label>
-                    <input type="text" name="setupDimension" value={grower.setupDimension} onChange={(e) => handleGrowerChange(index, e)} placeholder="ft" className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`setupDimension_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`} />
+                    <label className="mb-1 font-medium text-gray-700">
+                      Setup Dimension (सेटअप आयाम) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="setupDimension"
+                      value={grower.setupDimension}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      placeholder="ft"
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`setupDimension_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    />
                     {errors[`setupDimension_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`setupDimension_${index}`]}</span>}
                   </div>
+
                   <div className="flex flex-col">
-                    <label className="mb-1 font-medium text-gray-700">Motor Used <span className="text-red-500">*</span></label>
-                    <select name="motorType" value={grower.motorType} onChange={(e) => handleGrowerChange(index, e)} className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`motorType_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}>
+                    <label className="mb-1 font-medium text-gray-700">
+                      Motor Used (मोटर उपयोग) <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="motorType"
+                      value={grower.motorType}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`motorType_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    >
                       <option value="">Select motor</option>
                       {motorTypes.map((m, i) => <option key={i} value={m}>{m}</option>)}
                     </select>
                     {errors[`motorType_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`motorType_${index}`]}</span>}
                     {grower.motorType === 'Other' && (
-                      <input type="text" name="motorTypeOther" value={grower.motorTypeOther} onChange={(e) => handleGrowerChange(index, e)} placeholder="Specify other" className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`motorTypeOther_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`} />
+                      <input
+                        type="text"
+                        name="motorTypeOther"
+                        value={grower.motorTypeOther}
+                        onChange={(e) => handleGrowerChange(index, e)}
+                        placeholder="Specify other"
+                        className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`motorTypeOther_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                      />
                     )}
                     {errors[`motorTypeOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`motorTypeOther_${index}`]}</span>}
                   </div>
+
                   <div className="flex flex-col">
-                    <label className="mb-1 font-medium text-gray-700">Timer Used <span className="text-red-500">*</span></label>
-                    <select name="timerUsed" value={grower.timerUsed} onChange={(e) => handleGrowerChange(index, e)} className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`timerUsed_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}>
+                    <label className="mb-1 font-medium text-gray-700">
+                      Timer Used (टाइमर उपयोग) <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="timerUsed"
+                      value={grower.timerUsed}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`timerUsed_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    >
                       <option value="">Select timer</option>
                       {timerOptions.map((t, i) => <option key={i} value={t}>{t}</option>)}
                     </select>
                     {errors[`timerUsed_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`timerUsed_${index}`]}</span>}
                     {grower.timerUsed === 'Other' && (
-                      <input type="text" name="timerUsedOther" value={grower.timerUsedOther} onChange={(e) => handleGrowerChange(index, e)} placeholder="Specify other" className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`timerUsedOther_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`} />
+                      <input
+                        type="text"
+                        name="timerUsedOther"
+                        value={grower.timerUsedOther}
+                        onChange={(e) => handleGrowerChange(index, e)}
+                        placeholder="Specify other"
+                        className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`timerUsedOther_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                      />
                     )}
                     {errors[`timerUsedOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`timerUsedOther_${index}`]}</span>}
                   </div>
+
                   <div className="flex flex-col md:col-span-2">
                     <label className="mb-1 font-medium text-gray-700">
-                      Plants Chosen <span className="text-red-500">*</span>
+                      Plants Chosen (चुने गए पौधे) <span className="text-red-500">*</span>
                     </label>
                     <Select
                       isMulti
@@ -446,12 +530,9 @@ const StepperCustomerForm = () => {
                       placeholder="Select plants..."
                     />
                     {errors[`selectedPlants_${index}`] && (
-                      <span className="text-red-500 text-sm mt-1">
-                        {errors[`selectedPlants_${index}`]}
-                      </span>
+                      <span className="text-red-500 text-sm mt-1">{errors[`selectedPlants_${index}`]}</span>
                     )}
                   </div>
-
                 </div>
               </div>
             ))}
@@ -589,7 +670,7 @@ const StepperCustomerForm = () => {
   return (
     <div className="w-full min-h-screen bg-gray-100 mt-10">
       <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
-        <h2 className="text-3xl font-bold mb-6 text-gray-800">Add a Customer</h2>
+        <h2 className="text-3xl font-bold mb-6 text-gray-800">Add a Customer(ग्राहक जोड़ें)</h2>
         <StepperHeader />
 
         <div className="mt-6 space-y-6">
@@ -606,7 +687,7 @@ const StepperCustomerForm = () => {
                     onClick={addGrower}
                     className="bg-[#9FC762] hover:bg-[#8DB350] text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
                   >
-                    + Add Grower
+                    + Add Grower(उत्पादक जोड़ें)
                   </button>
 
                   {growers.length > 1 && (
@@ -615,7 +696,7 @@ const StepperCustomerForm = () => {
                       onClick={removeGrower}
                       className="bg-red-500 hover:bg-red-600 text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
                     >
-                      - Remove Grower
+                      - Remove Grower(उत्पादक निकालना)
                     </button>
                   )}
                 </div>
@@ -627,7 +708,7 @@ const StepperCustomerForm = () => {
                     onClick={prevStep}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
                   >
-                    Previous
+                    Previous(पिछला)
                   </button>
 
                   <button
@@ -635,7 +716,7 @@ const StepperCustomerForm = () => {
                     onClick={nextStep}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
                   >
-                    Next
+                    Next(आगे)
                   </button>
                 </div>
               </div>
@@ -648,7 +729,7 @@ const StepperCustomerForm = () => {
                     onClick={prevStep}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg w-full md:w-auto transition"
                   >
-                    Previous
+                    Previous(पिछला)
                   </button>
                 )}
 
@@ -658,7 +739,7 @@ const StepperCustomerForm = () => {
                     onClick={nextStep}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg w-full md:w-auto transition ml-auto"
                   >
-                    Next
+                    Next (आगे)
                   </button>
                 ) : (
                   <button
@@ -666,7 +747,7 @@ const StepperCustomerForm = () => {
                     onClick={handleSubmit}
                     className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-lg w-full md:w-auto transition ml-auto"
                   >
-                    Submit
+                    Submit(जमा करें)
                   </button>
                 )}
               </div>
