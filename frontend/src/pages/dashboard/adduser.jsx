@@ -215,13 +215,13 @@ alert('Done');
         <div className="w-full min-h-screen bg-gray-100 mt-10">
             <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
                 <div className="px-6 py-4 border-b">
-                    <h1 className="text-3xl font-bold mb-6 text-gray-800">Add a User</h1>
+                    <h1 className="text-3xl font-bold mb-6 text-gray-800">Add a User(उपयोगकर्ता जोड़ें)</h1>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6">
                     {/* Role */}
                     <div className="flex flex-col">
                         <label className="mb-1 font-medium text-gray-700">
-                            Role <span className="text-red-500">*</span>
+                            Role(भूमिका`) <span className="text-red-500">*</span>
                         </label>
                         <select
                             name="role"
@@ -240,7 +240,7 @@ alert('Done');
                     {/* Name */}
                     <div className="flex flex-col">
                         <label className="mb-1 font-medium text-gray-700">
-                            Name <span className="text-red-500">*</span>
+                            Name (नाम)<span className="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
@@ -256,7 +256,7 @@ alert('Done');
                     {/* Email */}
                     <div className="flex flex-col">
                         <label className="mb-1 font-medium text-gray-700">
-                            Email <span className="text-red-500">*</span>
+                            Email(ई-मेल) <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="email"
@@ -272,7 +272,7 @@ alert('Done');
                     {/* Phone Number */}
                     <div className="flex flex-col">
                         <label className="mb-1 font-medium text-gray-700">
-                            Phone Number <span className="text-red-500">*</span>
+                            Phone Number(फ़ोन नंबर) <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="tel"
@@ -290,7 +290,7 @@ alert('Done');
                     <div className="flex flex-wrap gap-4 md:col-span-2">
                         <div className="flex-1 flex flex-col">
                             <label className="mb-1 font-medium text-gray-700">
-                                State <span className="text-red-500">*</span>
+                                State(राज्य) <span className="text-red-500">*</span>
                             </label>
                             <select
                                 name="state"
@@ -309,7 +309,7 @@ alert('Done');
                         </div>
                         <div className="flex-1 flex flex-col">
                             <label className="mb-1 font-medium text-gray-700">
-                                City <span className="text-red-500">*</span>
+                                City(शहर) <span className="text-red-500">*</span>
                             </label>
                             <select
                                 name="city"
@@ -332,7 +332,7 @@ alert('Done');
                     <div className="flex flex-wrap gap-4 md:col-span-2">
                         <div className="flex-1 flex flex-col">
                             <label className="mb-1 font-medium text-gray-700">
-                                Pincode <span className="text-red-500">*</span>
+                                Pincode(पिनकोड) <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
@@ -348,7 +348,7 @@ alert('Done');
 
                         {/* Profile Pic */}
                     <div className="flex-1 flex flex-col">
-                        <label className="mb-1 font-medium text-gray-700">Profile Pic</label>
+                        <label className="mb-1 font-medium text-gray-700">Profile Pic(प्रोफ़ाइल चित्र)</label>
                         <input
                             type="file"
                             name="profilePic"
@@ -363,7 +363,7 @@ alert('Done');
                     {/* Street Address */}
                     <div className="flex flex-col md:col-span-2">
                         <label className="mb-1 font-medium text-gray-700">
-                            Street Address <span className="text-red-500">*</span>
+                            Street Address(सड़क पता) <span className="text-red-500">*</span>
                         </label>
                         <textarea
                             name="streetAddress"
@@ -460,7 +460,7 @@ alert('Done');
                         onClick={handleSubmit}
                         className="px-6 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                     >
-                        Submit
+                        Submit(जमा करें)   
                     </button>
                 </div>
             </div>

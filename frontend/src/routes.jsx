@@ -6,6 +6,7 @@ import {
   UsersIcon,
   ServerStackIcon,
   RectangleStackIcon,
+  IdentificationIcon,
 } from "@heroicons/react/24/solid";
 
 import {
@@ -73,24 +74,24 @@ const routes = [
           },
         ],
       },
-      {
-        icon: <UserCircleIcon {...icon} />,
+    {
+        icon: <IdentificationIcon {...icon} />, // 👈 changed to ID card style
         name: "profile",
         path: "/profile",
         element: <Profile />,
       },
-      {
-        icon: <TableCellsIcon {...icon} />,
-        name: "tables",
-        path: "/tables",
-        element: <Tables />,
-      },
-      {
-        icon: <InformationCircleIcon {...icon} />,
-        name: "notifications",
-        path: "/notifications",
-        element: <Notifications />,
-      },
+      // {
+      //   icon: <TableCellsIcon {...icon} />,
+      //   name: "tables",
+      //   path: "/tables",
+      //   element: <Tables />,
+      // },
+      // {
+      //   icon: <InformationCircleIcon {...icon} />,
+      //   name: "notifications",
+      //   path: "/notifications",
+      //   element: <Notifications />,
+      // },
     ],
   },
   {
@@ -103,12 +104,12 @@ const routes = [
         path: "/sign-in",
         element: <SignIn />,
       },
-      {
-        icon: <RectangleStackIcon {...icon} />,
-        name: "sign up",
-        path: "/sign-up",
-        element: <SignUp />,
-      },
+      // {
+      //   icon: <RectangleStackIcon {...icon} />,
+      //   name: "sign up",
+      //   path: "/sign-up",
+      //   element: <SignUp />,
+      // },
     ],
   },
 ];
