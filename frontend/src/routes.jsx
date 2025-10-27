@@ -59,24 +59,24 @@ const routes = [
       },
       {
         icon: <UserCircleIcon {...icon} />,
-        name: "users", // <-- New main tab
+        name: "Employee", // <-- New main tab
         path: "/users",
         element: <User />, // optional if you have a main Users page, otherwise null
         collapse: [
           {
-            name: "Add User",
+            name: "Add Employee",
             path: "/users/add",
             element: <AddUser />,
           },
           {
-            name: "View User",
+            name: "View Employees",
             path: "/users/viewusers",
             element: <ViewUser />,
           },
           {
-            name: "Edit User",
             path: "/users/edituser",
             element: <EditUserForm />,
+            hidden: true, 
           },
         ],
       },

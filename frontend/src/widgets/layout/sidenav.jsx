@@ -80,7 +80,10 @@ export function Sidenav({ brandImg, brandName, routes }) {
               </li>
             )}
 
-            {pages.map(({ icon, name, path, collapse }) => (
+            {pages
+  .filter(({ hidden }) => !hidden) // ✅ hide routes marked as hidden
+  .map(({ icon, name, path, collapse }) => (
+
               <li key={name}>
                 {collapse ? (
                   <>
@@ -134,7 +137,10 @@ export function Sidenav({ brandImg, brandName, routes }) {
                     {/* Submenu */}
                     <Collapse open={openDropdown === name}>
                       <ul className="ml-10 mt-1 flex flex-col gap-1 border-l border-blue-gray-100 pl-3">
-                        {collapse.map(({ name: subName, path: subPath }) => (
+                        {collapse
+  .filter(({ hidden }) => !hidden) // ✅ hide subroutes marked as hidden
+  .map(({ name: subName, path: subPath }) => (
+
                           <li key={subName}>
                             <NavLink to={`/${layout}${subPath}`}>
                               {({ isActive }) => (

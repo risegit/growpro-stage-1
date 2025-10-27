@@ -4,6 +4,7 @@ export default function AddUserForm() {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        password: '',
         phone: '',
         bankName: '',
         accountNumber: '',
@@ -13,9 +14,10 @@ export default function AddUserForm() {
         city: '',
         pincode: '',
         streetAddress: '',
-        role: ''
+        role: '',
+        aadhaarNo: ''
     });
-
+    const [showCopied, setShowCopied] = useState(false);
     const [cities, setCities] = useState([]);
     const [errors, setErrors] = useState({});
 
@@ -25,6 +27,17 @@ export default function AddUserForm() {
         Gujarat: ['Ahmedabad', 'Surat', 'Vadodara'],
         Delhi: ['New Delhi', 'Central Delhi', 'South Delhi', 'North Delhi'],
         'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem']
+    };
+
+    // Generate random alphanumeric password
+    const generatePassword = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$';
+        let password = '';
+        for (let i = 0; i < 10; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        setFormData(prev => ({ ...prev, password }));
+        if (errors.password) setErrors({ ...errors, password: '' });
     };
 
     const handleStateChange = (e) => {
@@ -90,6 +103,7 @@ export default function AddUserForm() {
         if (!formData.name.trim()) newErrors.name = 'Name is required';
         if (!formData.email.trim()) newErrors.email = 'Email is required';
         else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
+        if (!formData.password.trim()) newErrors.password = 'Password is required';
         if (!formData.phone.trim()) {
             newErrors.phone = 'Phone number is required';
         } else if (!/^\d{10}$/.test(formData.phone.trim())) {
@@ -133,28 +147,21 @@ export default function AddUserForm() {
         try {
             const form = new FormData();
             Object.entries(formData).forEach(([key, value]) => {
-                if (value !== null) { // Skip null values if needed (like profilePic initially)
-                    form.append(key, value);
-                }
+                if (value !== null) form.append(key, value);
             });
-
-            if (formData.profilePic) {
-                form.append('profilePic', formData.profilePic);
-            }
 
             const response = await fetch('http://localhost/growpro/growpro-stage-1/backend/api/user.php', {
                 method: 'POST',
-                body: form, // automatically sets Content-Type to multipart/form-data
+                body: form,
             });
 
             const result = await response.json();
-            alert('Done');
             if (result.success) {
-                alert('User added successfully!\n' + JSON.stringify(result.data, null, 2));
-
+                alert('User added successfully!');
                 setFormData({
                     name: '',
                     email: '',
+                    password: '',
                     phone: '',
                     bankName: '',
                     accountNumber: '',
@@ -164,7 +171,8 @@ export default function AddUserForm() {
                     city: '',
                     pincode: '',
                     streetAddress: '',
-                    role: ''
+                    role: '',
+                    aadhaarNo: ''
                 });
                 setCities([]);
                 setErrors({});
@@ -178,24 +186,21 @@ export default function AddUserForm() {
         }
     };
 
-
     return (
         <div className="w-full min-h-screen bg-gray-100 mt-10">
             <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
                 <div className="px-6 py-4 border-b">
-                    <h1 className="text-2xl font-bold mb-6 text-gray-800">Add a User(उपयोगकर्ता जोड़ें)</h1>
+                    <h1 className="text-2xl font-bold mb-6 text-gray-800">Add a Employee (कर्मचारी जोड़ें)</h1>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6">
-                    {/* Role */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6 [&_input]:h-[42px] [&_select]:h-[42px]">
+                    {/* Row 1: Role & Name */}
                     <div className="flex flex-col">
-                        <label className="mb-1 font-medium text-gray-700">
-                            Role(भूमिका`) <span className="text-red-500">*</span>
-                        </label>
+                        <label className="mb-1 font-medium text-gray-700">Role (भूमिका) <span className="text-red-500">*</span></label>
                         <select
                             name="role"
                             value={formData.role}
                             onChange={handleInputChange}
-                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.role ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                            className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.role ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                         >
                             <option value="">Select role</option>
                             <option value="admin">Admin</option>
@@ -205,103 +210,141 @@ export default function AddUserForm() {
                         {errors.role && <span className="text-red-500 text-sm mt-1">{errors.role}</span>}
                     </div>
 
-                    {/* Name */}
                     <div className="flex flex-col">
-                        <label className="mb-1 font-medium text-gray-700">
-                            Name (नाम)<span className="text-red-500">*</span>
-                        </label>
+                        <label className="mb-1 font-medium text-gray-700">Name (नाम) <span className="text-red-500">*</span></label>
                         <input
                             type="text"
                             name="name"
                             value={formData.name}
                             onChange={handleInputChange}
                             placeholder="Enter name"
-                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.name ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                            className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.name ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                         />
                         {errors.name && <span className="text-red-500 text-sm mt-1">{errors.name}</span>}
                     </div>
 
-                    {/* Email */}
+                    {/* Row 2: Email & Password */}
                     <div className="flex flex-col">
-                        <label className="mb-1 font-medium text-gray-700">
-                            Email(ई-मेल) <span className="text-red-500">*</span>
-                        </label>
+                        <label className="mb-1 font-medium text-gray-700">Email (ई-मेल) <span className="text-red-500">*</span></label>
                         <input
                             type="email"
                             name="email"
                             value={formData.email}
                             onChange={handleInputChange}
                             placeholder="Enter email"
-                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.email ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                            className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.email ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                         />
                         {errors.email && <span className="text-red-500 text-sm mt-1">{errors.email}</span>}
                     </div>
 
-                    {/* Phone Number */}
+                    <div className="flex flex-col relative">
+                        <label className="mb-1 font-medium text-gray-700">Password (पासवर्ड) <span className="text-red-500">*</span></label>
+                        <div className="flex gap-2">
+                            <div className="flex-1 relative">
+                                <input
+                                    type="text"
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleInputChange}
+                                    placeholder="Enter password"
+                                    className={`w-full px-3 py-2 pr-10 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.password ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                />
+                                {formData.password && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(formData.password);
+                                                setShowCopied(true);
+                                                setTimeout(() => setShowCopied(false), 2000);
+                                            }}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-blue-500 transition"
+                                            title="Copy password"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                            </svg>
+                                        </button>
+                                        {showCopied && (
+                                            <div className="absolute -top-10 right-0 bg-gray-800 text-white text-xs px-3 py-1.5 rounded shadow-lg animate-fade-in">
+                                                Copied to clipboard!
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={generatePassword}
+                                className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                            >
+                                Generate
+                            </button>
+                        </div>
+                        {errors.password && <span className="text-red-500 text-sm mt-1">{errors.password}</span>}
+                    </div>
+
+                    {/* Row 3: Phone & Profile Pic */}
                     <div className="flex flex-col">
-                        <label className="mb-1 font-medium text-gray-700">
-                            Phone Number(फ़ोन नंबर) <span className="text-red-500">*</span>
-                        </label>
+                        <label className="mb-1 font-medium text-gray-700">Phone Number (फ़ोन नंबर) <span className="text-red-500">*</span></label>
                         <input
                             type="tel"
                             name="phone"
                             value={formData.phone}
                             onChange={handleInputChange}
                             placeholder="Enter phone number"
-                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.phone ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                            className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.phone ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                         />
                         {errors.phone && <span className="text-red-500 text-sm mt-1">{errors.phone}</span>}
                     </div>
 
+                    <div className="flex flex-col">
+                        <label className="mb-1 font-medium text-gray-700">Profile Photo (प्रोफ़ाइल चित्र)</label>
+                        <input
+                            type="file"
+                            name="profilePic"
+                            onChange={handleFileChange}
+                            className="px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none border-gray-300 focus:ring-blue-400"
+                        />
+                    </div>
 
-                    {/* State, City, Pincode */}
-                    <div className="flex flex-wrap gap-4 md:col-span-2">
+                    {/* Row 4: State, City, Pincode */}
+                    <div className="flex flex-wrap md:col-span-2 gap-4">
                         <div className="flex-1 flex flex-col">
-                            <label className="mb-1 font-medium text-gray-700">
-                                State(राज्य) <span className="text-red-500">*</span>
-                            </label>
+                            <label className="mb-1 font-medium text-gray-700">State (राज्य) <span className="text-red-500">*</span></label>
                             <select
                                 name="state"
                                 value={formData.state}
                                 onChange={handleStateChange}
-                                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.state ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.state ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                             >
                                 <option value="">Select state</option>
                                 {Object.keys(statesAndCities).map((state) => (
-                                    <option key={state} value={state}>
-                                        {state}
-                                    </option>
+                                    <option key={state} value={state}>{state}</option>
                                 ))}
                             </select>
                             {errors.state && <span className="text-red-500 text-sm mt-1">{errors.state}</span>}
                         </div>
+
                         <div className="flex-1 flex flex-col">
-                            <label className="mb-1 font-medium text-gray-700">
-                                City(शहर) <span className="text-red-500">*</span>
-                            </label>
+                            <label className="mb-1 font-medium text-gray-700">City (शहर) <span className="text-red-500">*</span></label>
                             <select
                                 name="city"
                                 value={formData.city}
                                 onChange={handleInputChange}
-                                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.city ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                                 disabled={!cities.length}
+                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.city ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                             >
                                 <option value="">Select city</option>
                                 {cities.map((city) => (
-                                    <option key={city} value={city}>
-                                        {city}
-                                    </option>
+                                    <option key={city} value={city}>{city}</option>
                                 ))}
                             </select>
                             {errors.city && <span className="text-red-500 text-sm mt-1">{errors.city}</span>}
                         </div>
-                    </div>
 
-                    <div className="flex flex-wrap gap-4 md:col-span-2">
                         <div className="flex-1 flex flex-col">
-                            <label className="mb-1 font-medium text-gray-700">
-                                Pincode(पिनकोड) <span className="text-red-500">*</span>
-                            </label>
+                            <label className="mb-1 font-medium text-gray-700">Pincode (पिनकोड) <span className="text-red-500">*</span></label>
                             <input
                                 type="text"
                                 name="pincode"
@@ -309,92 +352,58 @@ export default function AddUserForm() {
                                 onChange={handlePincodeChange}
                                 placeholder="Enter pincode"
                                 maxLength="6"
-                                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.pincode ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.pincode ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                             />
                             {errors.pincode && <span className="text-red-500 text-sm mt-1">{errors.pincode}</span>}
                         </div>
-
-                        {/* Profile Pic */}
-                        <div className="flex-1 flex flex-col">
-                            <label className="mb-1 font-medium text-gray-700">Profile Pic(प्रोफ़ाइल चित्र)</label>
-                            {/* <input
-                            type="file"
-                            name="profilePic"
-                            onChange={handleFileChange}
-                            accept="image/*"
-                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition border-gray-300 focus:ring-blue-400`}
-                            
-                        /> */}
-                            <input
-                                type="file"
-                                name="profilePic"
-                                onChange={(e) => setFormData({ ...formData, profilePic: e.target.files[0] })}
-                                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.profilePic ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                            />
-                        </div>
-
                     </div>
 
-                    {/* Street Address */}
+                    {/* Address */}
                     <div className="flex flex-col md:col-span-2">
-                        <label className="mb-1 font-medium text-gray-700">
-                            Street Address(सड़क पता) <span className="text-red-500">*</span>
-                        </label>
+                        <label className="mb-1 font-medium text-gray-700">Address (पता) <span className="text-red-500">*</span></label>
                         <textarea
                             name="streetAddress"
                             value={formData.streetAddress}
                             onChange={handleInputChange}
                             placeholder="Enter address"
                             rows={3}
-                            className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.streetAddress ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.streetAddress ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                         />
                         {errors.streetAddress && <span className="text-red-500 text-sm mt-1">{errors.streetAddress}</span>}
                     </div>
 
-
-
-                    {/* Bank Name */}
-                    {/* Show Bank Details only for Manager or Technician */}
+                    {/* Manager / Technician Extra Fields */}
                     {['manager', 'technician'].includes(formData.role) && (
                         <>
                             <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">
-                                    Aadhaar No <span className="text-red-500">*</span>
-                                </label>
+                                <label className="mb-1 font-medium text-gray-700">Aadhaar No <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     name="aadhaarNo"
                                     value={formData.aadhaarNo}
                                     onChange={handleInputChange}
-                                    placeholder="Enter Aadhaar number"
                                     maxLength="12"
-                                    className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.aadhaarNo ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                        }`}
+                                    placeholder="Enter Aadhaar number"
+                                    className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.aadhaarNo ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                                 />
                                 {errors.aadhaarNo && <span className="text-red-500 text-sm mt-1">{errors.aadhaarNo}</span>}
                             </div>
 
-                            {/* Bank Name */}
                             <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">
-                                    Bank Name <span className="text-red-500">*</span>
-                                </label>
+                                <label className="mb-1 font-medium text-gray-700">Bank Name <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     name="bankName"
                                     value={formData.bankName}
                                     onChange={handleInputChange}
                                     placeholder="Enter bank name"
-                                    className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.bankName ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                    className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.bankName ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                                 />
                                 {errors.bankName && <span className="text-red-500 text-sm mt-1">{errors.bankName}</span>}
                             </div>
 
-                            {/* Account Number */}
                             <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">
-                                    Account Number <span className="text-red-500">*</span>
-                                </label>
+                                <label className="mb-1 font-medium text-gray-700">Account Number <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     name="accountNumber"
@@ -402,16 +411,13 @@ export default function AddUserForm() {
                                     onChange={handleAccountNumberChange}
                                     placeholder="Enter account number"
                                     maxLength="18"
-                                    className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.accountNumber ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                    className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.accountNumber ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                                 />
                                 {errors.accountNumber && <span className="text-red-500 text-sm mt-1">{errors.accountNumber}</span>}
                             </div>
 
-                            {/* IFSC No */}
                             <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">
-                                    IFSC No <span className="text-red-500">*</span>
-                                </label>
+                                <label className="mb-1 font-medium text-gray-700">IFSC No <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     name="ifscNo"
@@ -419,22 +425,21 @@ export default function AddUserForm() {
                                     onChange={handleIFSCChange}
                                     placeholder="Enter IFSC code"
                                     maxLength="11"
-                                    className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.ifscNo ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                    className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.ifscNo ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                                 />
                                 {errors.ifscNo && <span className="text-red-500 text-sm mt-1">{errors.ifscNo}</span>}
                             </div>
                         </>
                     )}
-
-
                 </div>
+
                 {/* Submit Button */}
-                <div className="flex justify-end px-6 py-4 ">
+                <div className="flex justify-end px-6 py-4">
                     <button
                         onClick={handleSubmit}
                         className="px-6 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                     >
-                        Submit(जमा करें)
+                        Submit (जमा करें)
                     </button>
                 </div>
             </div>
