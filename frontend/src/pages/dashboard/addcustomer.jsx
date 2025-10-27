@@ -165,49 +165,51 @@ const StepperCustomerForm = () => {
     return Object.keys(stepErrors).length === 0;
   };
 
-  const handleSubmit = () => {
-    if (validateStep()) {
-      const submissionData = {
-        ...formData,
-        growers: growers
-      };
-      console.log('Form Data:', submissionData);
-      alert('Customer created successfully!');
-      setFormData({
-        name: '',
-        phoneNumber: '',
-        staffPhoneNumber: '',
-        address: '',
-        state: '',
-        city: '',
-        pincode: '',
-        isActive: true,
-        numLights: '',
-        lightModel: '',
-        lightLength: '',
-        tankCapacity: '',
-        tankCapacityOther: '',
-        nutritionGiven: '',
-        otherSpecs: '',
-        photoAtInstallation: null
-      });
-      setGrowers([{
-        systemType: '',
-        systemTypeOther: '',
-        numPlants: '',
-        numLevels: '',
-        setupDimension: '',
-        motorType: '',
-        motorTypeOther: '',
-        timerUsed: '',
-        timerUsedOther: ''
-      }]);
-      setErrors({});
+  const handleSubmit = async () => {
+  if (!validateStep()) return;
+
+  const formPayload = new FormData();
+
+  // Append main form fields
+  for (const key in formData) {
+    formPayload.append(key, formData[key]);
+  }
+
+  // Append growers as JSON string
+  formPayload.append("growers", JSON.stringify(growers));
+
+  try {
+    const response = await fetch(
+      "http://localhost/growpro/growpro-stage-1/backend/api/customer.php",
+      {
+        method: "POST",
+        body: formPayload
+      }
+    );
+
+    const result = await response.json();
+    console.log("Server response:", result);
+
+    if (result.status === "success") {
+      alert("Customer added successfully");
+
+      // Reset form after success
+      setFormData(initialCustomerState);
+      setGrowers([initialGrowerState]);
       setCurrentStep(1);
+      setErrors({});
+    } else {
+      alert("Something went wrong. Please try again.");
     }
-  };
+  } catch (error) {
+    console.error("Error submitting form:", error);
+    alert("Server error. Contact admin.");
+  }
+};
+
+  
   const [cities, setCities] = useState([]);
-  const statesAndCities = {
+  const statesAndCities = { 
     Maharashtra: ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
     Karnataka: ['Bengaluru', 'Mysore', 'Mangalore'],
     Gujarat: ['Ahmedabad', 'Surat', 'Vadodara'],
@@ -256,6 +258,21 @@ const StepperCustomerForm = () => {
                 className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.name ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
               />
               {errors.name && <span className="text-red-500 text-sm mt-1">{errors.name}</span>}
+            </div>
+
+            <div className="flex flex-col">
+              <label className="mb-1 font-medium text-gray-700">
+                Email (नाम) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="Enter email"
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.email ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+              />
+              {errors.email && <span className="text-red-500 text-sm mt-1">{errors.email}</span>}
             </div>
 
             <div className="flex flex-col">
