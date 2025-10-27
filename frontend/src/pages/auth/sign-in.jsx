@@ -113,10 +113,16 @@ export function SignIn() {
 
       </div>
       <div className="w-2/5 h-full hidden lg:block">
-        <img
+        {/* <img
           src="/img/Gropro.jpg"
           className="h-full w-full object-cover rounded-3xl"
+        /> */}
+        <img
+          src={`${import.meta.env.BASE_URL}img/Gropro.jpg`}
+          className="h-full w-full object-cover rounded-3xl"
+          alt="GrowPro"
         />
+
       </div>
 
     </section>

@@ -38,11 +38,12 @@ export function Sidenav({ brandImg, brandName, routes }) {
       {/* ✅ Logo Section */}
       <div>
         <Link to="/" className="py-6 px-8 flex flex-col items-center justify-center gap-2">
-          <img
-            src={brandImg}
-            alt="Brand Logo"
+         <img
+            src={`${import.meta.env.BASE_URL}${brandImg.replace(/^\/+/, "")}`}
+            alt="GrowPro Logo"
             className="h-12 w-auto object-contain"
           />
+
           <Typography
             variant="h6"
             color={sidenavType === "dark" ? "white" : "blue-gray"}
@@ -56,10 +57,10 @@ export function Sidenav({ brandImg, brandName, routes }) {
           color="white"
           size="sm"
           ripple={false}
-          className="absolute right-0 top-0 grid rounded-br-none rounded-tl-none xl:hidden"
+          className="absolute right-3 top-3 grid rounded-br-none rounded-tl-none xl:hidden"
           onClick={() => setOpenSidenav(dispatch, false)}
         >
-          <XMarkIcon strokeWidth={2.5} className="h-5 w-5 text-white" />
+          <XMarkIcon strokeWidth={2.5} className="h-7 w-7 text-black" />
         </IconButton>
       </div>
 

@@ -8,3 +8,4 @@ export * from "@/pages/dashboard/viewcustomer";
 export * from "@/pages/dashboard/user";
 export * from "@/pages/dashboard/viewuser";
 export * from "@/pages/dashboard/adduser";  
+export * from "@/pages/dashboard/edituser";

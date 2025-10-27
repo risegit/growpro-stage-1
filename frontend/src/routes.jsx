@@ -23,6 +23,7 @@ import Viewcustomer from "@/pages/dashboard/viewcustomer";
 import AddUser from "@/pages/dashboard/adduser"; // <-- New
 import ViewUser from "@/pages/dashboard/viewuser"; // <-- New
 import { SignIn, SignUp } from "@/pages/auth";
+import EditUserForm from "./pages/dashboard/edituser";
 
 const icon = {
   className: "w-5 h-5 text-inherit",
@@ -51,7 +52,7 @@ const routes = [
           },
           {
             name: "View Customer",
-            path: "/customers/view",
+            path: "/customers/viewcustomers",
             element: <Viewcustomer />,
           },
         ],
@@ -69,12 +70,17 @@ const routes = [
           },
           {
             name: "View User",
-            path: "/users/view",
+            path: "/users/viewusers",
             element: <ViewUser />,
+          },
+          {
+            name: "Edit User",
+            path: "/users/edituser",
+            element: <EditUserForm />,
           },
         ],
       },
-    {
+      {
         icon: <IdentificationIcon {...icon} />, // 👈 changed to ID card style
         name: "profile",
         path: "/profile",

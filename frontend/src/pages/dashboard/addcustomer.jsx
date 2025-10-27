@@ -222,7 +222,7 @@ const StepperCustomerForm = () => {
   };
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
   const StepperHeader = () => (
-    <div className="flex overflow-x-auto md:overflow-visible space-x-4 md:space-x-0 justify-between mb-8 pl-4 md:pl-0">
+    <div className="flex overflow-x-auto md:overflow-visible space-x-4 md:space-x-0 justify-between mb-8 pl-4 md:pl-0 pt-3">
       {[1, 2, 3].map((step, idx) => (
         <div key={step} className="flex-1 flex flex-col items-center min-w-[70px] relative">
           {idx !== 0 && (
@@ -344,7 +344,7 @@ const StepperCustomerForm = () => {
                   Pincode (पिनकोड) <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   name="pincode"
                   value={formData.pincode}
                   onChange={handleInputChange}
@@ -541,7 +541,7 @@ const StepperCustomerForm = () => {
       case 3:
         return (
           <div className="px-6 py-6">
-            <h3 className="text-2xl font-bold mb-6 text-gray-800">Review Your Information</h3>
+            <h3 className="md:text-2xl sm:text-xl font-bold mb-6 text-gray-800">Review Your Information</h3>
 
             <div className="space-y-6">
               <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
@@ -670,7 +670,7 @@ const StepperCustomerForm = () => {
   return (
     <div className="w-full min-h-screen bg-gray-100 mt-10">
       <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
-        <h2 className="text-3xl font-bold mb-6 text-gray-800">Add a Customer(ग्राहक जोड़ें)</h2>
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">Add a Customer(ग्राहक जोड़ें)</h2>
         <StepperHeader />
 
         <div className="mt-6 space-y-6">
