@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from "react-router-dom";
+
 
 export default function UserTable() {
   // Sample user data
@@ -21,7 +23,7 @@ export default function UserTable() {
   const filteredUsers = useMemo(() => {
     if (!searchQuery.trim()) return allUsers;
     const query = searchQuery.toLowerCase();
-    return allUsers.filter(user => 
+    return allUsers.filter(user =>
       user.name.toLowerCase().includes(query) ||
       user.email.toLowerCase().includes(query) ||
       user.role.toLowerCase().includes(query) ||
@@ -39,23 +41,24 @@ export default function UserTable() {
     setCurrentPage(1);
   };
 
-  const handleEdit = (userId) => {
-    console.log('Edit user:', userId);
-  };
+  const navigate = useNavigate();
 
+  const handleEdit = () => {
+    navigate("/dashboard/users/edituser");
+  };
   const goToPage = (page) => setCurrentPage(page);
   const goToPrevious = () => setCurrentPage(prev => Math.max(prev - 1, 1));
   const goToNext = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
 
   return (
-        <div className="w-full min-h-screen bg-gray-100 mt-10">
-            <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
+    <div className="w-full min-h-screen bg-gray-100 mt-10">
+      <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
 
         {/* Header with Search */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 sm:px-6 py-5 sm:py-4 border-b">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">User Management</h1>
-            <p className="text-sm sm:text-base text-gray-600">View and manage all users</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Employee Management</h1>
+            <p className="text-sm sm:text-base text-gray-600">View and manage all employees</p>
           </div>
 
           <div className="mt-3 sm:mt-0 w-full sm:w-1/3">
@@ -100,16 +103,17 @@ export default function UserTable() {
                         </td>
                         <td className="py-4 px-4 text-gray-700">{user.email}</td>
                         <td className="py-4 px-4">
-                          <span className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                            user.role === 'Admin' ? 'bg-blue-100 text-blue-700' :
-                            user.role === 'Manager' ? 'bg-green-100 text-green-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>{user.role}</span>
+                          <span className={`px-3 py-1 rounded-lg text-sm font-medium ${user.role === 'Admin' ? 'bg-blue-100 text-blue-700' :
+                              user.role === 'Manager' ? 'bg-green-100 text-green-700' :
+                                'bg-gray-100 text-gray-700'
+                            }`}>{user.role}</span>
                         </td>
                         <td className="py-4 px-4 text-gray-700">{user.mobile}</td>
                         <td className="py-4 px-4 text-right">
-                          <button onClick={() => handleEdit(user.id)}
-                            className="px-4 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors">
+                          <button
+                            onClick={handleEdit}
+                            className="px-4 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors"
+                          >
                             Edit
                           </button>
                         </td>
@@ -127,11 +131,10 @@ export default function UserTable() {
                       <img src={user.profilePic} alt={user.name} className="w-14 h-14 rounded-full object-cover" />
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-gray-800 text-lg mb-2">{user.name}</h3>
-                        <span className={`inline-block px-3 py-1 rounded-lg text-xs font-medium ${
-                          user.role === 'Admin' ? 'bg-blue-100 text-blue-700' :
-                          user.role === 'Manager' ? 'bg-green-100 text-green-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>{user.role}</span>
+                        <span className={`inline-block px-3 py-1 rounded-lg text-xs font-medium ${user.role === 'Admin' ? 'bg-blue-100 text-blue-700' :
+                            user.role === 'Manager' ? 'bg-green-100 text-green-700' :
+                              'bg-gray-100 text-gray-700'
+                          }`}>{user.role}</span>
                       </div>
                     </div>
                     <div className="space-y-3 mb-5">
