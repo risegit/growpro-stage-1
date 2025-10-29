@@ -105,34 +105,34 @@ export function Configurator() {
             ))}
           </div>
         </div>
-        <div className="mb-12">
-          <Typography variant="h6" color="blue-gray">
-            Sidenav Types
-          </Typography>
-          <Typography variant="small" color="gray">
-            Choose between 3 different sidenav types.
-          </Typography>
-          <div className="mt-3 flex items-center gap-2">
-            <Button
-              variant={sidenavType === "dark" ? "gradient" : "outlined"}
-              onClick={() => setSidenavType(dispatch, "dark")}
-            >
-              Dark
-            </Button>
-            <Button
-              variant={sidenavType === "transparent" ? "gradient" : "outlined"}
-              onClick={() => setSidenavType(dispatch, "transparent")}
-            >
-              Transparent
-            </Button>
-            <Button
-              variant={sidenavType === "white" ? "gradient" : "outlined"}
-              onClick={() => setSidenavType(dispatch, "white")}
-            >
-              White
-            </Button>
+          <div className="mb-12">
+            <Typography variant="h6" color="blue-gray">
+              Sidenav Types
+            </Typography>
+            <Typography variant="small" color="gray">
+              Choose between 3 different sidenav types.
+            </Typography>
+            <div className="mt-3 flex items-center gap-2">
+              <Button
+                variant={sidenavType === "dark" ? "gradient" : "outlined"}
+                onClick={() => setSidenavType(dispatch, "dark")}
+              >
+                Dark
+              </Button>
+              <Button
+                variant={sidenavType === "transparent" ? "gradient" : "outlined"}
+                onClick={() => setSidenavType(dispatch, "transparent")}
+              >
+                Transparent
+              </Button>
+              <Button
+                variant={sidenavType === "white" ? "gradient" : "outlined"}
+                onClick={() => setSidenavType(dispatch, "white")}
+              >
+                White
+              </Button>
+            </div>
           </div>
-        </div>
         <div className="mb-12">
           <hr />
           <div className="flex items-center justify-between py-5">

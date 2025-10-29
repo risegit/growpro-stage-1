@@ -9,3 +9,6 @@ export * from "@/pages/dashboard/user";
 export * from "@/pages/dashboard/viewuser";
 export * from "@/pages/dashboard/adduser";  
 export * from "@/pages/dashboard/edituser";
+export * from "@/pages/dashboard/amc";
+export * from "@/pages/dashboard/editcustomer";
+export * from "@/pages/dashboard/viewcustomer";

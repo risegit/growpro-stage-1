@@ -81,7 +81,10 @@ const StepperCustomerForm = () => {
     photoAtInstallation: null
   }]);
 
-  const systemTypes = ['Small Grower', 'Long Grower', 'Mini Pro Grower', 'Semi Pro Grower', 'Pro Grower', 'Vertical Outdoor Grower', 'Flat Bed', 'Indoor Grower', 'Furniture Integrated Grower', 'Mini Grower', 'Dutch Bucket', 'Growbags', 'Microgreen Racks', 'Other'];
+  const systemTypes = ['Small Grower', 'Long Grower', 'Mini Pro Grower',
+    'Semi Pro Grower', 'Pro Grower', 'Vertical Outdoor Grower', 'Flat Bed',
+    'Indoor Grower', 'Furniture Integrated Grower', 'Mini Grower', 'Dutch Bucket',
+    'Growbags', 'Microgreen Racks', 'Other'];
   const motorTypes = ['Small Motor (10W)', 'Big Motor (40W)', 'Other'];
   const timerOptions = ['Digital', 'Cyclic-15 mins', 'TS1W1', '800XC', 'Other'];
   const modelOfLight = ['Nx1.1', 'Nx4', 'Other'];
@@ -100,23 +103,23 @@ const StepperCustomerForm = () => {
   //   updatedGrowers[index] = { ...updatedGrowers[index], [name]: value };
   //   setGrowers(updatedGrowers);
   //   setErrors(prev => ({ ...prev, [`${name}_${index}`]: '' }));
-  // };
+  // };           
 
   const handleGrowerChange = (index, e, customField, customValue) => {
-  const updatedGrowers = [...growers];
+    const updatedGrowers = [...growers];
 
-  if (customField) {
-    updatedGrowers[index][customField] = customValue;
+    if (customField) {
+      updatedGrowers[index][customField] = customValue;
+      setGrowers(updatedGrowers);
+      setErrors(prev => ({ ...prev, [`${customField}_${index}`]: '' }));
+      return;
+    }
+
+    const { name, value } = e.target;
+    updatedGrowers[index][name] = value;
     setGrowers(updatedGrowers);
-    setErrors(prev => ({ ...prev, [`${customField}_${index}`]: '' }));
-    return;
-  }
-
-  const { name, value } = e.target;
-  updatedGrowers[index][name] = value;
-  setGrowers(updatedGrowers);
-  setErrors(prev => ({ ...prev, [`${name}_${index}`]: '' }));
-};
+    setErrors(prev => ({ ...prev, [`${name}_${index}`]: '' }));
+  };
 
 
   const addGrower = () => {
@@ -196,9 +199,9 @@ const StepperCustomerForm = () => {
         if (grower.tankCapacity === 'Other' && !grower.tankCapacityOther.trim()) stepErrors[`tankCapacityOther_${index}`] = 'Please specify other tank capacity';
         if (!grower.nutritionGiven) stepErrors[`nutritionGiven_${index}`] = 'Nutrition Given is required';
         if (!grower.otherSpecifications) stepErrors[`otherSpecifications_${index}`] = 'Other Specification is required';
- if (!grower.photoAtInstallation) {
-  stepErrors[`photoAtInstallation_${index}`] = 'Photo At Installation is required';
-}
+        if (!grower.photoAtInstallation) {
+          stepErrors[`photoAtInstallation_${index}`] = 'Photo At Installation is required';
+        }
 
         if (!grower.selectedPlants || grower.selectedPlants.length === 0) {
           stepErrors[`selectedPlants_${index}`] = 'Select at least one plant';
@@ -211,56 +214,56 @@ const StepperCustomerForm = () => {
   };
 
   const handleSubmit = async () => {
-  if (!validateStep()) return;
+    if (!validateStep()) return;
 
-  const formPayload = new FormData();
+    const formPayload = new FormData();
 
-  // Append main form fields
-  for (const key in formData) {
-    formPayload.append(key, formData[key]);
-  }
-
-  // Append growers as JSON string
-  formPayload.append("growers", JSON.stringify(growers));
-
-  console.log("Form Payload Data:");
-  for (let pair of formPayload.entries()) {
-    console.log(pair[0] + ": ", pair[1]);
-  }
-  
-  try {
-    const response = await fetch(
-      "http://localhost/growpro/growpro-stage-1/backend/api/customer.php",
-      {
-        method: "POST",
-        body: formPayload
-      }
-    );
-
-    const result = await response.json();
-    console.log("Server response:", result);
-
-    if (result.status === "success") {
-      toast.error("Customer added successfully");
-
-      // Reset form after success
-      // setFormData(initialCustomerState);
-      // setGrowers([initialGrowerState]);
-      // setCurrentStep(1);
-      setErrors({});
-    } else {
-      toast.error("Something went wrong. Please try again.");
-      alert("Something went wrong. Please try again.");
+    // Append main form fields
+    for (const key in formData) {
+      formPayload.append(key, formData[key]);
     }
-  } catch (error) {
-    console.error("Error submitting form:", error);
-    alert("Server error. Contact admin.");
-  }
-};
 
-  
+    // Append growers as JSON string
+    formPayload.append("growers", JSON.stringify(growers));
+
+    console.log("Form Payload Data:");
+    for (let pair of formPayload.entries()) {
+      console.log(pair[0] + ": ", pair[1]);
+    }
+
+    try {
+      const response = await fetch(
+        "http://localhost/growpro/growpro-stage-1/backend/api/customer.php",
+        {
+          method: "POST",
+          body: formPayload
+        }
+      );
+
+      const result = await response.json();
+      console.log("Server response:", result);
+
+      if (result.status === "success") {
+        toast.error("Customer added successfully");
+
+        // Reset form after success
+        // setFormData(initialCustomerState);
+        // setGrowers([initialGrowerState]);
+        // setCurrentStep(1);
+        setErrors({});
+      } else {
+        toast.error("Something went wrong. Please try again.");
+        alert("Something went wrong. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      alert("Server error. Contact admin.");
+    }
+  };
+
+
   const [cities, setCities] = useState([]);
-  const statesAndCities = { 
+  const statesAndCities = {
     Maharashtra: ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
     Karnataka: ['Bengaluru', 'Mysore', 'Mangalore'],
     Gujarat: ['Ahmedabad', 'Surat', 'Vadodara'],
@@ -314,7 +317,7 @@ const StepperCustomerForm = () => {
 
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
-                Email (नाम) <span className="text-red-500">*</span>
+                Email (ईमेल) <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
@@ -712,30 +715,29 @@ const StepperCustomerForm = () => {
                     {errors[`otherSpecifications_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`otherSpecifications_${index}`]}</span>}
                   </div>
 
-          <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700">
-            Photo at Time of Installation <span className="text-red-500">*</span>
-           </label>
+                  <div className="flex flex-col">
+                    <label className="mb-1 font-medium text-gray-700">
+                      Photo at Time of Installation <span className="text-red-500">*</span>
+                    </label>
 
-  <input
-    type="file"
-    name="photoAtInstallation"
-    onChange={(e) =>
-      handleGrowerChange(index, e, 'photoAtInstallation', e.target.files[0])
-    }
-    className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${
-      errors[`photoAtInstallation_${index}`]
-        ? 'border-red-500 focus:ring-red-400'
-        : 'border-gray-300 focus:ring-blue-400'
-    }`}
-  />
+                    <input
+                      type="file"
+                      name="photoAtInstallation"
+                      onChange={(e) =>
+                        handleGrowerChange(index, e, 'photoAtInstallation', e.target.files[0])
+                      }
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`photoAtInstallation_${index}`]
+                          ? 'border-red-500 focus:ring-red-400'
+                          : 'border-gray-300 focus:ring-blue-400'
+                        }`}
+                    />
 
-  {errors[`photoAtInstallation_${index}`] && (
-    <span className="text-red-500 text-sm mt-1">
-      {errors[`photoAtInstallation_${index}`]}
-    </span>
-  )}
-</div>
+                    {errors[`photoAtInstallation_${index}`] && (
+                      <span className="text-red-500 text-sm mt-1">
+                        {errors[`photoAtInstallation_${index}`]}
+                      </span>
+                    )}
+                  </div>
 
 
 
@@ -893,26 +895,26 @@ const StepperCustomerForm = () => {
                           {grower.otherSpecifications}
                         </p>
                       </div>
-                       <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">
-                        Photo at Time of Installation:
-                      </span>{" "}
-                      {grower.photoAtInstallation ? (
-                        <span>{grower.photoAtInstallation.name}</span>
-                      ) : (
-                        "No file uploaded"
-                      )}
-                    </p>
-                  
-                    {grower.photoAtInstallation && (
-                      <img
-                        src={URL.createObjectURL(grower.photoAtInstallation)}
-                        alt="Installation Preview"
-                        className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
-                      />
-                    )}
-                  </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">
+                            Photo at Time of Installation:
+                          </span>{" "}
+                          {grower.photoAtInstallation ? (
+                            <span>{grower.photoAtInstallation.name}</span>
+                          ) : (
+                            "No file uploaded"
+                          )}
+                        </p>
+
+                        {grower.photoAtInstallation && (
+                          <img1
+                            src={URL.createObjectURL(grower.photoAtInstallation)}
+                            alt="Installation Preview"
+                            className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
+                          />
+                        )}
+                      </div>
 
                       {/* <div className="flex flex-col">
                         <label className="mb-1 font-medium text-gray-700">
