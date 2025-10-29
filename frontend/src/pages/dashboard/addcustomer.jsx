@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Select from 'react-select';
+import { toast } from "react-toastify";
 
 const StepperCustomerForm = () => {
   const [formData, setFormData] = useState({
@@ -11,15 +12,7 @@ const StepperCustomerForm = () => {
     state: '',
     city: '',
     pincode: '',
-    isActive: true,
-    numLights: '',
-    lightModel: '',
-    lightLength: '',
-    tankCapacity: '',
-    tankCapacityOther: '',
-    nutritionGiven: '',
-    otherSpecs: '',
-    photoAtInstallation: null
+    isActive: true
   });
 
   const plantOptions = [
@@ -76,11 +69,24 @@ const StepperCustomerForm = () => {
     motorTypeOther: '',
     timerUsed: '',
     timerUsedOther: '',
+    numLights: "",
+    modelOfLight: "",
+    modelOfLightOther: "",
+    lengthOfLight: "",
+    lengthOfLightOther: "",
+    tankCapacity: "",
+    tankCapacityOther: "",
+    nutritionGiven: "",
+    otherSpecifications: "",
+    photoAtInstallation: null
   }]);
 
   const systemTypes = ['Small Grower', 'Long Grower', 'Mini Pro Grower', 'Semi Pro Grower', 'Pro Grower', 'Vertical Outdoor Grower', 'Flat Bed', 'Indoor Grower', 'Furniture Integrated Grower', 'Mini Grower', 'Dutch Bucket', 'Growbags', 'Microgreen Racks', 'Other'];
   const motorTypes = ['Small Motor (10W)', 'Big Motor (40W)', 'Other'];
   const timerOptions = ['Digital', 'Cyclic-15 mins', 'TS1W1', '800XC', 'Other'];
+  const modelOfLight = ['Nx1.1', 'Nx4', 'Other'];
+  const lengthOfLight = ['2ft', '3ft', '4ft', 'Other'];
+  const tankCapacity = ['20L', '40L', '100L', '150L', '200L', 'Other'];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -88,13 +94,30 @@ const StepperCustomerForm = () => {
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const handleGrowerChange = (index, e) => {
-    const { name, value } = e.target;
-    const updatedGrowers = [...growers];
-    updatedGrowers[index] = { ...updatedGrowers[index], [name]: value };
+  // const handleGrowerChange = (index, e) => {
+  //   const { name, value } = e.target;
+  //   const updatedGrowers = [...growers];
+  //   updatedGrowers[index] = { ...updatedGrowers[index], [name]: value };
+  //   setGrowers(updatedGrowers);
+  //   setErrors(prev => ({ ...prev, [`${name}_${index}`]: '' }));
+  // };
+
+  const handleGrowerChange = (index, e, customField, customValue) => {
+  const updatedGrowers = [...growers];
+
+  if (customField) {
+    updatedGrowers[index][customField] = customValue;
     setGrowers(updatedGrowers);
-    setErrors(prev => ({ ...prev, [`${name}_${index}`]: '' }));
-  };
+    setErrors(prev => ({ ...prev, [`${customField}_${index}`]: '' }));
+    return;
+  }
+
+  const { name, value } = e.target;
+  updatedGrowers[index][name] = value;
+  setGrowers(updatedGrowers);
+  setErrors(prev => ({ ...prev, [`${name}_${index}`]: '' }));
+};
+
 
   const addGrower = () => {
     setGrowers([...growers, {
@@ -107,6 +130,16 @@ const StepperCustomerForm = () => {
       motorTypeOther: '',
       timerUsed: '',
       timerUsedOther: '',
+      numLights: "",
+      modelOfLight: "",
+      modelOfLightOther: "",
+      lengthOfLight: "",
+      lengthOfLightOther: "",
+      tankCapacity: "",
+      tankCapacityOther: "",
+      nutritionGiven: "",
+      otherSpecifications: "",
+      photoAtInstallation: null,
       selectedPlants: []
     }]);
   };
@@ -155,6 +188,18 @@ const StepperCustomerForm = () => {
         if (grower.motorType === 'Other' && !grower.motorTypeOther.trim()) stepErrors[`motorTypeOther_${index}`] = 'Please specify other motor type';
         if (!grower.timerUsed) stepErrors[`timerUsed_${index}`] = 'Timer used is required';
         if (grower.timerUsed === 'Other' && !grower.timerUsedOther.trim()) stepErrors[`timerUsedOther_${index}`] = 'Please specify other timer';
+        if (!grower.modelOfLight) stepErrors[`modelOfLight_${index}`] = 'Model of Light is required';
+        if (grower.modelOfLight === 'Other' && !grower.modelOfLightOther.trim()) stepErrors[`modelOfLightOther_${index}`] = 'Please specify other model of light';
+        if (!grower.lengthOfLight) stepErrors[`lengthOfLight_${index}`] = 'Length of Light is required';
+        if (grower.lengthOfLight === 'Other' && !grower.lengthOfLightOther.trim()) stepErrors[`lengthOfLightOther_${index}`] = 'Please specify other length of light';
+        if (!grower.tankCapacity) stepErrors[`tankCapacity_${index}`] = 'Tank Capacity is required';
+        if (grower.tankCapacity === 'Other' && !grower.tankCapacityOther.trim()) stepErrors[`tankCapacityOther_${index}`] = 'Please specify other tank capacity';
+        if (!grower.nutritionGiven) stepErrors[`nutritionGiven_${index}`] = 'Nutrition Given is required';
+        if (!grower.otherSpecifications) stepErrors[`otherSpecifications_${index}`] = 'Other Specification is required';
+ if (!grower.photoAtInstallation) {
+  stepErrors[`photoAtInstallation_${index}`] = 'Photo At Installation is required';
+}
+
         if (!grower.selectedPlants || grower.selectedPlants.length === 0) {
           stepErrors[`selectedPlants_${index}`] = 'Select at least one plant';
         }
@@ -178,6 +223,11 @@ const StepperCustomerForm = () => {
   // Append growers as JSON string
   formPayload.append("growers", JSON.stringify(growers));
 
+  console.log("Form Payload Data:");
+  for (let pair of formPayload.entries()) {
+    console.log(pair[0] + ": ", pair[1]);
+  }
+  
   try {
     const response = await fetch(
       "http://localhost/growpro/growpro-stage-1/backend/api/customer.php",
@@ -191,14 +241,15 @@ const StepperCustomerForm = () => {
     console.log("Server response:", result);
 
     if (result.status === "success") {
-      alert("Customer added successfully");
+      toast.error("Customer added successfully");
 
       // Reset form after success
-      setFormData(initialCustomerState);
-      setGrowers([initialGrowerState]);
-      setCurrentStep(1);
+      // setFormData(initialCustomerState);
+      // setGrowers([initialGrowerState]);
+      // setCurrentStep(1);
       setErrors({});
     } else {
+      toast.error("Something went wrong. Please try again.");
       alert("Something went wrong. Please try again.");
     }
   } catch (error) {
@@ -224,6 +275,7 @@ const StepperCustomerForm = () => {
   };
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
   const StepperHeader = () => (
+
     <div className="flex overflow-x-auto md:overflow-visible space-x-4 md:space-x-0 justify-between mb-8 pl-4 md:pl-0 pt-3">
       {[1, 2, 3].map((step, idx) => (
         <div key={step} className="flex-1 flex flex-col items-center min-w-[70px] relative">
@@ -534,6 +586,159 @@ const StepperCustomerForm = () => {
                     {errors[`timerUsedOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`timerUsedOther_${index}`]}</span>}
                   </div>
 
+                  <div className="flex flex-col">
+                    <label className="mb-1 font-medium text-gray-700">
+                      No. of Lights <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="numLights"
+                      value={grower.numLights}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      min="0"
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`numLights_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    />
+                    {errors[`numLights_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`numLights_${index}`]}</span>}
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className="mb-1 font-medium text-gray-700">
+                      Model of Lights <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="modelOfLight"
+                      value={grower.modelOfLight}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`modelOfLight_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    >
+                      <option value="">Select Model of Light</option>
+                      {modelOfLight.map((t, i) => <option key={i} value={t}>{t}</option>)}
+                    </select>
+                    {errors[`modelOfLight_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`modelOfLight_${index}`]}</span>}
+                    {grower.modelOfLight === 'Other' && (
+                      <input
+                        type="text"
+                        name="modelOfLightOther"
+                        value={grower.modelOfLightOther}
+                        onChange={(e) => handleGrowerChange(index, e)}
+                        placeholder="Specify other"
+                        className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`modelOfLightOther_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                      />
+                    )}
+                    {errors[`modelOfLightOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`modelOfLightOther_${index}`]}</span>}
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className="mb-1 font-medium text-gray-700">
+                      Length of Lights <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="lengthOfLight"
+                      value={grower.lengthOfLight}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`lengthOfLight_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    >
+                      <option value="">Select Length of Lights</option>
+                      {lengthOfLight.map((t, i) => <option key={i} value={t}>{t}</option>)}
+                    </select>
+                    {errors[`lengthOfLight_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`lengthOfLight_${index}`]}</span>}
+                    {grower.lengthOfLight === 'Other' && (
+                      <input
+                        type="text"
+                        name="lengthOfLightOther"
+                        value={grower.lengthOfLightOther}
+                        onChange={(e) => handleGrowerChange(index, e)}
+                        placeholder="Specify other"
+                        className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`lengthOfLightOther_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                      />
+                    )}
+                    {errors[`lengthOfLightOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`lengthOfLightOther_${index}`]}</span>}
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className="mb-1 font-medium text-gray-700">
+                      Tank Capacity<span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="tankCapacity"
+                      value={grower.tankCapacity}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`tankCapacity_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    >
+                      <option value="">Select Tank Capacity</option>
+                      {tankCapacity.map((t, i) => <option key={i} value={t}>{t}</option>)}
+                    </select>
+                    {errors[`tankCapacity_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`tankCapacity_${index}`]}</span>}
+                    {grower.tankCapacity === 'Other' && (
+                      <input
+                        type="text"
+                        name="tankCapacityOther"
+                        value={grower.tankCapacityOther}
+                        onChange={(e) => handleGrowerChange(index, e)}
+                        placeholder="Specify other"
+                        className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`tankCapacityOther_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                      />
+                    )}
+                    {errors[`tankCapacityOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`tankCapacityOther_${index}`]}</span>}
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className="mb-1 font-medium text-gray-700">
+                      Nutrition Given <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="nutritionGiven"
+                      value={grower.nutritionGiven}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      min="0"
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`nutritionGiven_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    />
+                    {errors[`nutritionGiven_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`nutritionGiven_${index}`]}</span>}
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className="mb-1 font-medium text-gray-700">
+                      Other Specifications <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="otherSpecifications"
+                      value={grower.otherSpecifications}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      min="0"
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`otherSpecifications_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    />
+                    {errors[`otherSpecifications_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`otherSpecifications_${index}`]}</span>}
+                  </div>
+
+          <div className="flex flex-col">
+            <label className="mb-1 font-medium text-gray-700">
+            Photo at Time of Installation <span className="text-red-500">*</span>
+           </label>
+
+  <input
+    type="file"
+    name="photoAtInstallation"
+    onChange={(e) =>
+      handleGrowerChange(index, e, 'photoAtInstallation', e.target.files[0])
+    }
+    className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${
+      errors[`photoAtInstallation_${index}`]
+        ? 'border-red-500 focus:ring-red-400'
+        : 'border-gray-300 focus:ring-blue-400'
+    }`}
+  />
+
+  {errors[`photoAtInstallation_${index}`] && (
+    <span className="text-red-500 text-sm mt-1">
+      {errors[`photoAtInstallation_${index}`]}
+    </span>
+  )}
+</div>
+
+
+
                   <div className="flex flex-col md:col-span-2">
                     <label className="mb-1 font-medium text-gray-700">
                       Plants Chosen (चुने गए पौधे) <span className="text-red-500">*</span>
@@ -652,6 +857,75 @@ const StepperCustomerForm = () => {
                           {grower.timerUsed === 'Other' ? grower.timerUsedOther : grower.timerUsed}
                         </p>
                       </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">No. of Lights: </span>
+                          {grower.numLights}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Model of Lights: </span>
+                          {grower.modelOfLight === 'Other' ? grower.modelOfLightOther : grower.modelOfLight}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Length of Lights: </span>
+                          {grower.lengthOfLight === 'Other' ? grower.lengthOfLightOther : grower.lengthOfLight}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Tank Capacity: </span>
+                          {grower.tankCapacity === 'Other' ? grower.tankCapacityOther : grower.tankCapacity}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Nutrition Given: </span>
+                          {grower.nutritionGiven}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Other Specifications: </span>
+                          {grower.otherSpecifications}
+                        </p>
+                      </div>
+                       <div>
+                    <p className="text-gray-800">
+                      <span className="font-medium text-gray-600">
+                        Photo at Time of Installation:
+                      </span>{" "}
+                      {grower.photoAtInstallation ? (
+                        <span>{grower.photoAtInstallation.name}</span>
+                      ) : (
+                        "No file uploaded"
+                      )}
+                    </p>
+                  
+                    {grower.photoAtInstallation && (
+                      <img
+                        src={URL.createObjectURL(grower.photoAtInstallation)}
+                        alt="Installation Preview"
+                        className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
+                      />
+                    )}
+                  </div>
+
+                      {/* <div className="flex flex-col">
+                        <label className="mb-1 font-medium text-gray-700">
+                          Photo at Time of Installation:
+                        </label>
+                        <input
+                          type="file"
+                          name="installationPhoto"
+                          onChange={(e) => setFormData({ ...formData, installationPhoto: e.target.files[0] })}
+                          className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.installationPhoto ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                        />
+                        {errors.installationPhoto && <span className="text-red-500 text-sm mt-1">{errors.installationPhoto}</span>}
+                      </div> */}
                       <div className="md:col-span-2">
                         <p className="text-gray-800">
                           <span className="font-medium text-gray-600">Plants Chosen: </span>

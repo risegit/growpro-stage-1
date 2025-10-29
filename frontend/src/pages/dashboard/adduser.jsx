@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { toast } from "react-toastify";
+
 
 export default function AddUserForm() {
     const [formData, setFormData] = useState({
@@ -20,6 +22,8 @@ export default function AddUserForm() {
     const [showCopied, setShowCopied] = useState(false);
     const [cities, setCities] = useState([]);
     const [errors, setErrors] = useState({});
+
+     const fileInputRef = useRef(null);
 
     const statesAndCities = {
         Maharashtra: ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
@@ -154,10 +158,11 @@ export default function AddUserForm() {
                 method: 'POST',
                 body: form,
             });
-
+            
             const result = await response.json();
-            if (result.success) {
-                alert('User added successfully!');
+            // alert(`result1 = ${result.message}`);
+            if (result.status=='success') {
+                toast.success(result.message);
                 setFormData({
                     name: '',
                     email: '',
@@ -176,13 +181,17 @@ export default function AddUserForm() {
                 });
                 setCities([]);
                 setErrors({});
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = "";
+                }
+
             } else {
-                alert(result.message || 'Failed to add user');
+                toast.error(result.message || 'Failed to add user');
             }
 
         } catch (error) {
-            console.error('Error submitting form:', error);
-            alert('Something went wrong!');
+            // console.error('Error submitting form:', error);
+            toast.error('Something went wrong!');
         }
     };
 
@@ -304,6 +313,7 @@ export default function AddUserForm() {
                             type="file"
                             name="profilePic"
                             onChange={handleFileChange}
+                            ref={fileInputRef}
                             className="px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none border-gray-300 focus:ring-blue-400"
                         />
                     </div>

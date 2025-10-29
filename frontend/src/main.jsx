@@ -1,45 +1,21 @@
-
-// import React from "react";
-// import ReactDOM from "react-dom/client";
-// import App from "./App";
-// import { BrowserRouter } from "react-router-dom";
-// import { ThemeProvider } from "@material-tailwind/react";
-// import { MaterialTailwindControllerProvider } from "@/context";
-
-// // Import global styles
-// import "../public/css/tailwind.css";  // Tailwind base styles
-// import "./global.css";               // ✅ Your custom global styles
-
-// ReactDOM.createRoot(document.getElementById("root")).render(
-//   <React.StrictMode>
-//     <BrowserRouter>
-//       <ThemeProvider>
-//         <MaterialTailwindControllerProvider>
-//           <App />
-//         </MaterialTailwindControllerProvider>
-//       </ThemeProvider>
-//     </BrowserRouter>
-//   </React.StrictMode>
-// );
-
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "@material-tailwind/react";
 import { MaterialTailwindControllerProvider } from "@/context";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // Import global styles
-import "../public/css/tailwind.css"; // Tailwind base styles
-import "./global.css";               // ✅ Your custom global styles
+import "../public/css/tailwind.css";
+import "./global.css";
 
-// 👇 Dynamic base path for local and production (no .env needed)
+// 👇 Dynamic base path for local and production
 const mode = import.meta.env.MODE;
 const base = mode === "development" ? "/" : "/growpro/";
 
-
-// ✅ Console logs (will show in browser console)
-console.log("🌐 Environment Mode:", import.meta.env.MODE);
+console.log("🌐 Environment Mode:", mode);
 console.log("🌍 Router Base Path:", base);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -48,11 +24,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <ThemeProvider>
         <MaterialTailwindControllerProvider>
           <App />
+
+          {/* ✅ Add ToastContainer here */}
+          <ToastContainer />
         </MaterialTailwindControllerProvider>
       </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>
 );
-
-
-
