@@ -46,7 +46,6 @@ export function Dashboard() {
               : null
           )}
         </Routes>
-
         <div className="text-blue-gray-600">
           <Footer />
         </div>

@@ -215,7 +215,7 @@ alert('Done');
         <div className="w-full min-h-screen bg-gray-100 mt-10">
             <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
                 <div className="px-6 py-4 border-b">
-                    <h1 className="text-2xl font-bold mb-6 text-gray-800">Add a User(उपयोगकर्ता जोड़ें)</h1>
+                    <h1 className="text-2xl font-bold mb-6 text-gray-800">Edit an User </h1>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6">
                     {/* Role */}
