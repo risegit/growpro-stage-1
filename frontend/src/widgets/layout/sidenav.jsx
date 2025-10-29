@@ -41,7 +41,7 @@ export function Sidenav({ brandImg, brandName, routes }) {
          <img
             src={`${import.meta.env.BASE_URL}${brandImg.replace(/^\/+/, "")}`}
             alt="GrowPro Logo"
-            className="h-12 w-auto object-contain"
+            className="h-20 w-auto object-contain"
           />
 
           <Typography
