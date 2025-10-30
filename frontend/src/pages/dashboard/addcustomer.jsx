@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 const StepperCustomerForm = () => {
   const [formData, setFormData] = useState({
     name: '',
+    email:'',
     phoneNumber: '',
     staffPhoneNumber: '',
     profilePic: null,
@@ -54,6 +55,7 @@ const StepperCustomerForm = () => {
     { value: 'Jalapenos', label: 'Jalapenos' },
     { value: 'Cauliflower', label: 'Cauliflower' },
     { value: 'Cucumber', label: 'Cucumber' },
+    { value: 'other', label: 'Other (Specify Below)' },
   ];
 
 
@@ -143,17 +145,34 @@ const StepperCustomerForm = () => {
       nutritionGiven: "",
       otherSpecifications: "",
       photoAtInstallation: null,
-      selectedPlants: []
+      selectedPlants: [],
+      selectedPlantsOther: '',
     }]);
   };
 
   // plantselecthandlechange
-  const handlePlantSelectChange = (index, selectedOptions) => {
-    const updatedGrowers = [...growers];
-    updatedGrowers[index].selectedPlants = selectedOptions || [];
-    setGrowers(updatedGrowers);
-    setErrors(prev => ({ ...prev, [`selectedPlants_${index}`]: '' }));
-  };
+  // const handlePlantSelectChange = (index, selectedOptions) => {
+  //   const updatedGrowers = [...growers];
+  //   updatedGrowers[index].selectedPlants = selectedOptions || [];
+  //   setGrowers(updatedGrowers);
+  //   setErrors(prev => ({ ...prev, [`selectedPlants_${index}`]: '' }));
+  // };
+
+const handlePlantSelectChange = (index, selectedOptions) => {
+  const updatedGrowers = [...growers];
+  updatedGrowers[index].selectedPlants = selectedOptions || [];
+
+  // ✅ Check lowercase 'other'
+  const hasOther = selectedOptions?.some((opt) => opt.value === "other");
+  updatedGrowers[index].selectedPlantsOther = hasOther
+    ? updatedGrowers[index].selectedPlantsOther || ""
+    : "";
+
+  setGrowers(updatedGrowers);
+  setErrors((prev) => ({ ...prev, [`selectedPlants_${index}`]: "" }));
+};
+
+
 
 
   const removeGrower = () => {
@@ -179,87 +198,156 @@ const StepperCustomerForm = () => {
     }
 
     if (currentStep === 2) {
-      growers.forEach((grower, index) => {
-        if (!grower.systemType) stepErrors[`systemType_${index}`] = 'System type is required';
-        if (grower.systemType === 'Other' && !grower.systemTypeOther.trim()) stepErrors[`systemTypeOther_${index}`] = 'Please specify other system type';
-        if (!grower.numPlants) stepErrors[`numPlants_${index}`] = 'Number of plants is required';
-        else if (parseInt(grower.numPlants) < 0) stepErrors[`numPlants_${index}`] = 'Number of plants cannot be negative';
-        if (!grower.numLevels) stepErrors[`numLevels_${index}`] = 'Number of levels is required';
-        else if (parseInt(grower.numLevels) < 0) stepErrors[`numLevels_${index}`] = 'Number of levels cannot be negative';
-        if (!grower.setupDimension.trim()) stepErrors[`setupDimension_${index}`] = 'Setup dimension is required';
-        if (!grower.motorType) stepErrors[`motorType_${index}`] = 'Motor type is required';
-        if (grower.motorType === 'Other' && !grower.motorTypeOther.trim()) stepErrors[`motorTypeOther_${index}`] = 'Please specify other motor type';
-        if (!grower.timerUsed) stepErrors[`timerUsed_${index}`] = 'Timer used is required';
-        if (grower.timerUsed === 'Other' && !grower.timerUsedOther.trim()) stepErrors[`timerUsedOther_${index}`] = 'Please specify other timer';
-        if (!grower.modelOfLight) stepErrors[`modelOfLight_${index}`] = 'Model of Light is required';
-        if (grower.modelOfLight === 'Other' && !grower.modelOfLightOther.trim()) stepErrors[`modelOfLightOther_${index}`] = 'Please specify other model of light';
-        if (!grower.lengthOfLight) stepErrors[`lengthOfLight_${index}`] = 'Length of Light is required';
-        if (grower.lengthOfLight === 'Other' && !grower.lengthOfLightOther.trim()) stepErrors[`lengthOfLightOther_${index}`] = 'Please specify other length of light';
-        if (!grower.tankCapacity) stepErrors[`tankCapacity_${index}`] = 'Tank Capacity is required';
-        if (grower.tankCapacity === 'Other' && !grower.tankCapacityOther.trim()) stepErrors[`tankCapacityOther_${index}`] = 'Please specify other tank capacity';
-        if (!grower.nutritionGiven) stepErrors[`nutritionGiven_${index}`] = 'Nutrition Given is required';
-        if (!grower.otherSpecifications) stepErrors[`otherSpecifications_${index}`] = 'Other Specification is required';
-        if (!grower.photoAtInstallation) {
-          stepErrors[`photoAtInstallation_${index}`] = 'Photo At Installation is required';
-        }
+  growers.forEach((grower, index) => {
+    if (!grower.systemType) stepErrors[`systemType_${index}`] = 'System type is required';
+    if (grower.systemType === 'Other' && !grower.systemTypeOther.trim()) stepErrors[`systemTypeOther_${index}`] = 'Please specify other system type';
+    if (!grower.numPlants) stepErrors[`numPlants_${index}`] = 'Number of plants is required';
+    else if (parseInt(grower.numPlants) < 0) stepErrors[`numPlants_${index}`] = 'Number of plants cannot be negative';
+    if (!grower.numLevels) stepErrors[`numLevels_${index}`] = 'Number of levels is required';
+    else if (parseInt(grower.numLevels) < 0) stepErrors[`numLevels_${index}`] = 'Number of levels cannot be negative';
+    if (!grower.setupDimension.trim()) stepErrors[`setupDimension_${index}`] = 'Setup dimension is required';
+    if (!grower.motorType) stepErrors[`motorType_${index}`] = 'Motor type is required';
+    if (grower.motorType === 'Other' && !grower.motorTypeOther.trim()) stepErrors[`motorTypeOther_${index}`] = 'Please specify other motor type';
+    if (!grower.timerUsed) stepErrors[`timerUsed_${index}`] = 'Timer used is required';
+    if (grower.timerUsed === 'Other' && !grower.timerUsedOther.trim()) stepErrors[`timerUsedOther_${index}`] = 'Please specify other timer';
+    if (!grower.modelOfLight) stepErrors[`modelOfLight_${index}`] = 'Model of Light is required';
+    if (grower.modelOfLight === 'Other' && !grower.modelOfLightOther.trim()) stepErrors[`modelOfLightOther_${index}`] = 'Please specify other model of light';
+    if (!grower.lengthOfLight) stepErrors[`lengthOfLight_${index}`] = 'Length of Light is required';
+    if (grower.lengthOfLight === 'Other' && !grower.lengthOfLightOther.trim()) stepErrors[`lengthOfLightOther_${index}`] = 'Please specify other length of light';
+    if (!grower.tankCapacity) stepErrors[`tankCapacity_${index}`] = 'Tank Capacity is required';
+    if (grower.tankCapacity === 'Other' && !grower.tankCapacityOther.trim()) stepErrors[`tankCapacityOther_${index}`] = 'Please specify other tank capacity';
+    if (!grower.nutritionGiven) stepErrors[`nutritionGiven_${index}`] = 'Nutrition Given is required';
+    if (!grower.otherSpecifications) stepErrors[`otherSpecifications_${index}`] = 'Other Specification is required';
+    if (!grower.photoAtInstallation) stepErrors[`photoAtInstallation_${index}`] = 'Photo At Installation is required';
 
-        if (!grower.selectedPlants || grower.selectedPlants.length === 0) {
-          stepErrors[`selectedPlants_${index}`] = 'Select at least one plant';
-        }
-      });
+    // ✅ Plant chosen validation
+    if (!grower.selectedPlants || grower.selectedPlants.length === 0) {
+  stepErrors[`selectedPlants_${index}`] = 'Select at least one plant';
+}
+
+const hasOtherSelected = grower.selectedPlants?.some(
+  (p) => p.value === 'other'
+);
+
+if (hasOtherSelected && !grower.selectedPlantsOther.trim()) {
+  stepErrors[`selectedPlantsOther_${index}`] =
+    'Please specify other plant name';
+
     }
+  });
+}
+
 
     setErrors(stepErrors);
     return Object.keys(stepErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
-    if (!validateStep()) return;
+const handleSubmit = async () => {
+  if (!validateStep()) return;
 
-    const formPayload = new FormData();
+  const formPayload = new FormData();
 
-    // Append main form fields
-    for (const key in formData) {
-      formPayload.append(key, formData[key]);
-    }
+  // Append main form fields
+  Object.keys(formData).forEach((key) => {
+    formPayload.append(key, formData[key]);
+  });
 
-    // Append growers as JSON string
+  // Loop through growers
+  growers.forEach((grower, index) => {
+    // Clone grower and remove image from JSON object
+    const growerData = { ...grower };
+    const imageFile = growerData.photoAtInstallation;
+    delete growerData.photoAtInstallation;
+
+    // Add JSON grower data
+    // formPayload.append(`growers[${index}]`, JSON.stringify(growerData));
     formPayload.append("growers", JSON.stringify(growers));
 
-    console.log("Form Payload Data:");
-    for (let pair of formPayload.entries()) {
-      console.log(pair[0] + ": ", pair[1]);
+    // Add image separately if exists
+    if (imageFile instanceof File) {
+      formPayload.append(`photoAtInstallation_${index}`, imageFile);
     }
+  });
 
-    try {
-      const response = await fetch(
-        "http://localhost/growpro/growpro-stage-1/backend/api/customer.php",
-        {
-          method: "POST",
-          body: formPayload
-        }
-      );
+  console.log("Form Payload Data:");
+  for (let pair of formPayload.entries()) {
+    console.log(pair[0] + ": ", pair[1]);
+  }
 
-      const result = await response.json();
-      console.log("Server response:", result);
-
-      if (result.status === "success") {
-        toast.error("Customer added successfully");
-
-        // Reset form after success
-        // setFormData(initialCustomerState);
-        // setGrowers([initialGrowerState]);
-        // setCurrentStep(1);
-        setErrors({});
-      } else {
-        toast.error("Something went wrong. Please try again.");
-        alert("Something went wrong. Please try again.");
+  try {
+    const response = await fetch(
+      "http://localhost/growpro/growpro-stage-1/backend/api/customer.php",
+      {
+        method: "POST",
+        body: formPayload,
       }
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      alert("Server error. Contact admin.");
+    );
+
+    const text = await response.text(); // first get raw text
+    console.log("Raw Response:", text);
+
+    const result = JSON.parse(text); // then parse safely
+    console.log("Server Parsed JSON:", result);
+
+    if (result.status === "success") {
+      toast.success("Customer added successfully");
+      setErrors({});
+    } else {
+      toast.error(result.message || "Something went wrong");
     }
-  };
+  } catch (error) {
+    console.error("Fetch Error:", error);
+    alert("Server error. Contact admin.");
+  }
+};
+
+
+  // const handleSubmit = async () => {
+  //   if (!validateStep()) return;
+
+  //   const formPayload = new FormData();
+
+  //   // Append main form fields
+  //   for (const key in formData) {
+  //     formPayload.append(key, formData[key]);
+  //   }
+
+  //   // Append growers as JSON string
+  //   formPayload.append("growers", JSON.stringify(growers));
+
+  //   console.log("Form Payload Data:");
+  //   for (let pair of formPayload.entries()) {
+  //     console.log(pair[0] + ": ", pair[1]);
+  //   }
+
+  //   try {
+  //     const response = await fetch(
+  //       "http://localhost/growpro/growpro-stage-1/backend/api/customer.php",
+  //       {
+  //         method: "POST",
+  //         body: formPayload
+  //       }
+  //     );
+
+  //     const result = await response.json();
+  //     console.log("Server response:", result);
+
+  //     if (result.status === "success") {
+  //       toast.success("Customer added successfully");
+
+  //       // Reset form after success
+  //       // setFormData(initialCustomerState);
+  //       // setGrowers([initialGrowerState]);
+  //       // setCurrentStep(1);
+  //       setErrors({});
+  //     } else {
+  //       toast.error(result.message);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error submitting form:", error);
+  //     alert("Server error. Contact admin.");
+  //   }
+  // };
 
 
   const [cities, setCities] = useState([]);
@@ -499,7 +587,7 @@ const StepperCustomerForm = () => {
                       name="numPlants"
                       value={grower.numPlants}
                       onChange={(e) => handleGrowerChange(index, e)}
-                      min="0"
+                      min="1"
                       className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`numPlants_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                     />
                     {errors[`numPlants_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`numPlants_${index}`]}</span>}
@@ -514,7 +602,7 @@ const StepperCustomerForm = () => {
                       name="numLevels"
                       value={grower.numLevels}
                       onChange={(e) => handleGrowerChange(index, e)}
-                      min="0"
+                      min="1"
                       className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`numLevels_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                     />
                     {errors[`numLevels_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`numLevels_${index}`]}</span>}
@@ -598,7 +686,7 @@ const StepperCustomerForm = () => {
                       name="numLights"
                       value={grower.numLights}
                       onChange={(e) => handleGrowerChange(index, e)}
-                      min="0"
+                      min="1"
                       className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`numLights_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                     />
                     {errors[`numLights_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`numLights_${index}`]}</span>}
@@ -694,7 +782,6 @@ const StepperCustomerForm = () => {
                       name="nutritionGiven"
                       value={grower.nutritionGiven}
                       onChange={(e) => handleGrowerChange(index, e)}
-                      min="0"
                       className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`nutritionGiven_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                     />
                     {errors[`nutritionGiven_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`nutritionGiven_${index}`]}</span>}
@@ -709,7 +796,7 @@ const StepperCustomerForm = () => {
                       name="otherSpecifications"
                       value={grower.otherSpecifications}
                       onChange={(e) => handleGrowerChange(index, e)}
-                      min="0"
+                      min="1"
                       className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`otherSpecifications_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                     />
                     {errors[`otherSpecifications_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`otherSpecifications_${index}`]}</span>}
@@ -739,24 +826,47 @@ const StepperCustomerForm = () => {
                     )}
                   </div>
 
-
-
                   <div className="flex flex-col md:col-span-2">
-                    <label className="mb-1 font-medium text-gray-700">
-                      Plants Chosen (चुने गए पौधे) <span className="text-red-500">*</span>
-                    </label>
-                    <Select
-                      isMulti
-                      options={plantOptions}
-                      value={grower.selectedPlants}
-                      onChange={(selected) => handlePlantSelectChange(index, selected)}
-                      classNamePrefix="react-select"
-                      placeholder="Select plants..."
-                    />
-                    {errors[`selectedPlants_${index}`] && (
-                      <span className="text-red-500 text-sm mt-1">{errors[`selectedPlants_${index}`]}</span>
-                    )}
-                  </div>
+  <label className="mb-1 font-medium text-gray-700">
+    Plants Chosen (चुने गए पौधे) <span className="text-red-500">*</span>
+  </label>
+
+  <Select
+    isMulti
+    options={plantOptions}
+    value={grower.selectedPlants}
+    onChange={(selected) => handlePlantSelectChange(index, selected)}
+    classNamePrefix="react-select"
+    placeholder="Select plants..."
+    styles={{
+      menu: (provided) => ({ ...provided, zIndex: 9999 }),
+    }}
+  />
+
+  {/* ✅ Show input if "Other" is selected */}
+  {grower.selectedPlants?.some((opt) => opt.value === "other") && (
+    <input
+      type="text"
+      name="selectedPlantsOther"
+      value={grower.selectedPlantsOther || ""}
+      onChange={(e) => handleGrowerChange(index, e)}
+      placeholder="Specify other plant"
+      className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+        errors[`selectedPlantsOther_${index}`]
+          ? "border-red-500 focus:ring-red-400"
+          : "border-gray-300 focus:ring-blue-400"
+      }`}
+    />
+  )}
+
+  {errors[`selectedPlants_${index}`] && (
+    <span className="text-red-500 text-sm mt-1">
+      {errors[`selectedPlants_${index}`]}
+    </span>
+  )}
+</div>
+
+
                 </div>
               </div>
             ))}
@@ -775,6 +885,12 @@ const StepperCustomerForm = () => {
                     <p className="text-gray-800">
                       <span className="font-medium text-gray-600">Name: </span>
                       {formData.name}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-800">
+                      <span className="font-medium text-gray-600">Email: </span>
+                      {formData.email}
                     </p>
                   </div>
                   <div>
@@ -908,7 +1024,7 @@ const StepperCustomerForm = () => {
                         </p>
 
                         {grower.photoAtInstallation && (
-                          <img1
+                          <img
                             src={URL.createObjectURL(grower.photoAtInstallation)}
                             alt="Installation Preview"
                             className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
@@ -929,13 +1045,28 @@ const StepperCustomerForm = () => {
                         {errors.installationPhoto && <span className="text-red-500 text-sm mt-1">{errors.installationPhoto}</span>}
                       </div> */}
                       <div className="md:col-span-2">
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Plants Chosen: </span>
-                          {grower.selectedPlants && grower.selectedPlants.length > 0
-                            ? grower.selectedPlants.map(p => p.label).join(', ')
-                            : 'N/A'}
-                        </p>
-                      </div>
+  <p className="text-gray-800">
+    <span className="font-medium text-gray-600">Plants Chosen: </span>
+    {grower.selectedPlants && grower.selectedPlants.length > 0 ? (
+      <>
+        {grower.selectedPlants
+          .map((p) => {
+            // ✅ If "other" is selected, show typed value instead of "Other (Specify Below)"
+            if (p.value === "other") {
+              return grower.selectedPlantsOther
+                ? `Other: ${grower.selectedPlantsOther}`
+                : "Other";
+            }
+            return p.label;
+          })
+          .join(", ")}
+      </>
+    ) : (
+      "N/A"
+    )}
+  </p>
+</div>
+
                       <div className="md:col-span-2">
                         <p className="text-gray-800">
                           <span className="font-medium text-gray-600">Status: </span>
