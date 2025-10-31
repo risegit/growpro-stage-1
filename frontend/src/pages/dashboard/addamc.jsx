@@ -2,18 +2,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Select from 'react-select';
 
-/**
- * AMCForm
- *
- * - Fetches customers from /api/customers (replace with your backend URL)
- * - POSTs form data to /api/amc (replace with your backend URL)
- * - Uses react-select for customer (single) and consumables (multi)
- * - Supports "Other" option for duration & consumables
- * - Auto-calculates total (pricing + transport + gst)
- * - Resets on successful submission
- * - Displays inline errors and a temporary success toast
- */
-
 export default function AMCForm() {
   const [formData, setFormData] = useState({
     customer: null, // will be an object from react-select { value, label }
@@ -59,24 +47,19 @@ export default function AMCForm() {
     { value: 'other', label: 'Other' },
   ];
 
-  // Fetch customers from backend on mount
   useEffect(() => {
     let mounted = true;
     const loadCustomers = async () => {
       setLoadingCustomers(true);
       try {
-        // Replace endpoint with your actual API
         const res = await fetch('/api/customers');
         if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
         const data = await res.json();
-        // Expecting data to be an array of objects with id and name fields
-        // Convert to react-select format
         const opts = Array.isArray(data)
           ? data.map((c) => ({ value: c.id ?? c._id ?? c.value ?? c.name, label: c.name ?? c.label ?? String(c.value) }))
           : [];
         if (mounted) setCustomers(opts);
       } catch (err) {
-        // If fetch fails, we still allow user to type customer (react-select will show no options)
         console.error('Error loading customers:', err);
       } finally {
         if (mounted) setLoadingCustomers(false);
@@ -97,8 +80,6 @@ export default function AMCForm() {
       setToast({ show: false, message: '', type: 'success' });
     }, duration);
   };
-
-  // Generic input change handler
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
