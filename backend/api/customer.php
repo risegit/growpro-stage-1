@@ -8,7 +8,7 @@ $input = json_decode(file_get_contents("php://input"), true);
 switch ($method) {
 
     case 'GET':
-        $result = $conn->query("SELECT * FROM customers ORDER BY id DESC");
+        $result = $conn->query("SELECT * FROM users where role='customer' ORDER BY id DESC");
         $data = [];
         while ($row = $result->fetch_assoc()) {
             $data[] = $row;
@@ -157,17 +157,24 @@ switch ($method) {
                             foreach ($grower['selectedPlants'] as $plant) {
                                 $plantNAME.=$plant['value'];
                                 $sql3 = "SELECT * FROM plants where name='{$plant['value']}'";
-                                $result3 = $conn->query($sql3);
-                                $row3 = $result3->fetch_assoc();
-                                $plant_id = $row3['id'];
+                                $result3 = $conn->query($sql3);                               
+                                if ($result3 && $result3->num_rows > 0) {
+                                    $row3 = $result3->fetch_assoc();
+                                    $plant_id = $row3['id'];
+                                } else {
+                                    $sql4 = "INSERT INTO plants (name, status, date, time) VALUE ('{$grower['selectedPlantsOther']}','active','$date','$time')";
+                                    $conn->query($sql4);
+                                    $plant_id = $conn->insert_id;
+                                }
 
-                                $sql4 = "INSERT INTO customer_plants(customer_id, grower_id, plant_id, other_plant, date, time) VALUES ('$user_id', '$grower_id', '$plant_id', '', '$date', '$time')";
+                                $sql5 = "INSERT INTO customer_plants(customer_id, grower_id, plant_id, other_plant, date, time) VALUES ('$user_id', '$grower_id', '$plant_id', '', '$date', '$time')";
                                 // $queryPlant.='growerId='.$grower_id.'___'.$sql4;
-                                $conn->query($sql4);
+                                $conn->query($sql5);
                             }
                                 
                         }
-                        echo json_encode(["status" => "success", "message" => "Customer Details Saved Successfully!"]);
+
+                        echo json_encode(["status" => "success", "message" => "Customer Details Saved Successfully!".$sql4]);
                     }
                 }
             }else{

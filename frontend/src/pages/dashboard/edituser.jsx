@@ -1,217 +1,213 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 export default function EditUserForm() {
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        phone: '',
-        bankName: '',
-        accountNumber: '',
-        ifscNo: '',
-        profilePic: null,
-        state: '',
-        city: '',
-        pincode: '',
-        streetAddress: '',
-        role: ''
-    });
+  const { id } = useParams(); 
 
-    const [cities, setCities] = useState([]);
-    const [errors, setErrors] = useState({});
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    aadhaarNo: '',
+    bankName: '',
+    accountNumber: '',
+    ifscNo: '',
+    profilePic: null,
+    state: '',
+    city: '',
+    pincode: '',
+    streetAddress: '',
+    role: ''
+  });
 
-    const statesAndCities = {
-        Maharashtra: ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
-        Karnataka: ['Bengaluru', 'Mysore', 'Mangalore'],
-        Gujarat: ['Ahmedabad', 'Surat', 'Vadodara'],
-        Delhi: ['New Delhi', 'Central Delhi', 'South Delhi', 'North Delhi'],
-        'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem']
-    };
+  const [showCopied, setShowCopied] = useState(false);
+  const [cities, setCities] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
-    const handleStateChange = (e) => {
-        const selectedState = e.target.value;
-        setFormData({ ...formData, state: selectedState, city: '' });
-        setCities(statesAndCities[selectedState] || []);
-        if (errors.state) {
-            setErrors({ ...errors, state: '' });
-        }
-    };
+  const statesAndCities = {
+    Maharashtra: ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
+    Karnataka: ['Bengaluru', 'Mysore', 'Mangalore'],
+    Gujarat: ['Ahmedabad', 'Surat', 'Vadodara'],
+    Delhi: ['New Delhi', 'Central Delhi', 'South Delhi', 'North Delhi'],
+    'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem']
+  };
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-        if (errors[name]) {
-            setErrors({ ...errors, [name]: '' });
-        }
-    };
+  // 🟢 Fetch user details when component loads
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php?id=${id}`);
+        const data = await response.json();
 
-    const handleAccountNumberChange = (e) => {
-        const value = e.target.value.replace(/\D/g, '');
-        if (value.length <= 18) {
-            setFormData(prev => ({ ...prev, accountNumber: value }));
-            if (errors.accountNumber) {
-                setErrors({ ...errors, accountNumber: '' });
-            }
-        }
-    };
+        console.log("Fetched user data:", data);
 
-    const handleIFSCChange = (e) => {
-        const value = e.target.value.toUpperCase();
-        if (value.length <= 11) {
-            setFormData(prev => ({ ...prev, ifscNo: value }));
-            if (errors.ifscNo) {
-                setErrors({ ...errors, ifscNo: '' });
-            }
-        }
-    };
+        if (data.status === "success" && data.data){
+          const user = data.data;
 
-    const handlePincodeChange = (e) => {
-        const value = e.target.value.replace(/\D/g, '');
-        if (value.length <= 6) {
-            setFormData(prev => ({ ...prev, pincode: value }));
-            if (errors.pincode) {
-                setErrors({ ...errors, pincode: '' });
-            }
-        }
-    };
+          setFormData({
+            name: user.name || '',
+            email: user.email || '',
+            password: '',
+            phone: user.phone || '',
+            aadhaarNo: user.aadhaar_no || '',
+            bankName: user.bank_name || '',
+            accountNumber: user.acc_no || '',
+            ifscNo: user.IFSC_code || '',
+            state: user.state || '',
+            city: user.city || '',
+            pincode: user.pincode || '',
+            streetAddress: user.street_address || '',
+            role: user.role || '',
+            profilePic: user.profile_pic ? `${import.meta.env.VITE_API_URL}/uploads/users/${user.profile_pic}` : ''
+          });
 
-    const handleFileChange = (e) => {
-        setFormData(prev => ({
-            ...prev,
-            profilePic: e.target.files[0]
-        }));
-    };
-
-    const validateForm = () => {
-        const newErrors = {};
-
-        if (!formData.name.trim()) newErrors.name = 'Name is required';
-        if (!formData.email.trim()) newErrors.email = 'Email is required';
-        else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
-        if (!formData.phone.trim()) {
-            newErrors.phone = 'Phone number is required';
-        } else if (!/^\d{10}$/.test(formData.phone.trim())) {
-            newErrors.phone = 'Phone number must be 10 digits';
-        }
-
-        if (!formData.role) newErrors.role = 'Role is required';
-
-        // Only validate bank details if role is manager or technician
-        if (['manager', 'technician'].includes(formData.role)) {
-            if (!formData.aadhaarNo.trim()) newErrors.aadhaarNo = 'Aadhaar number is required';
-            else if (!/^\d{12}$/.test(formData.aadhaarNo.trim())) newErrors.aadhaarNo = 'Aadhaar number must be 12 digits';
-            if (!formData.bankName.trim()) newErrors.bankName = 'Bank name is required';
-            if (!formData.accountNumber) newErrors.accountNumber = 'Account number is required';
-            else if (formData.accountNumber.length < 9 || formData.accountNumber.length > 18) {
-                newErrors.accountNumber = 'Account number must be between 9 and 18 digits';
-            }
-            if (!formData.ifscNo) newErrors.ifscNo = 'IFSC code is required';
-            else if (formData.ifscNo.length !== 11) {
-                newErrors.ifscNo = 'IFSC code must be exactly 11 characters';
-            } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscNo)) {
-                newErrors.ifscNo = 'Invalid IFSC code format';
-            }
-        }
-
-        if (!formData.state) newErrors.state = 'State is required';
-        if (!formData.city) newErrors.city = 'City is required';
-        if (!formData.pincode) newErrors.pincode = 'Pincode is required';
-        else if (formData.pincode.length !== 6) {
-            newErrors.pincode = 'Pincode must be exactly 6 digits';
-        }
-        if (!formData.streetAddress.trim()) newErrors.streetAddress = 'Street address is required';
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-
-// const handleSubmit = () => {
-//     if (validateForm()) {
-//         console.log('Form submitted:', formData);
-        
-//         // Save to localStorage
-//         const existingUsers = JSON.parse(localStorage.getItem('users')) || [];
-//         existingUsers.push(formData);
-//         localStorage.setItem('users', JSON.stringify(existingUsers));
-
-//         alert('User added successfully!');
-
-//         // Reset the form fields
-//         setFormData({
-//             name: '',
-//             email: '',
-//             phone: '',
-//             bankName: '',
-//             accountNumber: '',
-//             ifscNo: '',
-//             profilePic: null,
-//             state: '',
-//             city: '',
-//             pincode: '',
-//             streetAddress: '',
-//             role: ''
-//         });
-//         setCities([]);
-//         setErrors({});
-//     }
-// };
-
-const handleSubmit = async () => {
-    if (!validateForm()) return;
-
-    try {
-        const form = new FormData();
-        Object.entries(formData).forEach(([key, value]) => {
-            if (value !== null) { // Skip null values if needed (like profilePic initially)
-                form.append(key, value);
-            }
-        });
-
-        if (formData.profilePic) {
-            form.append('profilePic', formData.profilePic);
-        }
-
-        const response = await fetch('http://localhost/growpro/growpro-stage-1/backend/api/user.php', {
-            method: 'POST',
-            body: form, // automatically sets Content-Type to multipart/form-data
-        });
-
-        const result = await response.json();
-alert('Done');
-        if (result.success) {
-            alert('User added successfully!\n' + JSON.stringify(result.data, null, 2));
-
-            setFormData({
-                name: '',
-                email: '',
-                phone: '',
-                bankName: '',
-                accountNumber: '',
-                ifscNo: '',
-                profilePic: null,
-                state: '',
-                city: '',
-                pincode: '',
-                streetAddress: '',
-                role: ''
-            });
-            setCities([]);
-            setErrors({});
+          if (user.state && statesAndCities[user.state]) {
+            setCities(statesAndCities[user.state]);
+          }
         } else {
-            alert(result.message || 'Failed to add user');
+          alert('User not found!');
         }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        alert('Failed to fetch user details!');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    } catch (error) {
-        console.error('Error submitting form:', error);
-        alert('Something went wrong!');
+    fetchUser();
+  }, [id]);
+
+  // 🟡 Input handlers
+  const handleStateChange = (e) => {
+    const selectedState = e.target.value;
+    setFormData({ ...formData, state: selectedState, city: '' });
+    setCities(statesAndCities[selectedState] || []);
+    if (errors.state) setErrors({ ...errors, state: '' });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors({ ...errors, [name]: '' });
+  };
+
+  const handleAccountNumberChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 18) {
+      setFormData(prev => ({ ...prev, accountNumber: value }));
+      if (errors.accountNumber) setErrors({ ...errors, accountNumber: '' });
     }
-};
+  };
+
+  const handleIFSCChange = (e) => {
+    const value = e.target.value.toUpperCase();
+    if (value.length <= 11) {
+      setFormData(prev => ({ ...prev, ifscNo: value }));
+      if (errors.ifscNo) setErrors({ ...errors, ifscNo: '' });
+    }
+  };
+
+  const handlePincodeChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 6) {
+      setFormData(prev => ({ ...prev, pincode: value }));
+      if (errors.pincode) setErrors({ ...errors, pincode: '' });
+    }
+  };
+
+  const handleFileChange = (e) => {
+    setFormData(prev => ({ ...prev, profilePic: e.target.files[0] }));
+  };
+
+  const generatePassword = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$';
+        let password = '';
+        for (let i = 0; i < 10; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        setFormData(prev => ({ ...prev, password }));
+        if (errors.password) setErrors({ ...errors, password: '' });
+  };
+
+  // 🔵 Validation
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email';
+    if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
+    else if (!/^\d{10}$/.test(formData.phone)) newErrors.phone = 'Phone must be 10 digits';
+    if (!formData.role) newErrors.role = 'Role is required';
+
+    if (['manager', 'technician'].includes(formData.role)) {
+      if (!formData.aadhaarNo.trim()) newErrors.aadhaarNo = 'Aadhaar required';
+      else if (!/^\d{12}$/.test(formData.aadhaarNo.trim())) newErrors.aadhaarNo = 'Must be 12 digits';
+      if (!formData.bankName.trim()) newErrors.bankName = 'Bank name required';
+      if (!formData.accountNumber) newErrors.accountNumber = 'Account number required';
+      else if (formData.accountNumber.length < 9 || formData.accountNumber.length > 18)
+        newErrors.accountNumber = 'Must be 9-18 digits';
+      if (!formData.ifscNo) newErrors.ifscNo = 'IFSC required';
+      else if (formData.ifscNo.length !== 11)
+        newErrors.ifscNo = 'Must be 11 characters';
+      else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscNo))
+        newErrors.ifscNo = 'Invalid IFSC format';
+    }
+
+    if (!formData.state) newErrors.state = 'State required';
+    if (!formData.city) newErrors.city = 'City required';
+    if (!formData.pincode) newErrors.pincode = 'Pincode required';
+    else if (formData.pincode.length !== 6) newErrors.pincode = 'Must be 6 digits';
+    if (!formData.streetAddress.trim()) newErrors.streetAddress = 'Address required';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // 🟢 Submit handler
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+    try {
+      const form = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== null) form.append(key, value);
+      });
+      form.append('id', id);
+      form.append('_method', 'PUT');
+
+      console.log("Form data entries:");
+      for (let [key, value] of form.entries()) {
+        console.log(key, ":", value);
+      }
 
 
-    return (
+      const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php?id=${id}`, {
+        method: 'POST',
+        body: form,
+      });
+
+      const result = await response.json();
+      console.log("Updated fields:", result.data);
+
+      if (result.success) {
+        alert('User updated successfully!');
+        toast.success('Done');
+      } else {
+        alert(result.message || 'Failed to update user');
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      alert('Something went wrong!');
+    }
+  };
+
+  // 🧩 UI Rendering
+  return (
         <div className="w-full min-h-screen bg-gray-100 mt-10">
             <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
                 <div className="px-6 py-4 border-b">
@@ -243,6 +239,12 @@ alert('Done');
                             Name (नाम)<span className="text-red-500">*</span>
                         </label>
                         <input
+                            type="hidden"
+                            name="_method"
+                            value="PUT"
+                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.name ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                        />
+                        <input
                             type="text"
                             name="name"
                             value={formData.name}
@@ -267,6 +269,53 @@ alert('Done');
                             className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.email ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                         />
                         {errors.email && <span className="text-red-500 text-sm mt-1">{errors.email}</span>}
+                    </div>
+
+                    <div className="flex flex-col relative">
+                        <label className="mb-1 font-medium text-gray-700">Password (पासवर्ड) <span className="text-red-500">*</span></label>
+                        <div className="flex gap-2">
+                            <div className="flex-1 relative">
+                                <input
+                                    type="text"
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleInputChange}
+                                    placeholder="Enter password"
+                                    className={`w-full px-3 py-2 pr-10 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.password ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                />
+                                {formData.password && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(formData.password);
+                                                setShowCopied(true);
+                                                setTimeout(() => setShowCopied(false), 2000);
+                                            }}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-blue-500 transition"
+                                            title="Copy password"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                            </svg>
+                                        </button>
+                                        {showCopied && (
+                                            <div className="absolute -top-10 right-0 bg-gray-800 text-white text-xs px-3 py-1.5 rounded shadow-lg animate-fade-in">
+                                                Copied to clipboard!
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={generatePassword}
+                                className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                            >
+                                Generate
+                            </button>
+                        </div>
+                        {errors.password && <span className="text-red-500 text-sm mt-1">{errors.password}</span>}
                     </div>
 
                     {/* Phone Number */}
@@ -347,6 +396,14 @@ alert('Done');
                         </div>
 
                         {/* Profile Pic */}
+                        {formData.profilePic && typeof formData.profilePic === "string" && (
+                            <img
+                                src={formData.profilePic}
+                                alt="Profile"
+                                className="w-24 h-24 object-cover rounded-full mb-2 border"
+                            />
+                            )}
+
                     <div className="flex-1 flex flex-col">
                         <label className="mb-1 font-medium text-gray-700">Profile Pic(प्रोफ़ाइल चित्र)</label>
                         <input
@@ -451,8 +508,6 @@ alert('Done');
                         </div>
                     </>
                     )}
-
-
                 </div>
                 {/* Submit Button */}
                 <div className="flex justify-end px-6 py-4 ">

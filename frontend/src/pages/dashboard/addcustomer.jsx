@@ -276,7 +276,7 @@ const handleSubmit = async () => {
 
   try {
     const response = await fetch(
-      "http://localhost/growpro/growpro-stage-1/backend/api/customer.php",
+      `${import.meta.env.VITE_API_URL}api/customer.php`,
       {
         method: "POST",
         body: formPayload,
