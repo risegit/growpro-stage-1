@@ -65,7 +65,7 @@ const routes = [
             element: <ViewUser />,
           },
           {
-            path: "/users/edituser",
+            path: "/users/edituser/:id",
             element: <EditUserForm />,
             hidden: true,
           },

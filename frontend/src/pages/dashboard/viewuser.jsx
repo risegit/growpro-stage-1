@@ -6,16 +6,20 @@ export default function UserTable() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 5;
+  const usersPerPage = 10;
   const navigate = useNavigate();
 
   // 🔹 Fetch data from backend API
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/users"); 
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php`, {
+                method: 'GET',
+        });
         const data = await response.json();
-        setAllUsers(data);
+        console.log('user data='+data);
+        
+        setAllUsers(data.data);
       } catch (error) {
         console.error("Error fetching users:", error);
       } finally {
@@ -35,7 +39,7 @@ export default function UserTable() {
         user.name.toLowerCase().includes(query) ||
         user.email.toLowerCase().includes(query) ||
         user.role.toLowerCase().includes(query) ||
-        user.mobile.includes(query)
+        user.phone.includes(query)
     );
   }, [allUsers, searchQuery]);
 
@@ -109,7 +113,7 @@ export default function UserTable() {
                       <th className="py-4 px-4 font-medium text-gray-700">Name</th>
                       <th className="py-4 px-4 font-medium text-gray-700">Email</th>
                       <th className="py-4 px-4 font-medium text-gray-700">Role</th>
-                      <th className="py-4 px-4 font-medium text-gray-700">Mobile</th>
+                      <th className="py-4 px-4 font-medium text-gray-700">Phone</th>
                       <th className="py-4 px-4 font-medium text-gray-700 text-right">
                         Action
                       </th>
@@ -138,7 +142,7 @@ export default function UserTable() {
                             </span>
                           </div>
                         </td>
-                        <td className="py-4 px-4 text-gray-700">{user.email}</td>
+                        <td className="py-4 px-4 text-gray-700"> <a href={`mailto:${user.email}`}>{user.email}</a></td>
                         <td className="py-4 px-4">
                           <span
                             className={`px-3 py-1 rounded-lg text-sm font-medium ${
@@ -152,10 +156,10 @@ export default function UserTable() {
                             {user.role}
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-gray-700">{user.mobile}</td>
+                        <td className="py-4 px-4 text-gray-700"> <a href={`tel:${user.phone}`}>{user.phone}</a></td>
                         <td className="py-4 px-4 text-right">
                           <button
-                            onClick={() => handleEdit(user._id)}
+                            onClick={() => handleEdit(user.id)}
                             className="px-4 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors"
                           >
                             Edit

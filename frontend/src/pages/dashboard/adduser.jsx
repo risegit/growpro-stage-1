@@ -154,7 +154,7 @@ export default function AddUserForm() {
                 if (value !== null) form.append(key, value);
             });
 
-            const response = await fetch('http://localhost/growpro/growpro-stage-1/backend/api/user.php', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/user.php`, {
                 method: 'POST',
                 body: form,
             });
