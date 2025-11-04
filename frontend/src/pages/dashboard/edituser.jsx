@@ -180,10 +180,10 @@ export default function EditUserForm() {
       form.append('id', id);
       form.append('_method', 'PUT');
 
-      console.log("Form data entries:");
-      for (let [key, value] of form.entries()) {
-        console.log(key, ":", value);
-      }
+    //   console.log("Form data entries:");
+    //   for (let [key, value] of form.entries()) {
+    //     console.log(key, ":", value);
+    //   }
 
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php?id=${id}`, {
@@ -192,17 +192,17 @@ export default function EditUserForm() {
       });
 
       const result = await response.json();
-      console.log("Updated fields:", result.data);
+    //   console.log("Updated fields:", result.data);
 
-      if (result.success) {
-        alert('User updated successfully!');
-        toast.success('Done');
+      if (result.status) {
+        toast.success(result.message);
       } else {
-        alert(result.message || 'Failed to update user');
+        toast.error(result.message);
+        // alert(result.message || 'Failed to update user');
       }
     } catch (error) {
       console.error('Error submitting form:', error);
-      alert('Something went wrong!');
+      toast.error('Something went wrong!');
     }
   };
 

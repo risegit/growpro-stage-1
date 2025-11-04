@@ -187,52 +187,50 @@ switch ($method) {
         //     $password_hash = $row['password'];
         // }
 
-        // function compressImage($source, $destination, $quality = 80) {
-        //     $info = getimagesize($source);
-        //     if ($info['mime'] == 'image/jpeg') {
-        //         $img = imagecreatefromjpeg($source);
-        //         imagejpeg($img, $destination, $quality);
-        //     } elseif ($info['mime'] == 'image/png') {
-        //         $img = imagecreatefrompng($source);
-        //         $pngQuality = 9 - floor($quality / 10);
-        //         imagepng($img, $destination, $pngQuality);
-        //     } else {
-        //         return false;
-        //     }
-        //     imagedestroy($img);
-        //     return true;
-        // }
+        function compressImage($source, $destination, $quality = 80) {
+            $info = getimagesize($source);
+            if ($info['mime'] == 'image/jpeg') {
+                $img = imagecreatefromjpeg($source);
+                imagejpeg($img, $destination, $quality);
+            } elseif ($info['mime'] == 'image/png') {
+                $img = imagecreatefrompng($source);
+                $pngQuality = 9 - floor($quality / 10);
+                imagepng($img, $destination, $pngQuality);
+            } else {
+                return false;
+            }
+            imagedestroy($img);
+            return true;
+        }
 
        
-        // if (empty($user_id)) {
-        //     echo json_encode(["status" => "error", "message" => "User ID is required"]);
-        //     exit;
-        // }
+        if (empty($user_id)) {
+            echo json_encode(["status" => "error", "message" => "User ID is required"]);
+            exit;
+        }
 
-        // // Handle new profile picture upload if present
-        // $newProfilePicName = null;
-        // if ($profilePic && $profilePic['error'] === 0) {
-        //     $uploadDir = dirname(__DIR__) . '/uploads/users/';
-        //     if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+        // Handle new profile picture upload if present
+        $newProfilePicName = null;
+        if ($profilePic && $profilePic['error'] === 0) {
+            $uploadDir = dirname(__DIR__) . '/uploads/users/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
 
-        //     $originalName = $profilePic['name'];
-        //     $cleanName = str_replace(' ', '_', $originalName);
-        //     $newProfilePicName = uniqid() . '_' . basename($cleanName);
-        //     $profilePicPath = 'uploads/users/' . $newProfilePicName;
-        //     $destination = dirname(__DIR__) . '/' . $profilePicPath;
+            $originalName = $profilePic['name'];
+            $cleanName = str_replace(' ', '_', $originalName);
+            $newProfilePicName = uniqid() . '_' . basename($cleanName);
+            $profilePicPath = 'uploads/users/' . $newProfilePicName;
+            $destination = dirname(__DIR__) . '/' . $profilePicPath;
 
-        //     compressImage($profilePic['tmp_name'], $destination, 80);
+            compressImage($profilePic['tmp_name'], $destination, 80);
 
-        //     $oldPicRes = $conn->query("SELECT profile_pic FROM users WHERE id = '$user_id'");
-        //     $num_rows=$oldPicRes->num_rows;
-        //     if ($oldPicRes && $oldPicRes->num_rows > 0) {
-        //         $oldPic = $oldPicRes->fetch_assoc()['profile_pic'];
-        //         $oldPath = dirname(__DIR__) . '/uploads/users/' . $oldPic;
-        //         if (file_exists($oldPath) && !is_dir($oldPath)) unlink($oldPath);
-        //     }
-        // }
-
-        
+            $oldPicRes = $conn->query("SELECT profile_pic FROM users WHERE id = '$user_id'");
+            $num_rows=$oldPicRes->num_rows;
+            if ($oldPicRes && $oldPicRes->num_rows > 0) {
+                $oldPic = $oldPicRes->fetch_assoc()['profile_pic'];
+                $oldPath = dirname(__DIR__) . '/uploads/users/' . $oldPic;
+                if (file_exists($oldPath) && !is_dir($oldPath)) unlink($oldPath);
+            }
+        }
 
         // Update users table
         $updateFields = [];
@@ -245,43 +243,44 @@ switch ($method) {
         if ($phone) $updateFields[] = "phone='$phone'";
         if ($role) $updateFields[] = "role='$role'";
         if ($status) $updateFields[] = "status='$status'";
-        // if ($newProfilePicName) $updateFields[] = "profile_pic='$newProfilePicName'";
+        if ($newProfilePicName) $updateFields[] = "profile_pic='$newProfilePicName'";
 
         if (!empty($updateFields)) {
             $sqlUpdateUser = "UPDATE users SET " . implode(',', $updateFields) . ", date='$date', time='$time' WHERE id='$user_id'";
-            $conn->query($sqlUpdateUser);
+            if($conn->query($sqlUpdateUser)){
+                $aadharno = $_POST['aadhaarNo'] ?? '';
+                $bankName = $_POST['bankName'] ?? '';
+                $accountNumber = $_POST['accountNumber'] ?? '';
+                $ifscNo = $_POST['ifscNo'] ?? '';
+                $state = $_POST['state'] ?? '';
+                $city = $_POST['city'] ?? '';
+                $pincode = $_POST['pincode'] ?? '';
+                $streetAddress = $_POST['streetAddress'] ?? '';
+
+
+                $updateFields1 = [];
+                if ($aadharno) $updateFields1[] = "aadhaar_no='$aadharno'";
+                if ($bankName) $updateFields1[] = "bank_name='$bankName'";
+                if ($accountNumber) $updateFields1[] = "acc_no='$accountNumber'";
+                if ($ifscNo) $updateFields1[] = "IFSC_code='$ifscNo'";
+                if ($state) $updateFields1[] = "state='$state'";
+                if ($city) $updateFields1[] = "city='$city'";
+                if ($pincode) $updateFields1[] = "pincode='$pincode'";
+                if ($streetAddress) $updateFields1[] = "street_address='$streetAddress'";
+                // if ($newProfilePicName) $updateFields1[] = "profile_pic='$newProfilePicName'";
+
+                if (!empty($updateFields1)) {
+                    $sqlUpdateUser1 = "UPDATE employee_other_details SET " . implode(',', $updateFields1) . ", date='$date', time='$time' WHERE user_id='$user_id'";
+                    $conn->query($sqlUpdateUser1);
+                }
+            }
         }
 
-        $aadharno = $_POST['aadhaarNo'] ?? '';
-        $bankName = $_POST['bankName'] ?? '';
-        $accountNumber = $_POST['accountNumber'] ?? '';
-        $ifscNo = $_POST['ifscNo'] ?? '';
-        $state = $_POST['state'] ?? '';
-        $city = $_POST['city'] ?? '';
-        $pincode = $_POST['pincode'] ?? '';
-        $streetAddress = $_POST['streetAddress'] ?? '';
-
-
-        $updateFields1 = [];
-        if ($aadharno) $updateFields1[] = "aadhaar_no='$aadharno'";
-        if ($bankName) $updateFields1[] = "bank_name='$bankName'";
-        if ($accountNumber) $updateFields1[] = "acc_no='$accountNumber'";
-        if ($ifscNo) $updateFields1[] = "IFSC_code='$ifscNo'";
-        if ($state) $updateFields1[] = "state='$state'";
-        if ($city) $updateFields1[] = "city='$city'";
-        if ($pincode) $updateFields1[] = "pincode='$pincode'";
-        if ($streetAddress) $updateFields1[] = "street_address='$streetAddress'";
-        // if ($newProfilePicName) $updateFields1[] = "profile_pic='$newProfilePicName'";
-
-        if (!empty($updateFields1)) {
-            $sqlUpdateUser = "UPDATE employee_other_details SET " . implode(',', $updateFields1) . ", date='$date', time='$time' WHERE user_id='$user_id'";
-            $conn->query($sqlUpdateUser);
-        }
+        
 
         echo json_encode([
             "status" => "success",
-            "message" => "User updated successfully",
-            "data" => ["name" => $sqlUpdateUser]
+            "message" => "User details updated successfully"            
         ]);
 
         // Update employee details if applicable

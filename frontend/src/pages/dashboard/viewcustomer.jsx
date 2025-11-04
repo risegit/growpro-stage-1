@@ -128,10 +128,11 @@ export default function UserTable() {
                           <div className="flex items-center gap-3">
                             <img
                               src={
-                                user.profilePic ||
-                                `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                  user.name
-                                )}&background=3b82f6&color=fff`
+                                user.profile_pic
+                                  ? `${import.meta.env.VITE_API_URL}uploads/customers/${user.profile_pic}`
+                                  : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                      user.name
+                                    )}&background=3b82f6&color=fff`
                               }
                               alt={user.name}
                               className="w-10 h-10 rounded-full object-cover"

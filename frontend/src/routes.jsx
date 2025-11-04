@@ -88,7 +88,7 @@ const routes = [
             element: <Viewcustomer />,
           },
           {
-            path: "/customers/editcustomer",
+            path: "/customers/editcustomer/:id",
             element: <Editcustomer />,
             hidden: true,
           },
