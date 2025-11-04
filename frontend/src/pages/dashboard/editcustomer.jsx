@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
+import { useParams } from 'react-router-dom';
 import { toast } from "react-toastify";
 
 const StepperCustomerForm = () => {
   const [formData, setFormData] = useState({
     name: '',
+    email:'',
     phoneNumber: '',
     staffPhoneNumber: '',
     profilePic: null,
@@ -56,6 +58,7 @@ const StepperCustomerForm = () => {
     { value: 'Cucumber', label: 'Cucumber' },
   ];
 
+  const { id } = useParams(); 
 
   const [errors, setErrors] = useState({});
   const [currentStep, setCurrentStep] = useState(1);
@@ -161,6 +164,108 @@ const StepperCustomerForm = () => {
     setGrowers(growers.slice(0, -1));
   };
 
+  const [loading, setLoading] = useState(false);
+
+  // Add this separate useEffect to log formData when it changes
+// Add this useEffect at the top level (after your state declarations)
+useEffect(() => {
+  console.log("FormData updated:", formData);
+}, [formData]);
+
+// Your existing fetch useEffect
+useEffect(() => {
+  const fetchUser = async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?id=${id}`);
+      const data = await response.json();
+
+      console.log("✅ API Response:", data);
+
+      if (data.status === "success" && data.data) {
+        const user = Array.isArray(data.data) ? data.data[0] : data.data;
+        const grower = Array.isArray(data.grower) ? data.grower[0] : data.grower;
+        // console.log("✅ User data from API:", user);
+        // console.log("✅ Grower data from API:", grower);
+
+        const newFormData = {
+          name: user.name || '',
+          email: user.email || '',
+          phoneNumber: user.phone || '', 
+          staffPhoneNumber: user.staff_phone || '',
+          state: user.state || '',
+          city: user.city || '',
+          pincode: user.pincode || '',
+          address: user.street_address || '',
+          profilePic: user.profile_pic
+            ? `${import.meta.env.VITE_API_URL}uploads/customers/${user.profile_pic}`
+            : null,
+          isActive: user.status ? user.status === "active" : true,
+        };
+        // console.log("✅ Data being set to formData:", JSON.parse(JSON.stringify(newFormData)));
+
+        setFormData(newFormData);
+
+        const customerPlants = Array.isArray(data.customer_plant)
+          ? data.customer_plant.map((plant) => ({
+              value: plant.name, // ✅ should match plantOptions value
+              label: plant.name,
+            }))
+          : [];
+
+
+
+        const newGrowerFormData = {
+          systemType: grower.system_type || '',
+          systemTypeOther: '',
+          numPlants: grower.no_of_plants,
+          numLevels: grower.no_of_levels,
+          setupDimension: grower.setup_dimension,
+          motorType: grower.motor_used,
+          motorTypeOther: '',
+          timerUsed: grower.timer_used,
+          timerUsedOther: '',
+          numLights:grower.no_of_lights,
+          modelOfLight: grower.model_of_lights,
+          modelOfLightOther: "",
+          lengthOfLight: grower.length_of_lights,
+          lengthOfLightOther: "",
+          tankCapacity: grower.tank_capacity,
+          tankCapacityOther: "",
+          nutritionGiven: grower.nutrition_given,
+          otherSpecifications: grower.other_specifications,
+          photoAtInstallation: grower.installation_photo_url,
+          selectedPlants: customerPlants
+        };
+
+        setGrowers([newGrowerFormData]);
+
+        // console.log("🔍 plantOptions:", plantOptions);
+        // console.log("🔍 selectedPlants:", growers[0]?.selectedPlants);
+
+
+
+        // Set cities based on state
+        if (user.state && statesAndCities[user.state]) {
+          setCities(statesAndCities[user.state]);
+        }
+
+      } else {
+        console.error("API returned error or no data");
+        alert('User not found!');
+      }
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      alert('Failed to fetch user details!');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchUser();
+}, [id]);
+
   const validateStep = () => {
     let stepErrors = {};
 
@@ -230,15 +335,23 @@ const StepperCustomerForm = () => {
     for (let pair of formPayload.entries()) {
       console.log(pair[0] + ": ", pair[1]);
     }
+    formPayload.append('id', id);
+    formPayload.append('_method', 'PUT');
+
+      console.log("Form data entries:");
+      for (let [key, value] of formPayload.entries()) {
+        console.log(key, ":", value);
+      }
 
     try {
       const response = await fetch(
-        "http://localhost/growpro/growpro-stage-1/backend/api/customer.php",
+        `${import.meta.env.VITE_API_URL}api/customer.php`,
         {
           method: "POST",
           body: formPayload
         }
       );
+
 
       const result = await response.json();
       console.log("Server response:", result);
@@ -360,14 +473,23 @@ const StepperCustomerForm = () => {
               {errors.staffPhoneNumber && <span className="text-red-500 text-sm mt-1">{errors.staffPhoneNumber}</span>}
             </div>
 
+            
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
                 Profile Pic (प्रोफ़ाइल चित्र)
               </label>
+              {formData.profilePic && typeof formData.profilePic === "string" && (
+                <img
+                    src={formData.profilePic}
+                    alt="Profile"
+                    className="w-24 h-24 object-cover rounded-full mb-2 border"
+                />
+              )}
               <input
                 type="file"
                 name="profilePic"
                 onChange={(e) => setFormData({ ...formData, profilePic: e.target.files[0] })}
+                accept="image/*"
                 className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.profilePic ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
               />
               {errors.profilePic && <span className="text-red-500 text-sm mt-1">{errors.profilePic}</span>}
@@ -895,39 +1017,36 @@ const StepperCustomerForm = () => {
                           {grower.otherSpecifications}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">
-                            Photo at Time of Installation:
-                          </span>{" "}
-                          {grower.photoAtInstallation ? (
-                            <span>{grower.photoAtInstallation.name}</span>
-                          ) : (
-                            "No file uploaded"
-                          )}
-                        </p>
+<div>
+  <p className="text-gray-800">
+    <span className="font-medium text-gray-600">
+      Photo at Time of Installation:
+    </span>{" "}
+    {grower.photoAtInstallation ? (
+      <span>
+        {typeof grower.photoAtInstallation === "string"
+          ? grower.photoAtInstallation.split("/").pop() // show filename
+          : grower.photoAtInstallation.name}
+      </span>
+    ) : (
+      "No file uploaded"
+    )}
+  </p>
 
-                        {grower.photoAtInstallation && (
-                          <img1
-                            src={URL.createObjectURL(grower.photoAtInstallation)}
-                            alt="Installation Preview"
-                            className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
-                          />
-                        )}
-                      </div>
+  {grower.photoAtInstallation && (
+    <img
+      src={
+        typeof grower.photoAtInstallation === "string"
+          ? `http://localhost/growpro/growpro-stage-1/backend/uploads/customers/${grower.photoAtInstallation}`
+          : URL.createObjectURL(grower.photoAtInstallation)
+      }
+      alt="Installation Preview"
+      className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
+    />
+  )}
+</div>
 
-                      {/* <div className="flex flex-col">
-                        <label className="mb-1 font-medium text-gray-700">
-                          Photo at Time of Installation:
-                        </label>
-                        <input
-                          type="file"
-                          name="installationPhoto"
-                          onChange={(e) => setFormData({ ...formData, installationPhoto: e.target.files[0] })}
-                          className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.installationPhoto ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                        />
-                        {errors.installationPhoto && <span className="text-red-500 text-sm mt-1">{errors.installationPhoto}</span>}
-                      </div> */}
+
                       <div className="md:col-span-2">
                         <p className="text-gray-800">
                           <span className="font-medium text-gray-600">Plants Chosen: </span>
@@ -1052,30 +1171,3 @@ const StepperCustomerForm = () => {
   );
 };
 export default StepperCustomerForm;
-
-
-
-
-// case 3:
-//   return (
-//     <div className="px-6 py-6">
-//       <h3 className="text-2xl font-bold mb-6 text-gray-800">Review Your Information (JSON)</h3>
-//       <pre className="bg-gray-100 p-4 rounded-lg overflow-auto text-sm text-gray-800">
-//         {JSON.stringify(
-//           {
-//             ...formData,
-//             growers: growers.map(g => ({
-//               ...g,
-//               // selectedPlants: only keep values/labels if needed
-//               selectedPlants: g.selectedPlants.map(p => p.label)
-//             }))
-//           },
-//           null,
-//           2
-//         )}
-//       </pre>
-//     </div>
-//   );
-
-
-// for json
