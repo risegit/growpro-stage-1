@@ -83,10 +83,13 @@ switch ($method) {
                 imagejpeg($img, $destination, $quality);
             } elseif ($info['mime'] == 'image/png') {
                 $img = imagecreatefrompng($source);
+                imagealphablending($img, false);
+                imagesavealpha($img, true);
                 $pngQuality = 9 - floor($quality / 10);
                 imagepng($img, $destination, $pngQuality);
             } else {
-                return false;
+                move_uploaded_file($source, $destination);
+                return true;
             }
             imagedestroy($img);
             return true;
@@ -194,10 +197,13 @@ switch ($method) {
                 imagejpeg($img, $destination, $quality);
             } elseif ($info['mime'] == 'image/png') {
                 $img = imagecreatefrompng($source);
+                imagealphablending($img, false);
+                imagesavealpha($img, true);
                 $pngQuality = 9 - floor($quality / 10);
                 imagepng($img, $destination, $pngQuality);
             } else {
-                return false;
+                move_uploaded_file($source, $destination);
+                return true;
             }
             imagedestroy($img);
             return true;

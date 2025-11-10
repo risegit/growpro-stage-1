@@ -63,6 +63,7 @@ const StepperCustomerForm = () => {
   const [errors, setErrors] = useState({});
   const [currentStep, setCurrentStep] = useState(1);
   const [growers, setGrowers] = useState([{
+    growerId: '',
     systemType: '',
     systemTypeOther: '',
     numPlants: '',
@@ -173,6 +174,98 @@ useEffect(() => {
 }, [formData]);
 
 // Your existing fetch useEffect
+// useEffect(() => {
+//   const fetchUser = async () => {
+//     if (!id) return;
+//     setLoading(true);
+//     try {
+//       const response = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?id=${id}`);
+//       const data = await response.json();
+
+//       console.log("✅ API Response:", data);
+
+//       if (data.status === "success" && data.data) {
+//         const user = Array.isArray(data.data) ? data.data[0] : data.data;
+//         const grower = Array.isArray(data.grower) ? data.grower[0] : data.grower;
+//         // console.log("✅ User data from API:", user);
+//         // console.log("✅ Grower data from API:", grower);
+
+//         const newFormData = {
+//           name: user.name || '',
+//           email: user.email || '',
+//           phoneNumber: user.phone || '', 
+//           staffPhoneNumber: user.staff_phone || '',
+//           state: user.state || '',
+//           city: user.city || '',
+//           pincode: user.pincode || '',
+//           address: user.street_address || '',
+//           profilePic: user.profile_pic || '',
+//           isActive: user.status ? user.status === "active" : true,
+//         };
+//         // console.log("✅ Data being set to formData:", JSON.parse(JSON.stringify(newFormData)));
+
+//         setFormData(newFormData);
+
+//         const customerPlants = Array.isArray(data.customer_plant)
+//           ? data.customer_plant.map((plant) => ({
+//               value: plant.name, // ✅ should match plantOptions value
+//               label: plant.name,
+//             }))
+//           : [];
+
+
+
+//         const newGrowerFormData = {
+//           growerId: grower.id,
+//           systemType: grower.system_type || '',
+//           systemTypeOther: '',
+//           numPlants: grower.no_of_plants,
+//           numLevels: grower.no_of_levels,
+//           setupDimension: grower.setup_dimension,
+//           motorType: grower.motor_used,
+//           motorTypeOther: '',
+//           timerUsed: grower.timer_used,
+//           timerUsedOther: '',
+//           numLights:grower.no_of_lights,
+//           modelOfLight: grower.model_of_lights,
+//           modelOfLightOther: "",
+//           lengthOfLight: grower.length_of_lights,
+//           lengthOfLightOther: "",
+//           tankCapacity: grower.tank_capacity,
+//           tankCapacityOther: "",
+//           nutritionGiven: grower.nutrition_given,
+//           otherSpecifications: grower.other_specifications,
+//           photoAtInstallation: grower.installation_photo_url || '',
+//           selectedPlants: customerPlants
+//         };
+
+//         setGrowers([newGrowerFormData]);
+
+//         // console.log("🔍 plantOptions:", plantOptions);
+//         // console.log("🔍 selectedPlants:", growers[0]?.selectedPlants);
+
+
+
+//         // Set cities based on state
+//         if (user.state && statesAndCities[user.state]) {
+//           setCities(statesAndCities[user.state]);
+//         }
+
+//       } else {
+//         console.error("API returned error or no data");
+//         alert('User not found!');
+//       }
+//     } catch (error) {
+//       console.error('Error fetching user:', error);
+//       alert('Failed to fetch user details!');
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   fetchUser();
+// }, [id]);
+
 useEffect(() => {
   const fetchUser = async () => {
     if (!id) return;
@@ -184,73 +277,74 @@ useEffect(() => {
       console.log("✅ API Response:", data);
 
       if (data.status === "success" && data.data) {
+        // Normalize user (data.data might be an array)
         const user = Array.isArray(data.data) ? data.data[0] : data.data;
-        const grower = Array.isArray(data.grower) ? data.grower[0] : data.grower;
-        // console.log("✅ User data from API:", user);
-        // console.log("✅ Grower data from API:", grower);
 
+        // Normalize arrays from API
+        const growerArray = Array.isArray(data.grower) ? data.grower : (data.grower ? [data.grower] : []);
+        const customerPlants = Array.isArray(data.customer_plant) ? data.customer_plant : [];
+
+        // Set main formData
         const newFormData = {
           name: user.name || '',
           email: user.email || '',
-          phoneNumber: user.phone || '', 
+          phoneNumber: user.phone || '',
           staffPhoneNumber: user.staff_phone || '',
           state: user.state || '',
           city: user.city || '',
           pincode: user.pincode || '',
           address: user.street_address || '',
-          profilePic: user.profile_pic
-            ? `${import.meta.env.VITE_API_URL}uploads/customers/${user.profile_pic}`
-            : null,
+          profilePic: user.profile_pic || '',
           isActive: user.status ? user.status === "active" : true,
         };
-        // console.log("✅ Data being set to formData:", JSON.parse(JSON.stringify(newFormData)));
-
         setFormData(newFormData);
 
-        const customerPlants = Array.isArray(data.customer_plant)
-          ? data.customer_plant.map((plant) => ({
-              value: plant.name, // ✅ should match plantOptions value
-              label: plant.name,
-            }))
-          : [];
+        // Build growers array by mapping every grower returned
+        const newGrowersData = growerArray.map((g) => {
+          // For each grower, find plants that belong to it.
+          // Customer_plant might use grower_id or growerId — check both.
+          const plantsForThisGrower = customerPlants
+            .filter((p) => {
+              if (!p) return false;
+              // match by numeric/string id depending on your API
+              return String(p.grower_id ?? p.growerId ?? '') === String(g.id ?? g.grower_id ?? '');
+            })
+            .map((p) => ({
+              value: p.name,
+              label: p.name,
+            }));
 
+          return {
+            growerId: g.id || g.grower_id || '',
+            systemType: g.system_type || '',
+            systemTypeOther: '',
+            numPlants: g.no_of_plants || '',
+            numLevels: g.no_of_levels || '',
+            setupDimension: g.setup_dimension || '',
+            motorType: g.motor_used || '',
+            motorTypeOther: '',
+            timerUsed: g.timer_used || '',
+            timerUsedOther: '',
+            numLights: g.no_of_lights || '',
+            modelOfLight: g.model_of_lights || '',
+            modelOfLightOther: '',
+            lengthOfLight: g.length_of_lights || '',
+            lengthOfLightOther: '',
+            tankCapacity: g.tank_capacity || '',
+            tankCapacityOther: '',
+            nutritionGiven: g.nutrition_given || '',
+            otherSpecifications: g.other_specifications || '',
+            photoAtInstallation: g.installation_photo_url || '',
+            selectedPlants: plantsForThisGrower
+          };
+        });
 
+        setGrowers(newGrowersData);
 
-        const newGrowerFormData = {
-          systemType: grower.system_type || '',
-          systemTypeOther: '',
-          numPlants: grower.no_of_plants,
-          numLevels: grower.no_of_levels,
-          setupDimension: grower.setup_dimension,
-          motorType: grower.motor_used,
-          motorTypeOther: '',
-          timerUsed: grower.timer_used,
-          timerUsedOther: '',
-          numLights:grower.no_of_lights,
-          modelOfLight: grower.model_of_lights,
-          modelOfLightOther: "",
-          lengthOfLight: grower.length_of_lights,
-          lengthOfLightOther: "",
-          tankCapacity: grower.tank_capacity,
-          tankCapacityOther: "",
-          nutritionGiven: grower.nutrition_given,
-          otherSpecifications: grower.other_specifications,
-          photoAtInstallation: grower.installation_photo_url,
-          selectedPlants: customerPlants
-        };
-
-        setGrowers([newGrowerFormData]);
-
-        // console.log("🔍 plantOptions:", plantOptions);
-        // console.log("🔍 selectedPlants:", growers[0]?.selectedPlants);
-
-
-
-        // Set cities based on state
+        // set cities if available
         if (user.state && statesAndCities[user.state]) {
           setCities(statesAndCities[user.state]);
         }
-
       } else {
         console.error("API returned error or no data");
         alert('User not found!');
@@ -266,11 +360,13 @@ useEffect(() => {
   fetchUser();
 }, [id]);
 
+
   const validateStep = () => {
     let stepErrors = {};
 
     if (currentStep === 1) {
       if (!formData.name.trim()) stepErrors.name = 'Name is required';
+      if (!formData.email.trim()) stepErrors.email = 'Email is required';
       if (!formData.phoneNumber.trim()) stepErrors.phoneNumber = 'Phone number is required';
       else if (!/^\d{10}$/.test(formData.phoneNumber)) stepErrors.phoneNumber = 'Phone number must be 10 digits';
       if (formData.staffPhoneNumber && !/^\d{10}$/.test(formData.staffPhoneNumber)) {
@@ -329,7 +425,7 @@ useEffect(() => {
     }
 
     // Append growers as JSON string
-    formPayload.append("growers", JSON.stringify(growers));
+    // formPayload.append("growers", JSON.stringify(growers));
 
     console.log("Form Payload Data:");
     for (let pair of formPayload.entries()) {
@@ -338,10 +434,27 @@ useEffect(() => {
     formPayload.append('id', id);
     formPayload.append('_method', 'PUT');
 
+    growers.forEach((grower, index) => {
+      // Clone grower and remove image from JSON object
+      const growerData = { ...grower };
+      const imageFile = growerData.photoAtInstallation;
+      delete growerData.photoAtInstallation;
+
+      // Add JSON grower data
+      // formPayload.append(`growers[${index}]`, JSON.stringify(growerData));
+      formPayload.append("growers", JSON.stringify(growers));
+
+      // Add image separately if exists
+      if (imageFile instanceof File) {
+        formPayload.append(`photoAtInstallation_${index}`, imageFile);
+      }
+    });
       console.log("Form data entries:");
       for (let [key, value] of formPayload.entries()) {
         console.log(key, ":", value);
       }
+
+
 
     try {
       const response = await fetch(
@@ -357,7 +470,7 @@ useEffect(() => {
       console.log("Server response:", result);
 
       if (result.status === "success") {
-        toast.error("Customer added successfully");
+        toast.success(result.message);
 
         // Reset form after success
         // setFormData(initialCustomerState);
@@ -365,12 +478,13 @@ useEffect(() => {
         // setCurrentStep(1);
         setErrors({});
       } else {
-        toast.error("Something went wrong. Please try again.");
-        alert("Something went wrong. Please try again.");
+        toast.error(result.error);
+        // alert("Something went wrong. Please try again.");
       }
     } catch (error) {
+      toast.error("Error submitting form");
       console.error("Error submitting form:", error);
-      alert("Server error. Contact admin.");
+      // alert("Server error. Contact admin.");
     }
   };
 
@@ -480,7 +594,7 @@ useEffect(() => {
               </label>
               {formData.profilePic && typeof formData.profilePic === "string" && (
                 <img
-                    src={formData.profilePic}
+                    src={`${import.meta.env.VITE_API_URL}uploads/customers/${formData.profilePic}`}
                     alt="Profile"
                     className="w-24 h-24 object-cover rounded-full mb-2 border"
                 />
@@ -608,7 +722,15 @@ useEffect(() => {
                         placeholder="Specify other"
                         className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`systemTypeOther_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                       />
+                      
                     )}
+                    <input
+                        type="hidden"
+                        name="gorwerId"
+                        value={grower.growerId}
+                        onChange={(e) => handleGrowerChange(index, e)}
+                        className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                      />
                     {errors[`systemTypeOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`systemTypeOther_${index}`]}</span>}
                   </div>
 
@@ -841,7 +963,13 @@ useEffect(() => {
                     <label className="mb-1 font-medium text-gray-700">
                       Photo at Time of Installation <span className="text-red-500">*</span>
                     </label>
-
+                    {grower.photoAtInstallation && typeof grower.photoAtInstallation === "string" && (
+                      <img
+                          src={`${import.meta.env.VITE_API_URL}uploads/customers/${grower.photoAtInstallation}`}
+                          alt="Installation Photo"
+                          className="w-24 h-24 object-cover rounded-full mb-2 border"
+                      />
+                    )}
                     <input
                       type="file"
                       name="photoAtInstallation"
@@ -937,6 +1065,34 @@ useEffect(() => {
                       {formData.address}
                     </p>
                   </div>
+                  <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">
+                            Profile Pic:
+                          </span>{" "}
+                          {formData.profilePic ? (
+                            <span>
+                              {typeof formData.profilePic === "string"
+                                ? formData.profilePic.split("/").pop() // show filename
+                                : formData.profilePic.name}
+                            </span>
+                          ) : (
+                            "No file uploaded"
+                          )}
+                        </p>
+
+                        {formData.profilePic && (
+                          <img
+                            src={
+                              typeof formData.profilePic === "string"
+                                ? `${import.meta.env.VITE_API_URL}uploads/customers/${formData.profilePic}`
+                                : URL.createObjectURL(formData.profilePic)
+                            }
+                            alt="Profile Pic"
+                            className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
+                          />
+                        )}
+                      </div>
                 </div>
               </div>
               <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
@@ -1017,34 +1173,34 @@ useEffect(() => {
                           {grower.otherSpecifications}
                         </p>
                       </div>
-<div>
-  <p className="text-gray-800">
-    <span className="font-medium text-gray-600">
-      Photo at Time of Installation:
-    </span>{" "}
-    {grower.photoAtInstallation ? (
-      <span>
-        {typeof grower.photoAtInstallation === "string"
-          ? grower.photoAtInstallation.split("/").pop() // show filename
-          : grower.photoAtInstallation.name}
-      </span>
-    ) : (
-      "No file uploaded"
-    )}
-  </p>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">
+                            Photo at Time of Installation:
+                          </span>{" "}
+                          {grower.photoAtInstallation ? (
+                            <span>
+                              {typeof grower.photoAtInstallation === "string"
+                                ? grower.photoAtInstallation.split("/").pop() // show filename
+                                : grower.photoAtInstallation.name}
+                            </span>
+                          ) : (
+                            "No file uploaded"
+                          )}
+                        </p>
 
-  {grower.photoAtInstallation && (
-    <img
-      src={
-        typeof grower.photoAtInstallation === "string"
-          ? `http://localhost/growpro/growpro-stage-1/backend/uploads/customers/${grower.photoAtInstallation}`
-          : URL.createObjectURL(grower.photoAtInstallation)
-      }
-      alt="Installation Preview"
-      className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
-    />
-  )}
-</div>
+                        {grower.photoAtInstallation && (
+                          <img
+                            src={
+                              typeof grower.photoAtInstallation === "string"
+                                ? `${import.meta.env.VITE_API_URL}uploads/customers/${grower.photoAtInstallation}`
+                                : URL.createObjectURL(grower.photoAtInstallation)
+                            }
+                            alt="Installation Preview"
+                            className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
+                          />
+                        )}
+                      </div>
 
 
                       <div className="md:col-span-2">
@@ -1102,7 +1258,7 @@ useEffect(() => {
                     + Add Grower(उत्पादक जोड़ें)
                   </button>
 
-                  {growers.length > 1 && (
+                  {/* {growers.length > 1 && (
                     <button
                       type="button"
                       onClick={removeGrower}
@@ -1110,7 +1266,7 @@ useEffect(() => {
                     >
                       - Remove Grower(उत्पादक निकालना)
                     </button>
-                  )}
+                  )} */}
                 </div>
 
                 {/* Navigation Buttons */}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
 import { toast } from "react-toastify";
 
@@ -15,7 +15,7 @@ const StepperCustomerForm = () => {
     pincode: '',
     isActive: true
   });
-
+const [checking, setChecking] = useState(false);
   const plantOptions = [
     { value: 'Spinach', label: 'Spinach' },
     { value: 'Methi', label: 'Methi' },
@@ -97,6 +97,43 @@ const StepperCustomerForm = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (formData.email && formData.email.includes("@")) {
+        checkEmailExists(formData.email);
+      }
+    }, 600); // Wait 600ms after typing stops
+
+    return () => clearTimeout(delayDebounce);
+  }, [formData.email]);
+
+  // 👇 Function to check email existence in backend
+  const checkEmailExists = async (email) => {
+    setChecking(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?email=${encodeURIComponent(email)}`);
+      const data = await res.json();
+
+      if (data.status === "error") {
+        // toast.error(data.message);
+        setErrors((prev) => ({
+          ...prev,
+          email: "An account with this email already exists. Please use a different email.",
+        }));
+        setTimeout(() => {
+        setFormData((prev) => ({
+          ...prev,
+          email: "",
+        }));
+      }, 2000);
+      }
+    } catch (error) {
+      console.error("Error checking email:", error);
+    } finally {
+      setChecking(false);
+    }
   };
 
   // const handleGrowerChange = (index, e) => {
@@ -185,6 +222,7 @@ const handlePlantSelectChange = (index, selectedOptions) => {
 
     if (currentStep === 1) {
       if (!formData.name.trim()) stepErrors.name = 'Name is required';
+      if (!formData.email.trim()) stepErrors.email = 'Email is required';
       if (!formData.phoneNumber.trim()) stepErrors.phoneNumber = 'Phone number is required';
       else if (!/^\d{10}$/.test(formData.phoneNumber)) stepErrors.phoneNumber = 'Phone number must be 10 digits';
       if (formData.staffPhoneNumber && !/^\d{10}$/.test(formData.staffPhoneNumber)) {
@@ -415,6 +453,7 @@ const handleSubmit = async () => {
                 placeholder="Enter email"
                 className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.email ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
               />
+              {checking && <span className="text-gray-400 text-sm mt-1">Checking email availability...</span>}
               {errors.email && <span className="text-red-500 text-sm mt-1">{errors.email}</span>}
             </div>
 

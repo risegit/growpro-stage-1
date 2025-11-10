@@ -63,7 +63,7 @@ export default function EditUserForm() {
             pincode: user.pincode || '',
             streetAddress: user.street_address || '',
             role: user.role || '',
-            profilePic: user.profile_pic ? `${import.meta.env.VITE_API_URL}/uploads/users/${user.profile_pic}` : ''
+            profilePic: user.profile_pic ? `${import.meta.env.VITE_API_URL}uploads/users/${user.profile_pic}` : ''
           });
 
           if (user.state && statesAndCities[user.state]) {
