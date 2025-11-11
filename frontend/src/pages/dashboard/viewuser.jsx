@@ -17,7 +17,7 @@ export default function UserTable() {
                 method: 'GET',
         });
         const data = await response.json();
-        console.log('user data='+data);
+        console.log('user data=',data);
         
         setAllUsers(data.data);
       } catch (error) {
