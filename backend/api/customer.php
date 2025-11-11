@@ -362,6 +362,18 @@ switch ($method) {
                                 $conn->query($updateSQL);
                                 // echo json_encode(["status" => "success", "message" => "Growerid".$updateSQL]);
                             } else {
+                                if (isset($_FILES[$fileKey]) && $_FILES[$fileKey]['error'] === 0) {
+                                    $photoFile = $_FILES[$fileKey];
+                                    $uploadDir = dirname(__DIR__) . '/uploads/customers/';
+                                    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+
+                                    $originalName = str_replace(' ', '_', $photoFile['name']);
+                                    $newName = uniqid('grower_installation_') . '_' . $originalName;
+                                    $filePath = $uploadDir . $newName;
+                                    compressImage($photoFile['tmp_name'], $filePath, 80);
+
+                                    $photoAtInstallationPath = 'uploads/customers/' . $newName;
+                                }
                                 // ✅ Otherwise, insert new grower
                                 $insertSQL ="INSERT INTO growers (customer_id, system_type, no_of_plants, no_of_levels, setup_dimension, motor_used, timer_used, no_of_lights, model_of_lights, length_of_lights, tank_capacity, nutrition_given, other_specifications, installation_photo_url, status, date, time) VALUES ('$user_id', '{$grower['systemType']}', '{$grower['numPlants']}', '{$grower['numLevels']}', '{$grower['setupDimension']}', '{$grower['motorType']}', '{$grower['timerUsed']}', '{$grower['numLights']}', '{$grower['modelOfLight']}', '{$grower['lengthOfLight']}', '{$grower['tankCapacity']}', '{$grower['nutritionGiven']}', '{$grower['otherSpecifications']}', '$newName', 'active', '$date', '$time')";
                                 $conn->query($insertSQL);

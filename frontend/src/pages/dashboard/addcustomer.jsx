@@ -122,12 +122,6 @@ const [checking, setChecking] = useState(false);
           ...prev,
           email: "An account with this email already exists. Please use a different email.",
         }));
-        setTimeout(() => {
-        setFormData((prev) => ({
-          ...prev,
-          email: "",
-        }));
-      }, 2000);
       }
     } catch (error) {
       console.error("Error checking email:", error);
@@ -322,7 +316,7 @@ const handleSubmit = async () => {
     );
 
     const text = await response.text(); // first get raw text
-    console.log("Raw Response:", text);
+    // console.log("Raw Response:", text);
 
     const result = JSON.parse(text); // then parse safely
     console.log("Server Parsed JSON:", result);
@@ -334,8 +328,9 @@ const handleSubmit = async () => {
       toast.error(result.message || "Something went wrong");
     }
   } catch (error) {
-    console.error("Fetch Error:", error);
-    alert("Server error. Contact admin.");
+    // console.error("Fetch Error:", error);
+    toast.error("Something went wrong")
+    // alert("Server error. Contact admin.");
   }
 };
 
