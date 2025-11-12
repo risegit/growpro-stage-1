@@ -7,7 +7,8 @@ import {
   ServerStackIcon,
   RectangleStackIcon,
   IdentificationIcon,
-  WrenchScrewdriverIcon
+  WrenchScrewdriverIcon,  
+  MapPinIcon
 } from "@heroicons/react/24/solid";
 
 import {
@@ -32,7 +33,9 @@ import Amc from "./pages/dashboard/amc";
 import Addamc from "./pages/dashboard/addamc";
 import Viewamc from "./pages/dashboard/viewamc";
 import Editamc from "./pages/dashboard/editamc";
-
+import Sitevists from "./pages/dashboard/sitevists";
+import Createvisits from "./pages/dashboard/createvisits";
+import Viewvisits from "./pages/dashboard/viewvisits";
 
 const icon = {
   className: "w-5 h-5 text-inherit",
@@ -118,6 +121,32 @@ const routes = [
           },
         ],
       },
+
+      {
+  icon: <MapPinIcon {...icon} />,
+  name: "Site Visits",
+  path: "/sitevisits",
+  element: <Sitevists />,
+  collapse: [
+    {
+      name: "Create Visits",
+      path: "/sitevisits/createvisits",
+      element: <Createvisits />,
+    },
+    {
+      name: "View Visits",
+      path: "/sitevisits/viewvisits",
+      element: <Viewvisits />,
+    },
+    {
+      name: "Edit AMC",
+      path: "/amc/editamc",
+      element: <Editamc />,
+      hidden: true,
+    },
+  ],
+},
+    
 
       {
         icon: <IdentificationIcon {...icon} />, // 👈 changed to ID card style

@@ -14,11 +14,10 @@ export default function UserTable() {
     const fetchUsers = async () => {
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php`, {
-                method: 'GET',
+          method: "GET",
         });
         const data = await response.json();
-        console.log('user data='+data);
-        
+        console.log("user data=", data);
         setAllUsers(data.data);
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -99,140 +98,216 @@ export default function UserTable() {
           {currentUsers.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">No users found</p>
-              <p className="text-gray-400 text-sm mt-2">
-                Try adjusting your search
-              </p>
+              <p className="text-gray-400 text-sm mt-2">Try adjusting your search</p>
             </div>
           ) : (
             <>
               {/* Desktop Table */}
               <div className="overflow-x-auto hidden lg:block">
-                <table className="w-full text-left">
+                <table className="w-full table-fixed text-left border-collapse">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="py-4 px-4 font-medium text-gray-700">Name</th>
-                      <th className="py-4 px-4 font-medium text-gray-700">Email</th>
-                      <th className="py-4 px-4 font-medium text-gray-700">Role</th>
-                      <th className="py-4 px-4 font-medium text-gray-700">Phone</th>
-                      <th className="py-4 px-4 font-medium text-gray-700 text-right">
-                        Action
-                      </th>
+                      <th className="w-[25%] py-4 px-4 font-medium text-gray-700 text-left">Name</th>
+                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Phone Number</th>
+                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Role</th>
+                      <th className="w-[25%] py-4 px-4 font-medium text-gray-700 text-left">Email</th>
+                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Status</th>
+                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {currentUsers.map((user) => (
-                      <tr
-                        key={user._id}
-                        className="border-b border-gray-200 hover:bg-gray-50 transition"
-                      >
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={
-                                user.profile_pic
-                                  ? `${import.meta.env.VITE_API_URL}uploads/users/${user.profile_pic}`
-                                  : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    {currentUsers.map((user) => {
+                      const role =
+                        user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase();
+                      const status =
+                        user.status.charAt(0).toUpperCase() + user.status.slice(1).toLowerCase();
+
+                      return (
+                        <tr
+                          key={user._id}
+                          className="border-b border-gray-200 hover:bg-gray-50 transition"
+                        >
+                          {/* Name */}
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={
+                                  user.profile_pic
+                                    ? `${import.meta.env.VITE_API_URL}uploads/users/${user.profile_pic}`
+                                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
                                       user.name
                                     )}&background=3b82f6&color=fff`
-                              }
-                              alt={user.name}
-                              className="w-10 h-10 rounded-full object-cover"
-                            />
+                                }
+                                alt={user.name}
+                                className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                              />
+                              <span className="font-medium text-gray-800 truncate">
+                                {user.name}
+                              </span>
+                            </div>
+                          </td>
 
-                            <span className="font-medium text-gray-800">
-                              {user.name}
+                          {/* Phone */}
+                          <td className="py-4 px-4 text-gray-700 truncate">
+                            <a
+                              href={`tel:${user.phone || user.mobile}`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              {user.phone || user.mobile}
+                            </a>
+                          </td>
+
+                          {/* Role */}
+                          <td className="py-4 px-4">
+                            <span
+                              className={`px-3 py-1 rounded-full text-sm font-semibold text-white border-2
+              ${user.role === "admin"
+                                  ? "bg-green-700 border-green-700"
+                                  : user.role === "manager"
+                                    ? "bg-green-400 border-green-400"
+                                    : user.role === "technician"
+                                      ? "bg-[rgb(244,166,74)] border-[rgb(244,166,74)]"
+                                      : "bg-gray-400 border-gray-400"
+                                }`}
+                            >
+                              {role}
                             </span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 text-gray-700"> <a href={`mailto:${user.email}`}>{user.email}</a></td>
-                        <td className="py-4 px-4">
-                          <span
-                            className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                              user.role === "Admin"
-                                ? "bg-blue-100 text-blue-700"
-                                : user.role === "Manager"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-gray-100 text-gray-700"
-                            }`}
-                          >
-                            {user.role}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-gray-700"> <a href={`tel:${user.phone}`}>{user.phone}</a></td>
-                        <td className="py-4 px-4 text-right">
-                          <button
-                            onClick={() => handleEdit(user.id)}
-                            className="px-4 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors"
-                          >
-                            Edit
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+
+                          {/* Email — moved up before Status */}
+                          <td className="py-4 px-4 text-gray-700 truncate">
+                            <a href={`mailto:${user.email}`} className="hover:underline">
+                              {user.email}
+                            </a>
+                          </td>
+
+                          {/* Status — moved down after Email */}
+                          <td className="py-4 px-4">
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide border-2
+              ${user.status === "active"
+                                  ? "bg-green-600 text-white border-green-600"
+                                  : "bg-red-600 text-white border-red-600"
+                                }`}
+                            >
+                              {status}
+                            </span>
+                          </td>
+
+                          {/* Action */}
+                          <td className="py-4 px-4 text-right">
+                            <button
+                              onClick={() => handleEdit(user.id)}
+                              className="px-4 py-2 btn-primary"
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
               {/* Mobile View */}
               <div className="block lg:hidden space-y-5">
-                {currentUsers.map((user) => (
-                  <div
-                    key={user._id}
-                    className="border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition bg-white"
-                  >
-                    <div className="flex items-start gap-4 mb-5">
-                      <img
-                        src={
-                          user.profilePic ||
-                          `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                            user.name
-                          )}&background=3b82f6&color=fff`
-                        }
-                        alt={user.name}
-                        className="w-14 h-14 rounded-full object-cover"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-800 text-lg mb-2">
-                          {user.name}
-                        </h3>
-                        <span
-                          className={`inline-block px-3 py-1 rounded-lg text-xs font-medium ${
-                            user.role === "Admin"
-                              ? "bg-blue-100 text-blue-700"
-                              : user.role === "Manager"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {user.role}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-3 mb-5">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                          Email
-                        </span>
-                        <span className="text-sm text-gray-700 break-all">
-                          {user.email}
-                        </span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                          Mobile
-                        </span>
-                        <span className="text-sm text-gray-700">{user.mobile}</span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleEdit(user._id)}
-                      className="w-full px-4 py-2.5 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors"
+                {currentUsers.map((user) => {
+                  // Capitalize role for display
+                  const role =
+                    user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase();
+
+                  return (
+                    <div
+                      key={user._id}
+                      className="border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition bg-white"
                     >
-                      Edit
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex items-start gap-4 mb-5">
+                        <img
+                          src={
+                            user.profile_pic
+                              ? `${import.meta.env.VITE_API_URL}uploads/users/${user.profile_pic}`
+                              : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                user.name
+                              )}&background=3b82f6&color=fff`
+                          }
+                          alt={user.name}
+                          className="w-14 h-14 rounded-full object-cover"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-800 text-lg mb-2">
+                            {user.name}
+                          </h3>
+
+                          {/* Role badge (same colors as desktop) */}
+                          <span
+                            className={`inline-block px-3 py-1 rounded-lg text-xs font-semibold text-white border-2
+                ${user.role === "admin"
+                                ? "bg-green-700 border-green-700" // dark green
+                                : user.role === "manager"
+                                  ? "bg-green-400 border-green-400" // light green
+                                  : user.role === "technician"
+                                    ? "bg-[rgb(244,166,74)] border-[rgb(244,166,74)]" // orange
+                                    : "bg-gray-400 border-gray-400"
+                              }`}
+                          >
+                            {role}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 mb-5">
+                        {/* Email */}
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                            Email
+                          </span>
+                          <span className="text-sm text-gray-700 break-all">
+                            {user.email}
+                          </span>
+                        </div>
+
+                        {/* Mobile */}
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                            Mobile
+                          </span>
+                          <a
+                            href={`tel:${user.phone || user.mobile}`}
+                            className="text-sm text-blue-600 hover:underline"
+                          >
+                            {user.phone || user.mobile}
+                          </a>
+                        </div>
+
+                        {/* Status (same color logic as desktop) */}
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                            Status
+                          </span>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide w-fit border-2
+                ${user.status === "active"
+                                ? "bg-green-600 text-white border-green-600"
+                                : "bg-red-600 text-white border-red-600"
+                              }`}
+                          >
+                            {user.status === "active" ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleEdit(user.id)}
+                        className="w-full px-4 py-2.5 btn-primary"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
+
             </>
           )}
         </div>
@@ -250,11 +325,10 @@ export default function UserTable() {
                 <button
                   onClick={goToPrevious}
                   disabled={currentPage === 1}
-                  className={`px-3 py-2 rounded-lg font-medium transition ${
-                    currentPage === 1
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                  }`}
+                  className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === 1
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                    }`}
                 >
                   Previous
                 </button>
@@ -262,11 +336,10 @@ export default function UserTable() {
                   <button
                     key={index + 1}
                     onClick={() => goToPage(index + 1)}
-                    className={`px-3 py-2 rounded-lg font-medium transition ${
-                      currentPage === index + 1
-                        ? "bg-blue-500 text-white"
-                        : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                    }`}
+                    className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === index + 1
+                      ? "bg-blue-500 text-white"
+                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                      }`}
                   >
                     {index + 1}
                   </button>
@@ -274,11 +347,10 @@ export default function UserTable() {
                 <button
                   onClick={goToNext}
                   disabled={currentPage === totalPages}
-                  className={`px-3 py-2 rounded-lg font-medium transition ${
-                    currentPage === totalPages
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                  }`}
+                  className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === totalPages
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                    }`}
                 >
                   Next
                 </button>
@@ -290,6 +362,7 @@ export default function UserTable() {
     </div>
   );
 }
+
 
 
 // import React, { useState, useMemo } from 'react';

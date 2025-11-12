@@ -5,17 +5,19 @@ import { toast } from "react-toastify";
 const StepperCustomerForm = () => {
   const [formData, setFormData] = useState({
     name: '',
-    email:'',
+    email: '',
     phoneNumber: '',
     staffPhoneNumber: '',
     profilePic: null,
     address: '',
     state: '',
     city: '',
+    locality: '',
+    landmark: '',
     pincode: '',
     isActive: true
   });
-const [checking, setChecking] = useState(false);
+  const [checking, setChecking] = useState(false);
   const plantOptions = [
     { value: 'Spinach', label: 'Spinach' },
     { value: 'Methi', label: 'Methi' },
@@ -123,11 +125,11 @@ const [checking, setChecking] = useState(false);
           email: "An account with this email already exists. Please use a different email.",
         }));
         setTimeout(() => {
-        setFormData((prev) => ({
-          ...prev,
-          email: "",
-        }));
-      }, 2000);
+          setFormData((prev) => ({
+            ...prev,
+            email: "",
+          }));
+        }, 2000);
       }
     } catch (error) {
       console.error("Error checking email:", error);
@@ -195,19 +197,19 @@ const [checking, setChecking] = useState(false);
   //   setErrors(prev => ({ ...prev, [`selectedPlants_${index}`]: '' }));
   // };
 
-const handlePlantSelectChange = (index, selectedOptions) => {
-  const updatedGrowers = [...growers];
-  updatedGrowers[index].selectedPlants = selectedOptions || [];
+  const handlePlantSelectChange = (index, selectedOptions) => {
+    const updatedGrowers = [...growers];
+    updatedGrowers[index].selectedPlants = selectedOptions || [];
 
-  // ✅ Check lowercase 'other'
-  const hasOther = selectedOptions?.some((opt) => opt.value === "other");
-  updatedGrowers[index].selectedPlantsOther = hasOther
-    ? updatedGrowers[index].selectedPlantsOther || ""
-    : "";
+    // ✅ Check lowercase 'other'
+    const hasOther = selectedOptions?.some((opt) => opt.value === "other");
+    updatedGrowers[index].selectedPlantsOther = hasOther
+      ? updatedGrowers[index].selectedPlantsOther || ""
+      : "";
 
-  setGrowers(updatedGrowers);
-  setErrors((prev) => ({ ...prev, [`selectedPlants_${index}`]: "" }));
-};
+    setGrowers(updatedGrowers);
+    setErrors((prev) => ({ ...prev, [`selectedPlants_${index}`]: "" }));
+  };
 
 
 
@@ -230,114 +232,118 @@ const handlePlantSelectChange = (index, selectedOptions) => {
       }
       if (!formData.state) stepErrors.state = 'State is required';
       if (!formData.city) stepErrors.city = 'City is required';
+      if (!formData.locality.trim()) stepErrors.locality = 'Locality is required'; // ✅ new
+      if (!formData.landmark.trim()) stepErrors.landmark = 'Landmark is required'; // ✅ new
       if (!formData.pincode.trim()) stepErrors.pincode = 'Pincode is required';
       else if (!/^\d{6}$/.test(formData.pincode)) stepErrors.pincode = 'Pincode must be exactly 6 digits';
       if (!formData.address.trim()) stepErrors.address = 'Street address is required';
     }
 
+
+
     if (currentStep === 2) {
-  growers.forEach((grower, index) => {
-    if (!grower.systemType) stepErrors[`systemType_${index}`] = 'System type is required';
-    if (grower.systemType === 'Other' && !grower.systemTypeOther.trim()) stepErrors[`systemTypeOther_${index}`] = 'Please specify other system type';
-    if (!grower.numPlants) stepErrors[`numPlants_${index}`] = 'Number of plants is required';
-    else if (parseInt(grower.numPlants) < 0) stepErrors[`numPlants_${index}`] = 'Number of plants cannot be negative';
-    if (!grower.numLevels) stepErrors[`numLevels_${index}`] = 'Number of levels is required';
-    else if (parseInt(grower.numLevels) < 0) stepErrors[`numLevels_${index}`] = 'Number of levels cannot be negative';
-    if (!grower.setupDimension.trim()) stepErrors[`setupDimension_${index}`] = 'Setup dimension is required';
-    if (!grower.motorType) stepErrors[`motorType_${index}`] = 'Motor type is required';
-    if (grower.motorType === 'Other' && !grower.motorTypeOther.trim()) stepErrors[`motorTypeOther_${index}`] = 'Please specify other motor type';
-    if (!grower.timerUsed) stepErrors[`timerUsed_${index}`] = 'Timer used is required';
-    if (grower.timerUsed === 'Other' && !grower.timerUsedOther.trim()) stepErrors[`timerUsedOther_${index}`] = 'Please specify other timer';
-    if (!grower.modelOfLight) stepErrors[`modelOfLight_${index}`] = 'Model of Light is required';
-    if (grower.modelOfLight === 'Other' && !grower.modelOfLightOther.trim()) stepErrors[`modelOfLightOther_${index}`] = 'Please specify other model of light';
-    if (!grower.lengthOfLight) stepErrors[`lengthOfLight_${index}`] = 'Length of Light is required';
-    if (grower.lengthOfLight === 'Other' && !grower.lengthOfLightOther.trim()) stepErrors[`lengthOfLightOther_${index}`] = 'Please specify other length of light';
-    if (!grower.tankCapacity) stepErrors[`tankCapacity_${index}`] = 'Tank Capacity is required';
-    if (grower.tankCapacity === 'Other' && !grower.tankCapacityOther.trim()) stepErrors[`tankCapacityOther_${index}`] = 'Please specify other tank capacity';
-    if (!grower.nutritionGiven) stepErrors[`nutritionGiven_${index}`] = 'Nutrition Given is required';
-    if (!grower.otherSpecifications) stepErrors[`otherSpecifications_${index}`] = 'Other Specification is required';
-    if (!grower.photoAtInstallation) stepErrors[`photoAtInstallation_${index}`] = 'Photo At Installation is required';
+      growers.forEach((grower, index) => {
+        if (!grower.systemType) stepErrors[`systemType_${index}`] = 'System type is required';
+        if (grower.systemType === 'Other' && !grower.systemTypeOther.trim()) stepErrors[`systemTypeOther_${index}`] = 'Please specify other system type';
+        if (!grower.numPlants) stepErrors[`numPlants_${index}`] = 'Number of plants is required';
+        else if (parseInt(grower.numPlants) < 0) stepErrors[`numPlants_${index}`] = 'Number of plants cannot be negative';
+        if (!grower.numLevels) stepErrors[`numLevels_${index}`] = 'Number of levels is required';
+        else if (parseInt(grower.numLevels) < 0) stepErrors[`numLevels_${index}`] = 'Number of levels cannot be negative';
+        if (!grower.setupDimension.trim()) stepErrors[`setupDimension_${index}`] = 'Setup dimension is required';
+        if (!grower.motorType) stepErrors[`motorType_${index}`] = 'Motor type is required';
+        if (grower.motorType === 'Other' && !grower.motorTypeOther.trim()) stepErrors[`motorTypeOther_${index}`] = 'Please specify other motor type';
+        if (!grower.timerUsed) stepErrors[`timerUsed_${index}`] = 'Timer used is required';
+        if (grower.timerUsed === 'Other' && !grower.timerUsedOther.trim()) stepErrors[`timerUsedOther_${index}`] = 'Please specify other timer';
+        if (!grower.modelOfLight) stepErrors[`modelOfLight_${index}`] = 'Model of Light is required';
+        if (grower.modelOfLight === 'Other' && !grower.modelOfLightOther.trim()) stepErrors[`modelOfLightOther_${index}`] = 'Please specify other model of light';
+        if (!grower.lengthOfLight) stepErrors[`lengthOfLight_${index}`] = 'Length of Light is required';
+        if (grower.lengthOfLight === 'Other' && !grower.lengthOfLightOther.trim()) stepErrors[`lengthOfLightOther_${index}`] = 'Please specify other length of light';
+        if (!grower.tankCapacity) stepErrors[`tankCapacity_${index}`] = 'Tank Capacity is required';
+        if (grower.tankCapacity === 'Other' && !grower.tankCapacityOther.trim()) stepErrors[`tankCapacityOther_${index}`] = 'Please specify other tank capacity';
+        if (!grower.nutritionGiven) stepErrors[`nutritionGiven_${index}`] = 'Nutrition Given is required';
+        if (!grower.otherSpecifications) stepErrors[`otherSpecifications_${index}`] = 'Other Specification is required';
+        if (!grower.photoAtInstallation) stepErrors[`photoAtInstallation_${index}`] = 'Photo At Installation is required';
 
-    // ✅ Plant chosen validation
-    if (!grower.selectedPlants || grower.selectedPlants.length === 0) {
-  stepErrors[`selectedPlants_${index}`] = 'Select at least one plant';
-}
+        // ✅ Plant chosen validation
+        if (!grower.selectedPlants || grower.selectedPlants.length === 0) {
+          stepErrors[`selectedPlants_${index}`] = 'Select at least one plant';
+        }
 
-const hasOtherSelected = grower.selectedPlants?.some(
-  (p) => p.value === 'other'
-);
+        const hasOtherSelected = grower.selectedPlants?.some(
+          (p) => p.value === 'other'
+        );
 
-if (hasOtherSelected && !grower.selectedPlantsOther.trim()) {
-  stepErrors[`selectedPlantsOther_${index}`] =
-    'Please specify other plant name';
+        if (hasOtherSelected && !grower.selectedPlantsOther.trim()) {
+          stepErrors[`selectedPlantsOther_${index}`] =
+            'Please specify other plant name';
 
+        }
+      });
     }
-  });
-}
 
 
     setErrors(stepErrors);
     return Object.keys(stepErrors).length === 0;
   };
 
-const handleSubmit = async () => {
-  if (!validateStep()) return;
+  const handleSubmit = async () => {
+    if (!validateStep()) return;
 
-  const formPayload = new FormData();
+    const formPayload = new FormData();
 
-  // Append main form fields
-  Object.keys(formData).forEach((key) => {
-    formPayload.append(key, formData[key]);
-  });
+    // Append main form fields
+    Object.keys(formData).forEach((key) => {
+      formPayload.append(key, formData[key]);
+    });
 
-  // Loop through growers
-  growers.forEach((grower, index) => {
-    // Clone grower and remove image from JSON object
-    const growerData = { ...grower };
-    const imageFile = growerData.photoAtInstallation;
-    delete growerData.photoAtInstallation;
+    // Loop through growers
+    growers.forEach((grower, index) => {
+      // Clone grower and remove image from JSON object
+      const growerData = { ...grower };
+      const imageFile = growerData.photoAtInstallation;
+      delete growerData.photoAtInstallation;
 
-    // Add JSON grower data
-    // formPayload.append(`growers[${index}]`, JSON.stringify(growerData));
-    formPayload.append("growers", JSON.stringify(growers));
+      // Add JSON grower data
+      // formPayload.append(`growers[${index}]`, JSON.stringify(growerData));
+      formPayload.append("growers", JSON.stringify(growers));
 
-    // Add image separately if exists
-    if (imageFile instanceof File) {
-      formPayload.append(`photoAtInstallation_${index}`, imageFile);
-    }
-  });
-
-  console.log("Form Payload Data:");
-  for (let pair of formPayload.entries()) {
-    console.log(pair[0] + ": ", pair[1]);
-  }
-
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}api/customer.php`,
-      {
-        method: "POST",
-        body: formPayload,
+      // Add image separately if exists
+      if (imageFile instanceof File) {
+        formPayload.append(`photoAtInstallation_${index}`, imageFile);
       }
-    );
+    });
 
-    const text = await response.text(); // first get raw text
-    console.log("Raw Response:", text);
-
-    const result = JSON.parse(text); // then parse safely
-    console.log("Server Parsed JSON:", result);
-
-    if (result.status === "success") {
-      toast.success("Customer added successfully");
-      setErrors({});
-    } else {
-      toast.error(result.message || "Something went wrong");
+    console.log("Form Payload Data:");
+    for (let pair of formPayload.entries()) {
+      console.log(pair[0] + ": ", pair[1]);
     }
-  } catch (error) {
-    console.error("Fetch Error:", error);
-    alert("Server error. Contact admin.");
-  }
-};
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}api/customer.php`,
+        {
+          method: "POST",
+          body: formPayload,
+        }
+      );
+
+      const text = await response.text(); // first get raw text
+      console.log("Raw Response:", text);
+
+      const result = JSON.parse(text); // then parse safely
+      console.log("Server Parsed JSON:", result);
+
+      if (result.status === "success") {
+        toast.success("Customer added successfully");
+        setErrors({});
+      } else {
+        toast.error(result.message || "Something went wrong");
+      }
+    } catch (error) {
+      console.error("Fetch Error:", error);
+      alert("Server error. Contact admin.");
+    }
+  };
 
 
   // const handleSubmit = async () => {
@@ -426,6 +432,7 @@ const handleSubmit = async () => {
       case 1:
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6">
+            {/* Name */}
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
                 Name (नाम) <span className="text-red-500">*</span>
@@ -436,11 +443,13 @@ const handleSubmit = async () => {
                 value={formData.name}
                 onChange={handleInputChange}
                 placeholder="Enter name"
-                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.name ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.name ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  }`}
               />
               {errors.name && <span className="text-red-500 text-sm mt-1">{errors.name}</span>}
             </div>
 
+            {/* Email */}
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
                 Email (ईमेल) <span className="text-red-500">*</span>
@@ -451,12 +460,14 @@ const handleSubmit = async () => {
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="Enter email"
-                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.email ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.email ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  }`}
               />
               {checking && <span className="text-gray-400 text-sm mt-1">Checking email availability...</span>}
               {errors.email && <span className="text-red-500 text-sm mt-1">{errors.email}</span>}
             </div>
 
+            {/* Phone Number */}
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
                 Phone Number (फ़ोन नंबर) <span className="text-red-500">*</span>
@@ -467,11 +478,13 @@ const handleSubmit = async () => {
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
                 placeholder="Enter phone number"
-                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.phoneNumber ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.phoneNumber ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  }`}
               />
               {errors.phoneNumber && <span className="text-red-500 text-sm mt-1">{errors.phoneNumber}</span>}
             </div>
 
+            {/* Staff Phone Number */}
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
                 Staff Phone Number (स्टाफ फ़ोन नंबर)
@@ -482,11 +495,13 @@ const handleSubmit = async () => {
                 value={formData.staffPhoneNumber}
                 onChange={handleInputChange}
                 placeholder="Enter staff phone"
-                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.staffPhoneNumber ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.staffPhoneNumber ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  }`}
               />
               {errors.staffPhoneNumber && <span className="text-red-500 text-sm mt-1">{errors.staffPhoneNumber}</span>}
             </div>
 
+            {/* Profile Pic */}
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
                 Profile Pic (प्रोफ़ाइल चित्र)
@@ -495,65 +510,105 @@ const handleSubmit = async () => {
                 type="file"
                 name="profilePic"
                 onChange={(e) => setFormData({ ...formData, profilePic: e.target.files[0] })}
-                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.profilePic ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.profilePic ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  }`}
               />
               {errors.profilePic && <span className="text-red-500 text-sm mt-1">{errors.profilePic}</span>}
             </div>
 
-            <div className="flex flex-wrap gap-4 md:col-span-2">
-              <div className="flex-1 flex flex-col">
-                <label className="mb-1 font-medium text-gray-700">
-                  State (राज्य) <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="state"
-                  value={formData.state}
-                  onChange={handleStateChange}
-                  className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.state ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                >
-                  <option value="">Select state</option>
-                  {Object.keys(statesAndCities).map((state) => (
-                    <option key={state} value={state}>{state}</option>
-                  ))}
-                </select>
-                {errors.state && <span className="text-red-500 text-sm mt-1">{errors.state}</span>}
-              </div>
-
-              <div className="flex-1 flex flex-col">
-                <label className="mb-1 font-medium text-gray-700">
-                  City (शहर) <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.city ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                  disabled={!cities.length}
-                >
-                  <option value="">Select city</option>
-                  {cities.map((city) => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </select>
-                {errors.city && <span className="text-red-500 text-sm mt-1">{errors.city}</span>}
-              </div>
-
-              <div className="flex-1 flex flex-col">
-                <label className="mb-1 font-medium text-gray-700">
-                  Pincode (पिनकोड) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  name="pincode"
-                  value={formData.pincode}
-                  onChange={handleInputChange}
-                  placeholder="Enter pincode"
-                  className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.pincode ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                />
-                {errors.pincode && <span className="text-red-500 text-sm mt-1">{errors.pincode}</span>}
-              </div>
+            {/* State */}
+            <div className="flex-1 flex flex-col">
+              <label className="mb-1 font-medium text-gray-700">
+                State (राज्य) <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="state"
+                value={formData.state}
+                onChange={handleStateChange}
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.state ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  }`}
+              >
+                <option value="">Select state</option>
+                {Object.keys(statesAndCities).map((state) => (
+                  <option key={state} value={state}>{state}</option>
+                ))}
+              </select>
+              {errors.state && <span className="text-red-500 text-sm mt-1">{errors.state}</span>}
             </div>
 
+            {/* City */}
+            <div className="flex-1 flex flex-col">
+              <label className="mb-1 font-medium text-gray-700">
+                City (शहर) <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="city"
+                value={formData.city}
+                onChange={handleInputChange}
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.city ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  }`}
+                disabled={!cities.length}
+              >
+                <option value="">Select city</option>
+                {cities.map((city) => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
+              {errors.city && <span className="text-red-500 text-sm mt-1">{errors.city}</span>}
+            </div>
+
+            {/* Locality */}
+            <div className="flex-1 flex flex-col">
+              <label className="mb-1 font-medium text-gray-700">
+                Locality (इलाका) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="locality"
+                value={formData.locality}
+                onChange={handleInputChange}
+                placeholder="Eg - Andheri."
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.locality ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  }`}
+              />
+              {errors.locality && <span className="text-red-500 text-sm mt-1">{errors.locality}</span>}
+            </div>
+
+            {/* Landmark */}
+            <div className="flex-1 flex flex-col">
+              <label className="mb-1 font-medium text-gray-700">
+                Landmark (लैंडमार्क) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="landmark"
+                value={formData.landmark}
+                onChange={handleInputChange}
+                placeholder="Near City Mall"
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.landmark ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  }`}
+              />
+              {errors.landmark && <span className="text-red-500 text-sm mt-1">{errors.landmark}</span>}
+            </div>
+
+            {/* Pincode */}
+            <div className="flex-1 flex flex-col">
+              <label className="mb-1 font-medium text-gray-700">
+                Pincode (पिनकोड) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                name="pincode"
+                value={formData.pincode}
+                onChange={handleInputChange}
+                placeholder="Enter pincode"
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.pincode ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  }`}
+              />
+              {errors.pincode && <span className="text-red-500 text-sm mt-1">{errors.pincode}</span>}
+            </div>
+
+            {/* Street Address */}
             <div className="flex flex-col md:col-span-2">
               <label className="mb-1 font-medium text-gray-700">
                 Street Address (सड़क पता) <span className="text-red-500">*</span>
@@ -564,11 +619,13 @@ const handleSubmit = async () => {
                 onChange={handleInputChange}
                 placeholder="Enter address"
                 rows={3}
-                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.address ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.address ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  }`}
               />
               {errors.address && <span className="text-red-500 text-sm mt-1">{errors.address}</span>}
             </div>
 
+            {/* Active Checkbox */}
             <div className="flex items-center md:col-span-2">
               <input
                 type="checkbox"
@@ -582,6 +639,7 @@ const handleSubmit = async () => {
               </label>
             </div>
           </div>
+
         );
       case 2:
         return (
@@ -853,8 +911,8 @@ const handleSubmit = async () => {
                         handleGrowerChange(index, e, 'photoAtInstallation', e.target.files[0])
                       }
                       className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`photoAtInstallation_${index}`]
-                          ? 'border-red-500 focus:ring-red-400'
-                          : 'border-gray-300 focus:ring-blue-400'
+                        ? 'border-red-500 focus:ring-red-400'
+                        : 'border-gray-300 focus:ring-blue-400'
                         }`}
                     />
 
@@ -866,44 +924,43 @@ const handleSubmit = async () => {
                   </div>
 
                   <div className="flex flex-col md:col-span-2">
-  <label className="mb-1 font-medium text-gray-700">
-    Plants Chosen (चुने गए पौधे) <span className="text-red-500">*</span>
-  </label>
+                    <label className="mb-1 font-medium text-gray-700">
+                      Plants Chosen (चुने गए पौधे) <span className="text-red-500">*</span>
+                    </label>
 
-  <Select
-    isMulti
-    options={plantOptions}
-    value={grower.selectedPlants}
-    onChange={(selected) => handlePlantSelectChange(index, selected)}
-    classNamePrefix="react-select"
-    placeholder="Select plants..."
-    styles={{
-      menu: (provided) => ({ ...provided, zIndex: 9999 }),
-    }}
-  />
+                    <Select
+                      isMulti
+                      options={plantOptions}
+                      value={grower.selectedPlants}
+                      onChange={(selected) => handlePlantSelectChange(index, selected)}
+                      classNamePrefix="react-select"
+                      placeholder="Select plants..."
+                      styles={{
+                        menu: (provided) => ({ ...provided, zIndex: 9999 }),
+                      }}
+                    />
 
-  {/* ✅ Show input if "Other" is selected */}
-  {grower.selectedPlants?.some((opt) => opt.value === "other") && (
-    <input
-      type="text"
-      name="selectedPlantsOther"
-      value={grower.selectedPlantsOther || ""}
-      onChange={(e) => handleGrowerChange(index, e)}
-      placeholder="Specify other plant"
-      className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
-        errors[`selectedPlantsOther_${index}`]
-          ? "border-red-500 focus:ring-red-400"
-          : "border-gray-300 focus:ring-blue-400"
-      }`}
-    />
-  )}
+                    {/* ✅ Show input if "Other" is selected */}
+                    {grower.selectedPlants?.some((opt) => opt.value === "other") && (
+                      <input
+                        type="text"
+                        name="selectedPlantsOther"
+                        value={grower.selectedPlantsOther || ""}
+                        onChange={(e) => handleGrowerChange(index, e)}
+                        placeholder="Specify other plant"
+                        className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors[`selectedPlantsOther_${index}`]
+                          ? "border-red-500 focus:ring-red-400"
+                          : "border-gray-300 focus:ring-blue-400"
+                          }`}
+                      />
+                    )}
 
-  {errors[`selectedPlants_${index}`] && (
-    <span className="text-red-500 text-sm mt-1">
-      {errors[`selectedPlants_${index}`]}
-    </span>
-  )}
-</div>
+                    {errors[`selectedPlants_${index}`] && (
+                      <span className="text-red-500 text-sm mt-1">
+                        {errors[`selectedPlants_${index}`]}
+                      </span>
+                    )}
+                  </div>
 
 
                 </div>
@@ -1084,27 +1141,27 @@ const handleSubmit = async () => {
                         {errors.installationPhoto && <span className="text-red-500 text-sm mt-1">{errors.installationPhoto}</span>}
                       </div> */}
                       <div className="md:col-span-2">
-  <p className="text-gray-800">
-    <span className="font-medium text-gray-600">Plants Chosen: </span>
-    {grower.selectedPlants && grower.selectedPlants.length > 0 ? (
-      <>
-        {grower.selectedPlants
-          .map((p) => {
-            // ✅ If "other" is selected, show typed value instead of "Other (Specify Below)"
-            if (p.value === "other") {
-              return grower.selectedPlantsOther
-                ? `Other: ${grower.selectedPlantsOther}`
-                : "Other";
-            }
-            return p.label;
-          })
-          .join(", ")}
-      </>
-    ) : (
-      "N/A"
-    )}
-  </p>
-</div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Plants Chosen: </span>
+                          {grower.selectedPlants && grower.selectedPlants.length > 0 ? (
+                            <>
+                              {grower.selectedPlants
+                                .map((p) => {
+                                  // ✅ If "other" is selected, show typed value instead of "Other (Specify Below)"
+                                  if (p.value === "other") {
+                                    return grower.selectedPlantsOther
+                                      ? `Other: ${grower.selectedPlantsOther}`
+                                      : "Other";
+                                  }
+                                  return p.label;
+                                })
+                                .join(", ")}
+                            </>
+                          ) : (
+                            "N/A"
+                          )}
+                        </p>
+                      </div>
 
                       <div className="md:col-span-2">
                         <p className="text-gray-800">
@@ -1169,7 +1226,7 @@ const handleSubmit = async () => {
                   <button
                     type="button"
                     onClick={prevStep}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
+                    className="btn-primary"
                   >
                     Previous(पिछला)
                   </button>
@@ -1177,7 +1234,7 @@ const handleSubmit = async () => {
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
+                    className="btn-primary"
                   >
                     Next(आगे)
                   </button>
@@ -1190,7 +1247,7 @@ const handleSubmit = async () => {
                   <button
                     type="button"
                     onClick={prevStep}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg w-full md:w-auto transition"
+                    className="btn-primary"
                   >
                     Previous(पिछला)
                   </button>
@@ -1200,7 +1257,7 @@ const handleSubmit = async () => {
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg w-full md:w-auto transition ml-auto"
+                    className="btn-primary"
                   >
                     Next (आगे)
                   </button>

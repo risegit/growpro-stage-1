@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from "react-toastify";
 
-
 export default function AddUserForm() {
     const [formData, setFormData] = useState({
         name: '',
@@ -13,6 +12,8 @@ export default function AddUserForm() {
         ifscNo: '',
         profilePic: null,
         state: '',
+        locality: '',
+        landmark: '',
         city: '',
         pincode: '',
         streetAddress: '',
@@ -23,7 +24,12 @@ export default function AddUserForm() {
     const [cities, setCities] = useState([]);
     const [errors, setErrors] = useState({});
 
-     const fileInputRef = useRef(null);
+    const fileInputRef = useRef(null);
+
+    const [previewImage, setPreviewImage] = useState(null);
+
+
+
 
     const statesAndCities = {
         Maharashtra: ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
@@ -94,12 +100,36 @@ export default function AddUserForm() {
         }
     };
 
+    // const handleFileChange = (e) => {
+    //     setFormData(prev => ({
+    //         ...prev,
+    //         profilePic: e.target.files[0]
+    //     }));
+    // };
+
+
     const handleFileChange = (e) => {
+        const file = e.target.files[0];
+
+        // Keep your existing logic
         setFormData(prev => ({
             ...prev,
-            profilePic: e.target.files[0]
+            profilePic: file,
         }));
+
+        // Add image preview logic
+        if (file) {
+            const imageUrl = URL.createObjectURL(file);
+            setPreviewImage(imageUrl);
+        }
     };
+
+    useEffect(() => {
+        return () => {
+            if (previewImage) URL.revokeObjectURL(previewImage);
+        };
+    }, [previewImage]);
+
 
     const validateForm = () => {
         const newErrors = {};
@@ -120,6 +150,10 @@ export default function AddUserForm() {
         if (['manager', 'technician'].includes(formData.role)) {
             if (!formData.aadhaarNo.trim()) newErrors.aadhaarNo = 'Aadhaar number is required';
             else if (!/^\d{12}$/.test(formData.aadhaarNo.trim())) newErrors.aadhaarNo = 'Aadhaar number must be 12 digits';
+
+            if (!formData.locality.trim()) newErrors.locality = 'Locality is required';
+            if (!formData.landmark.trim()) newErrors.landmark = 'Landmark is required';
+
             if (!formData.bankName.trim()) newErrors.bankName = 'Bank name is required';
             if (!formData.accountNumber) newErrors.accountNumber = 'Account number is required';
             else if (formData.accountNumber.length < 9 || formData.accountNumber.length > 18) {
@@ -132,6 +166,7 @@ export default function AddUserForm() {
                 newErrors.ifscNo = 'Invalid IFSC code format';
             }
         }
+
 
         if (!formData.state) newErrors.state = 'State is required';
         if (!formData.city) newErrors.city = 'City is required';
@@ -154,14 +189,14 @@ export default function AddUserForm() {
                 if (value !== null) form.append(key, value);
             });
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/user.php`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php`, {
                 method: 'POST',
                 body: form,
             });
-            
+
             const result = await response.json();
             // alert(`result1 = ${result.message}`);
-            if (result.status=='success') {
+            if (result.status == 'success') {
                 toast.success(result.message);
                 setFormData({
                     name: '',
@@ -172,6 +207,8 @@ export default function AddUserForm() {
                     accountNumber: '',
                     ifscNo: '',
                     profilePic: null,
+                    locality: '',
+                    landmark: '',
                     state: '',
                     city: '',
                     pincode: '',
@@ -211,7 +248,7 @@ export default function AddUserForm() {
                             onChange={handleInputChange}
                             className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.role ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                         >
-                            <option value="">Select role</option>
+                            <option value="" disabled>Select role</option>
                             <option value="admin">Admin</option>
                             <option value="manager">Manager</option>
                             <option value="technician">Technician</option>
@@ -285,7 +322,7 @@ export default function AddUserForm() {
                             <button
                                 type="button"
                                 onClick={generatePassword}
-                                className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                                className="btn-primary "
                             >
                                 Generate
                             </button>
@@ -307,28 +344,42 @@ export default function AddUserForm() {
                         {errors.phone && <span className="text-red-500 text-sm mt-1">{errors.phone}</span>}
                     </div>
 
-                    <div className="flex flex-col">
-                        <label className="mb-1 font-medium text-gray-700">Profile Photo (प्रोफ़ाइल चित्र)</label>
+                    <div className="flex flex-col items-start">
+                        <label className="mb-1 font-medium text-gray-700">
+                            Profile Photo (प्रोफ़ाइल चित्र)
+                        </label>
+                        {/* Image preview ABOVE input */}
+                        {previewImage && (
+                            <div className="mb-3">
+                                <img
+                                    src={previewImage}
+                                    alt="Profile preview"
+                                    className="w-20 h-20 object-cover rounded-full border"
+                                />
+                            </div>
+                        )}
+
                         <input
                             type="file"
                             name="profilePic"
+                            accept="image/*"
                             onChange={handleFileChange}
                             ref={fileInputRef}
                             className="px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none border-gray-300 focus:ring-blue-400"
                         />
                     </div>
-
-                    {/* Row 4: State, City, Pincode */}
-                    <div className="flex flex-wrap md:col-span-2 gap-4">
-                        <div className="flex-1 flex flex-col">
+                    {/* Row 4: State, City, Locality, Landmark, Pincode */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:col-span-2">
+                        <div className="flex flex-col">
                             <label className="mb-1 font-medium text-gray-700">State (राज्य) <span className="text-red-500">*</span></label>
                             <select
                                 name="state"
                                 value={formData.state}
                                 onChange={handleStateChange}
-                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.state ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.state ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                                    }`}
                             >
-                                <option value="">Select state</option>
+                                <option value="" disabled>Select state</option>
                                 {Object.keys(statesAndCities).map((state) => (
                                     <option key={state} value={state}>{state}</option>
                                 ))}
@@ -336,16 +387,17 @@ export default function AddUserForm() {
                             {errors.state && <span className="text-red-500 text-sm mt-1">{errors.state}</span>}
                         </div>
 
-                        <div className="flex-1 flex flex-col">
+                        <div className="flex flex-col">
                             <label className="mb-1 font-medium text-gray-700">City (शहर) <span className="text-red-500">*</span></label>
                             <select
                                 name="city"
                                 value={formData.city}
                                 onChange={handleInputChange}
                                 disabled={!cities.length}
-                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.city ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.city ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                                    }`}
                             >
-                                <option value="">Select city</option>
+                                <option value="" disabled>Select city</option>
                                 {cities.map((city) => (
                                     <option key={city} value={city}>{city}</option>
                                 ))}
@@ -353,7 +405,35 @@ export default function AddUserForm() {
                             {errors.city && <span className="text-red-500 text-sm mt-1">{errors.city}</span>}
                         </div>
 
-                        <div className="flex-1 flex flex-col">
+                        <div className="flex flex-col">
+                            <label className="mb-1 font-medium text-gray-700">Locality (स्थानीयता) <span className="text-red-500">*</span></label>
+                            <input
+                                type="text"
+                                name="locality"
+                                value={formData.locality}
+                                onChange={handleInputChange}
+                                placeholder="Ex- Andheri"
+                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.locality ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                                    }`}
+                            />
+                            {errors.locality && <span className="text-red-500 text-sm mt-1">{errors.locality}</span>}
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="mb-1 font-medium text-gray-700">Landmark (सीमाचिह्न) <span className="text-red-500">*</span></label>
+                            <input
+                                type="text"
+                                name="landmark"
+                                value={formData.landmark}
+                                onChange={handleInputChange}
+                                placeholder="Ex - Near City Mall"
+                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.landmark ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                                    }`}
+                            />
+                            {errors.landmark && <span className="text-red-500 text-sm mt-1">{errors.landmark}</span>}
+                        </div>
+
+                        <div className="flex flex-col">
                             <label className="mb-1 font-medium text-gray-700">Pincode (पिनकोड) <span className="text-red-500">*</span></label>
                             <input
                                 type="text"
@@ -362,11 +442,13 @@ export default function AddUserForm() {
                                 onChange={handlePincodeChange}
                                 placeholder="Enter pincode"
                                 maxLength="6"
-                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.pincode ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.pincode ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                                    }`}
                             />
                             {errors.pincode && <span className="text-red-500 text-sm mt-1">{errors.pincode}</span>}
                         </div>
                     </div>
+
 
                     {/* Address */}
                     <div className="flex flex-col md:col-span-2">
@@ -447,7 +529,7 @@ export default function AddUserForm() {
                 <div className="flex justify-end px-6 py-4">
                     <button
                         onClick={handleSubmit}
-                        className="px-6 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                        className="btn-primary "
                     >
                         Submit (जमा करें)
                     </button>

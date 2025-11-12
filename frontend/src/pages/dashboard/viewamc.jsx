@@ -57,8 +57,8 @@ export default function UserTable() {
         {/* Header with Search */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 sm:px-6 py-5 sm:py-4 border-b">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Employee Management</h1>
-            <p className="text-sm sm:text-base text-gray-600">View and manage all employees</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">AMC Management</h1>
+            <p className="text-sm sm:text-base text-gray-600">View and manage  AMC</p>
           </div>
 
           <div className="mt-3 sm:mt-0 w-full sm:w-1/3">

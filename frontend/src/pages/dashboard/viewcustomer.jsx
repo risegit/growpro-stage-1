@@ -12,12 +12,13 @@ export default function UserTable() {
   // 🔹 Fetch data from backend API
   useEffect(() => {
     const fetchUsers = async () => {
+      console.log('user data=' + `${import.meta.env.VITE_API_URL}`);
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php`, {
-                method: 'GET',
+          method: 'GET',
         });
         const data = await response.json();
-        // console.log('user data='+data);
+        console.log('user data=' + `${import.meta.env.VITE_API_URL}`);
         setAllUsers(data.data);
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -111,7 +112,7 @@ export default function UserTable() {
                     <tr className="border-b border-gray-200">
                       <th className="py-4 px-4 font-medium text-gray-700">Name</th>
                       <th className="py-4 px-4 font-medium text-gray-700">Email</th>
-                      <th className="py-4 px-4 font-medium text-gray-700">Role</th>
+                      <th className="py-4 px-4 font-medium text-gray-700">Active</th>
                       <th className="py-4 px-4 font-medium text-gray-700">Phone</th>
                       <th className="py-4 px-4 font-medium text-gray-700 text-right">
                         Action
@@ -131,8 +132,8 @@ export default function UserTable() {
                                 user.profile_pic
                                   ? `${import.meta.env.VITE_API_URL}uploads/customers/${user.profile_pic}`
                                   : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                      user.name
-                                    )}&background=3b82f6&color=fff`
+                                    user.name
+                                  )}&background=3b82f6&color=fff`
                               }
                               alt={user.name}
                               className="w-10 h-10 rounded-full object-cover"
@@ -145,13 +146,12 @@ export default function UserTable() {
                         <td className="py-4 px-4 text-gray-700"> <a href={`mailto:${user.email}`}>{user.email}</a></td>
                         <td className="py-4 px-4">
                           <span
-                            className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                              user.role === "Admin"
+                            className={`px-3 py-1 rounded-lg text-sm font-medium ${user.role === "Admin"
                                 ? "bg-blue-100 text-blue-700"
                                 : user.role === "Manager"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-gray-100 text-gray-700"
-                            }`}
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-gray-100 text-gray-700"
+                              }`}
                           >
                             {user.role}
                           </span>
@@ -160,7 +160,7 @@ export default function UserTable() {
                         <td className="py-4 px-4 text-right">
                           <button
                             onClick={() => handleEdit(user.id)}
-                            className="px-4 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors"
+                            className="px-4 py-2 btn-primary"
                           >
                             Edit
                           </button>
@@ -194,13 +194,12 @@ export default function UserTable() {
                           {user.name}
                         </h3>
                         <span
-                          className={`inline-block px-3 py-1 rounded-lg text-xs font-medium ${
-                            user.role === "Admin"
+                          className={`inline-block px-3 py-1 rounded-lg text-xs font-medium ${user.role === "Admin"
                               ? "bg-blue-100 text-blue-700"
                               : user.role === "Manager"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-700"
-                          }`}
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-100 text-gray-700"
+                            }`}
                         >
                           {user.role}
                         </span>
@@ -219,12 +218,18 @@ export default function UserTable() {
                         <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
                           Mobile
                         </span>
-                        <span className="text-sm text-gray-700">{user.mobile}</span>
+                        <a
+                          href={`tel:${user.mobile}`}
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          {user.phone}
+                        </a>
                       </div>
+
                     </div>
                     <button
-                      onClick={() => handleEdit(user._id)}
-                      className="w-full px-4 py-2.5 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors"
+                      onClick={() => handleEdit(user.id)}
+                      className="w-full px-4 py-2.5 btn-primary"
                     >
                       Edit
                     </button>
@@ -234,7 +239,6 @@ export default function UserTable() {
             </>
           )}
         </div>
-
         {/* Pagination */}
         {filteredUsers.length > 0 && (
           <div className="px-5 sm:px-6 py-4 border-t bg-gray-50">
@@ -248,11 +252,10 @@ export default function UserTable() {
                 <button
                   onClick={goToPrevious}
                   disabled={currentPage === 1}
-                  className={`px-3 py-2 rounded-lg font-medium transition ${
-                    currentPage === 1
+                  className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === 1
                       ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                       : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                  }`}
+                    }`}
                 >
                   Previous
                 </button>
@@ -260,11 +263,10 @@ export default function UserTable() {
                   <button
                     key={index + 1}
                     onClick={() => goToPage(index + 1)}
-                    className={`px-3 py-2 rounded-lg font-medium transition ${
-                      currentPage === index + 1
+                    className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === index + 1
                         ? "bg-blue-500 text-white"
                         : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                    }`}
+                      }`}
                   >
                     {index + 1}
                   </button>
@@ -272,11 +274,10 @@ export default function UserTable() {
                 <button
                   onClick={goToNext}
                   disabled={currentPage === totalPages}
-                  className={`px-3 py-2 rounded-lg font-medium transition ${
-                    currentPage === totalPages
+                  className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === totalPages
                       ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                       : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                  }`}
+                    }`}
                 >
                   Next
                 </button>
