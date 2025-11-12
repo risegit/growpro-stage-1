@@ -8,6 +8,7 @@ include('../inc/config.php');
 
 $method = $_SERVER['REQUEST_METHOD'];
 $userId = $_GET['id'] ?? null;
+$emailId = $_GET['email'] ?? null;
 
 if ($method === 'POST' && isset($_POST['_method'])) {
     $method = strtoupper($_POST['_method']);
@@ -31,20 +32,39 @@ switch ($method) {
             } else {
                 $sql1 = "SELECT * FROM users WHERE id=$userId LIMIT 1";
             }
+            $result = $conn->query($sql1);
+            $data = [];
+            while ($row = $result->fetch_assoc()) {
+                $data[] = $row;
+            }
+
+            echo json_encode([
+                "status" => "success",
+                "data" => $userId ? ($data[0] ?? null) : $data
+            ]);
+        }elseif ($emailId) {
+            $userResult = $conn->query("SELECT * FROM users where email='$emailId'");
+            if ($userResult && $userResult->num_rows > 0) {
+                echo json_encode(["status" => "error", "message" => 'An account with this email already exists']);
+            }else{
+                echo json_encode(["status" => "success", "message" => 'An account with this email not exists']);
+            }
+            
         } else {
             $sql1 = "SELECT * FROM users WHERE role!='customer' ORDER BY id DESC";
+            $result = $conn->query($sql1);
+            $data = [];
+            while ($row = $result->fetch_assoc()) {
+                $data[] = $row;
+            }
+
+            echo json_encode([
+                "status" => "success",
+                "data" => $userId ? ($data[0] ?? null) : $data
+            ]);
         }
 
-        $result = $conn->query($sql1);
-        $data = [];
-        while ($row = $result->fetch_assoc()) {
-            $data[] = $row;
-        }
-
-        echo json_encode([
-            "status" => "success",
-            "data" => $userId ? ($data[0] ?? null) : $data
-        ]);
+        
         break;
 
 

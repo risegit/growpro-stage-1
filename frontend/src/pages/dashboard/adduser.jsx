@@ -23,7 +23,7 @@ export default function AddUserForm() {
     const [showCopied, setShowCopied] = useState(false);
     const [cities, setCities] = useState([]);
     const [errors, setErrors] = useState({});
-
+    const [checking, setChecking] = useState(false);
     const fileInputRef = useRef(null);
 
     const [previewImage, setPreviewImage] = useState(null);
@@ -37,6 +37,37 @@ export default function AddUserForm() {
         Gujarat: ['Ahmedabad', 'Surat', 'Vadodara'],
         Delhi: ['New Delhi', 'Central Delhi', 'South Delhi', 'North Delhi'],
         'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem']
+    };
+
+    useEffect(() => {
+        const delayDebounce = setTimeout(() => {
+          if (formData.email && formData.email.includes("@")) {
+            checkEmailExists(formData.email);
+          }
+        }, 600); // Wait 600ms after typing stops
+    
+        return () => clearTimeout(delayDebounce);
+      }, [formData.email]);
+    
+      // 👇 Function to check email existence in backend
+      const checkEmailExists = async (email) => {
+        setChecking(true);
+        try {
+          const res = await fetch(`${import.meta.env.VITE_API_URL}api/user.php?email=${encodeURIComponent(email)}`);
+          const data = await res.json();
+    
+          if (data.status === "error") {
+            // toast.error(data.message);
+            setErrors((prev) => ({
+              ...prev,
+              email: "An account with this email already exists. Please use a different email.",
+            }));
+          }
+        } catch (error) {
+          console.error("Error checking email:", error);
+        } finally {
+          setChecking(false);
+        }
     };
 
     // Generate random alphanumeric password
@@ -280,6 +311,7 @@ export default function AddUserForm() {
                             placeholder="Enter email"
                             className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.email ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                         />
+                        {checking && <span className="text-gray-400 text-sm mt-1">Checking email availability...</span>}
                         {errors.email && <span className="text-red-500 text-sm mt-1">{errors.email}</span>}
                     </div>
 
