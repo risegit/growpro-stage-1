@@ -52,11 +52,15 @@ export default function AMCForm() {
     const loadCustomers = async () => {
       setLoadingCustomers(true);
       try {
-        const res = await fetch('/api/customers');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php`);
         if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
         const data = await res.json();
-        const opts = Array.isArray(data)
-          ? data.map((c) => ({ value: c.id ?? c._id ?? c.value ?? c.name, label: c.name ?? c.label ?? String(c.value) }))
+        console.log("Fetched customers:", data);
+        const opts = Array.isArray(data.data)
+          ? data.data.map((c) => ({ 
+            value: c.id,
+            label: `${c.name} - ${c.phone}`,
+            }))
           : [];
         if (mounted) setCustomers(opts);
       } catch (err) {
@@ -72,6 +76,7 @@ export default function AMCForm() {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, []);
+  
 
   const showToast = (message, type = 'success', duration = 3000) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -198,12 +203,14 @@ export default function AMCForm() {
         total: parseFloat(formData.total) || 0,
       };
 
+      const form = new FormData();
+      Object.entries(form).forEach(([key, value]) => {
+          if (value !== null) form.append(key, value);
+      });
 
-      const res = await fetch('/api/amc', {
+   
+      const res = await fetch(`${import.meta.env.VITE_API_URL}api/AMC.php`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify(payload),
       });
 
@@ -277,33 +284,6 @@ export default function AMCForm() {
             {errors.customer && <span className="text-red-500 text-sm mt-1">{errors.customer}</span>}
           </div>
 
-          {/* Validity From */}
-          <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700">Validity From <span className="text-red-500">*</span></label>
-            <input
-              type="date"
-              name="validityFrom"
-              value={formData.validityFrom}
-              onChange={handleInputChange}
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityFrom ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-            />
-            {errors.validityFrom && <span className="text-red-500 text-sm mt-1">{errors.validityFrom}</span>}
-          </div>
-
-          {/* Validity Upto */}
-          <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700">Validity Upto <span className="text-red-500">*</span></label>
-            <input
-              type="date"
-              name="validityUpto"
-              value={formData.validityUpto}
-              onChange={handleInputChange}
-              min={formData.validityFrom || undefined}
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityUpto ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-            />
-            {errors.validityUpto && <span className="text-red-500 text-sm mt-1">{errors.validityUpto}</span>}
-          </div>
-
           {/* Duration */}
           <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">Duration of AMC <span className="text-red-500">*</span></label>
@@ -343,6 +323,33 @@ export default function AMCForm() {
               className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.visitsPerMonth ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
             />
             {errors.visitsPerMonth && <span className="text-red-500 text-sm mt-1">{errors.visitsPerMonth}</span>}
+          </div>
+
+          {/* Validity From */}
+          <div className="flex flex-col">
+            <label className="mb-1 font-medium text-gray-700">Validity From <span className="text-red-500">*</span></label>
+            <input
+              type="date"
+              name="validityFrom"
+              value={formData.validityFrom}
+              onChange={handleInputChange}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityFrom ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+            />
+            {errors.validityFrom && <span className="text-red-500 text-sm mt-1">{errors.validityFrom}</span>}
+          </div>
+
+          {/* Validity Upto */}
+          <div className="flex flex-col">
+            <label className="mb-1 font-medium text-gray-700">Validity Upto <span className="text-red-500">*</span></label>
+            <input
+              type="date"
+              name="validityUpto"
+              value={formData.validityUpto}
+              onChange={handleInputChange}
+              min={formData.validityFrom || undefined}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityUpto ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+            />
+            {errors.validityUpto && <span className="text-red-500 text-sm mt-1">{errors.validityUpto}</span>}
           </div>
 
           {/* Consumables - multi select with Other */}
