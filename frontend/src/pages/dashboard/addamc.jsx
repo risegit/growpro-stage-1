@@ -576,9 +576,7 @@ const handleGrowerChange = (selected) => {
 
         {/* Submit */}
         <div className="flex items-center justify-between px-4 py-4 border-t">
-          <div className="text-sm text-gray-500">
-            <span className="font-medium">Tip: </span> Make sure dates & values are correct before submitting.
-          </div>
+      
           <button
             onClick={handleSubmit}
             disabled={submitting}
