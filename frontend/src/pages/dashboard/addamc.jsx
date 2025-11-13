@@ -5,6 +5,7 @@ import Select from 'react-select';
 export default function AMCForm() {
   const [formData, setFormData] = useState({
     customer: null, // will be an object from react-select { value, label }
+    grower: null,
     validityFrom: '',
     validityUpto: '',
     duration: '',
@@ -23,8 +24,12 @@ export default function AMCForm() {
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-
   const toastTimerRef = useRef(null);
+  const [growers, setGrowers] = useState([]); // list of growers for selected customer
+  const [consumable, setConsumable] = useState([]);
+  const [loadingGrowers, setLoadingGrowers] = useState(false);
+  const [loadingConsumable, setLoadingConsumable] = useState(false);
+
 
   // Consumable options including "Other"
   const consumableOptions = [
@@ -40,10 +45,10 @@ export default function AMCForm() {
   ];
 
   const durationOptions = [
-    { value: 'monthly', label: 'Monthly' },
-    { value: 'quarterly', label: 'Quarterly' },
-    { value: 'semi-annually', label: 'Semi Annually' },
-    { value: 'annually', label: 'Annually' },
+    { value: '30', label: 'Monthly' },
+    { value: '90', label: 'Quarterly' },
+    { value: '180', label: 'Semi Annually' },
+    { value: '365', label: 'Annually' },
     { value: 'other', label: 'Other' },
   ];
 
@@ -76,6 +81,42 @@ export default function AMCForm() {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, []);
+
+useEffect(() => {
+  const fetchConsumable = async () => {
+    try {
+      setLoadingConsumable(true);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}api/consumable.php`);
+      const data = await response.json();
+
+      console.log("✅ API Response:", data);
+
+      if (data.status === "success" && data.data?.length > 0) {
+        const opts = Array.isArray(data.data)
+          ? data.data.map((c) => ({ 
+            value: c.id,
+            label: `${c.name}`,
+            }))
+          : [];
+        setConsumable(opts);
+      } else {
+        
+      }
+    } catch (error) {
+      console.error("Error fetching consumables:", error);
+      
+    } finally {
+      setLoadingConsumable(false);
+    }
+  };
+
+  fetchConsumable();
+
+  return () => {
+    if (toastTimerRef?.current) clearTimeout(toastTimerRef.current);
+  };
+}, []);
+
   
 
   const showToast = (message, type = 'success', duration = 3000) => {
@@ -104,13 +145,65 @@ export default function AMCForm() {
   };
 
   // react-select customer change (single select)
-  const handleCustomerChange = (selected) => {
-    setFormData((prev) => ({ ...prev, customer: selected }));
+ const handleCustomerChange = async (selected) => {
+  // If customer cleared → reset grower and growers list
+  if (!selected) {
+    setFormData((prev) => ({ ...prev, customer: null, grower: null }));
+    setGrowers([]);
+    return;
+  }
 
-    if (errors.customer) {
-      setErrors((prev) => ({ ...prev, customer: '' }));
-    }
-  };
+  // If same customer is re-selected, do nothing
+  if (formData.customer && formData.customer.value === selected.value) return;
+
+  // Set only the customer (don’t clear grower yet)
+  setFormData((prev) => ({ ...prev, customer: selected }));
+
+  if (errors.customer) {
+    setErrors((prev) => ({ ...prev, customer: '' }));
+  }
+
+  // Now fetch growers for the selected customer
+  setLoadingGrowers(true);
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?customer_id=${selected.value}`);
+    if (!res.ok) throw new Error('Failed to fetch growers');
+
+    const data = await res.json();
+    const opts = Array.isArray(data.data)
+      ? data.data.map((g) => ({
+          value: g.id,
+          label: g.system_type,
+        }))
+      : [];
+
+    // ✅ Update growers
+    setGrowers(opts);
+
+    // ✅ Clear grower selection only *after* new growers are loaded
+    setFormData((prev) => ({
+      ...prev,
+      grower: null,
+    }));
+  } catch (err) {
+    console.error('Error fetching growers:', err);
+    setGrowers([]);
+    setFormData((prev) => ({ ...prev, grower: null }));
+  } finally {
+    setLoadingGrowers(false);
+  }
+};
+
+
+
+const handleGrowerChange = (selected) => {
+  setFormData((prev) => ({ ...prev, grower: selected }));
+
+  if (errors.grower) {
+    setErrors((prev) => ({ ...prev, grower: '' }));
+  }
+};
+
 
   // react-select consumables (multi)
   const handleConsumableChange = (selected) => {
@@ -188,31 +281,41 @@ export default function AMCForm() {
     setSubmitting(true);
     try {
       // Build payload
-      const payload = {
-        customerId: formData.customer.value,
-        validityFrom: formData.validityFrom,
-        validityUpto: formData.validityUpto,
-        duration: formData.duration === 'other' ? formData.customDuration : formData.duration,
-        visitsPerMonth: Number(formData.visitsPerMonth),
-        consumables: formData.consumables.map((c) =>
-          c.value === 'other' ? formData.customConsumable : c.label
-        ),
-        pricing: parseFloat(formData.pricing),
-        transport: parseFloat(formData.transport),
-        gst: parseFloat(formData.gst),
-        total: parseFloat(formData.total) || 0,
-      };
+      const formPayload = new FormData();
 
-      const form = new FormData();
-      Object.entries(form).forEach(([key, value]) => {
-          if (value !== null) form.append(key, value);
+      // Append main form fields
+      Object.keys(formData).forEach((key) => {
+        if (!["consumables", "grower", "customer"].includes(key)) {
+          formPayload.append(key, formData[key]);
+        }
       });
 
-   
-      const res = await fetch(`${import.meta.env.VITE_API_URL}api/AMC.php`, {
-        method: 'POST',
-        body: JSON.stringify(payload),
+      if (formData.customer) {
+        formPayload.append("customer", formData.customer.value || "");
+      }
+
+      // Properly append multi-select arrays
+      formPayload.append(
+        "consumables",
+        JSON.stringify(formData.consumables?.map((c) => c.value) || [])
+      );
+      formPayload.append(
+        "growers",
+        JSON.stringify(formData.grower?.map((g) => g.value) || [])
+      );
+
+      // ✅ Optional: log for debugging
+      console.log("Form Payload Data:");
+      for (let [key, value] of formPayload.entries()) {
+        console.log(`${key}: ${value}`);
+      }
+
+      // ✅ Send the request
+      const res = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php`, {
+        method: "POST",
+        body: formPayload,
       });
+
 
       if (!res.ok) {
         const text = await res.text().catch(() => null);
@@ -225,22 +328,22 @@ export default function AMCForm() {
       showToast('AMC submitted successfully', 'success');
 
       // Reset form
-      setFormData({
-        customer: null,
-        validityFrom: '',
-        validityUpto: '',
-        duration: '',
-        customDuration: '',
-        visitsPerMonth: '',
-        consumables: [],
-        customConsumable: '',
-        pricing: '',
-        transport: '',
-        gst: '',
-        total: ''
-      });
+      // setFormData({
+      //   customer: null,
+      //   validityFrom: '',
+      //   validityUpto: '',
+      //   duration: '',
+      //   customDuration: '',
+      //   visitsPerMonth: '',
+      //   consumables: [],
+      //   customConsumable: '',
+      //   pricing: '',
+      //   transport: '',
+      //   gst: '',
+      //   total: ''
+      // });
       setErrors({});
-      console.log('Submitted payload:', payload, 'server response:', respJson);
+      console.log('Submitted payload:', formPayload, 'server response:', respJson);
     } catch (err) {
       console.error('Submit failed:', err);
       showToast('Submission failed. See console for details.', 'error');
@@ -267,7 +370,7 @@ export default function AMCForm() {
         {/* Form */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 py-6 [&_input]:h-[44px] [&_select]:h-[44px]">
           {/* Customer - react-select single */}
-          <div className="flex flex-col md:col-span-2">
+          <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">Select Customer <span className="text-red-500">*</span></label>
             <Select
               options={customers}
@@ -282,6 +385,33 @@ export default function AMCForm() {
               }}
             />
             {errors.customer && <span className="text-red-500 text-sm mt-1">{errors.customer}</span>}
+          </div>
+
+          <div className="flex flex-col">
+            <label className="mb-1 font-medium text-gray-700">
+              Select Grower <span className="text-red-500">*</span>
+            </label>
+            <Select
+              isMulti
+              options={growers}
+              value={formData.grower}
+              onChange={(selected) => setFormData((prev) => ({ ...prev, grower: selected }))}
+              isClearable
+              isLoading={loadingGrowers}
+              placeholder={
+                !formData.customer
+                  ? 'Select customer first...'
+                  : loadingGrowers
+                  ? 'Loading growers...'
+                  : 'Select grower...'
+              }
+              classNamePrefix="react-select"
+              styles={{
+                menu: (provided) => ({ ...provided, zIndex: 9999 }),
+              }}
+              isDisabled={!formData.customer}
+            />
+            {errors.grower && <span className="text-red-500 text-sm mt-1">{errors.grower}</span>}
           </div>
 
           {/* Duration */}
@@ -357,7 +487,7 @@ export default function AMCForm() {
             <label className="mb-2 font-medium text-gray-700">Consumables Included in the AMC <span className="text-red-500">*</span></label>
             <Select
               isMulti
-              options={consumableOptions}
+              options={consumable}
               value={formData.consumables}
               onChange={handleConsumableChange}
               classNamePrefix="react-select"
