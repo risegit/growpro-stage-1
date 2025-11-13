@@ -125,11 +125,7 @@ switch ($method) {
             if ($conn->query($sql)) {
                 $user_id = $conn->insert_id;
                 
-                $sql1="INSERT INTO `customers_details`
-                (`user_id`, `staff_phone`, `state`, `city`, `pincode`, `street_address`,  `created_by`, `updated_by`, `date`, `time`) 
-                VALUES 
-                ('$user_id','$staffPhone','$state','$city','$pincode','$address','1','1','$date','$time')";
-                $plantNAME='';
+                $sql1="INSERT INTO `customers_details` (`user_id`, `staff_phone`, `state`, `city`, `pincode`, `street_address`,  `created_by`, `updated_by`, `date`, `time`) VALUES ('$user_id','$staffPhone','$state','$city','$pincode','$address','1','1','$date','$time')";
                 $queryPlant='';
                 $newName='';
                 $k=0;
@@ -190,7 +186,6 @@ switch ($method) {
                             $grower_id = $conn->insert_id;
 
                             foreach ($grower['selectedPlants'] as $plant) {
-                                $plantNAME.=$plant['value'];
                                 $sql3 = "SELECT * FROM plants where name='{$plant['value']}'";
                                 $result3 = $conn->query($sql3);                               
                                 if ($result3 && $result3->num_rows > 0) {
