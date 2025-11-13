@@ -344,30 +344,33 @@ export default function AddUserForm() {
                         {errors.phone && <span className="text-red-500 text-sm mt-1">{errors.phone}</span>}
                     </div>
 
-                    <div className="flex flex-col items-start">
+                    <div className="flex flex-col">
                         <label className="mb-1 font-medium text-gray-700">
                             Profile Photo (प्रोफ़ाइल चित्र)
                         </label>
-                        {/* Image preview ABOVE input */}
-                        {previewImage && (
-                            <div className="mb-3">
+
+                        <div className="flex items-center gap-3">
+                            {/* ✅ Image Preview on the left */}
+                            {previewImage && (
                                 <img
                                     src={previewImage}
                                     alt="Profile preview"
-                                    className="w-20 h-20 object-cover rounded-full border"
+                                    className="w-10 h-10 object-cover rounded-full border"
                                 />
-                            </div>
-                        )}
+                            )}
 
-                        <input
-                            type="file"
-                            name="profilePic"
-                            accept="image/*"
-                            onChange={handleFileChange}
-                            ref={fileInputRef}
-                            className="px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none border-gray-300 focus:ring-blue-400"
-                        />
+                            {/* File Input */}
+                            <input
+                                type="file"
+                                name="profilePic"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                                ref={fileInputRef}
+                                className="flex-1 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition border-gray-300 focus:ring-blue-400"
+                            />
+                        </div>
                     </div>
+
                     {/* Row 4: State, City, Locality, Landmark, Pincode */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:col-span-2">
                         <div className="flex flex-col">

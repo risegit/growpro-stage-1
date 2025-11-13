@@ -313,7 +313,7 @@ export default function AMCForm() {
               onChange={handleInputChange}
               className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.duration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
             >
-              <option value="">Select duration</option>
+              <option value="" disabled>Select duration</option>
               {durationOptions.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
             </select>
             {formData.duration === 'other' && (
@@ -439,9 +439,7 @@ export default function AMCForm() {
 
         {/* Submit */}
         <div className="flex items-center justify-between px-4 py-4 border-t">
-          <div className="text-sm text-gray-500">
-            <span className="font-medium">Tip: </span> Make sure dates & values are correct before submitting.
-          </div>
+      
           <button
             onClick={handleSubmit}
             disabled={submitting}
