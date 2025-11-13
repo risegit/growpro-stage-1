@@ -72,9 +72,7 @@ export function DashboardNavbar() {
           </Typography>
         </div>
         <div className="flex items-center">
-          <div className="mr-auto md:mr-4 md:w-56">
-            <Input label="Search" />
-          </div>
+   
           <IconButton
             variant="text"
             color="blue-gray"
@@ -101,11 +99,7 @@ export function DashboardNavbar() {
             </IconButton>
           </Link>
           <Menu>
-            <MenuHandler>
-              <IconButton variant="text" color="blue-gray">
-                <BellIcon className="h-5 w-5 text-blue-gray-500" />
-              </IconButton>
-            </MenuHandler>
+  
             <MenuList className="w-max border-0">
               <MenuItem className="flex items-center gap-3">
                 <Avatar

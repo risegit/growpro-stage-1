@@ -255,9 +255,9 @@ export default function AMCForm() {
   return (
     <div className="w-full min-h-screen bg-gray-100 mt-10">
       {/* Toast */}
-  
 
-       <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
+
+      <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
         {/* Header */}
         <div className="px-2 py-4 border-b">
           <h1 className="text-2xl font-bold mb-1 text-gray-800">Add AMC Contract</h1>
@@ -452,10 +452,11 @@ export default function AMCForm() {
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className={`px-6 py-2 rounded-lg text-white font-medium shadow ${submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+            className={`btn-primary shadow ${submitting ? 'bg-gray-400 cursor-not-allowed' : ''}`}
           >
             {submitting ? 'Submitting...' : 'Submit'}
           </button>
+
         </div>
       </div>
     </div>

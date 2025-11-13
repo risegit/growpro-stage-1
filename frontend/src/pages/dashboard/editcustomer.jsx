@@ -6,13 +6,15 @@ import { toast } from "react-toastify";
 const StepperCustomerForm = () => {
   const [formData, setFormData] = useState({
     name: '',
-    email:'',
+    email: '',
     phoneNumber: '',
     staffPhoneNumber: '',
     profilePic: null,
     address: '',
     state: '',
     city: '',
+    locality: '',
+    landmark: '',
     pincode: '',
     isActive: true
   });
@@ -58,7 +60,7 @@ const StepperCustomerForm = () => {
     { value: 'Cucumber', label: 'Cucumber' },
   ];
 
-  const { id } = useParams(); 
+  const { id } = useParams();
 
   const [errors, setErrors] = useState({});
   const [currentStep, setCurrentStep] = useState(1);
@@ -168,201 +170,202 @@ const StepperCustomerForm = () => {
   const [loading, setLoading] = useState(false);
 
   // Add this separate useEffect to log formData when it changes
-// Add this useEffect at the top level (after your state declarations)
-useEffect(() => {
-  console.log("FormData updated:", formData);
-}, [formData]);
+  // Add this useEffect at the top level (after your state declarations)
+  useEffect(() => {
+    console.log("FormData updated:", formData);
+  }, [formData]);
 
-// Your existing fetch useEffect
-// useEffect(() => {
-//   const fetchUser = async () => {
-//     if (!id) return;
-//     setLoading(true);
-//     try {
-//       const response = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?id=${id}`);
-//       const data = await response.json();
+  // Your existing fetch useEffect
+  // useEffect(() => {
+  //   const fetchUser = async () => {
+  //     if (!id) return;
+  //     setLoading(true);
+  //     try {
+  //       const response = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?id=${id}`);
+  //       const data = await response.json();
 
-//       console.log("✅ API Response:", data);
+  //       console.log("✅ API Response:", data);
 
-//       if (data.status === "success" && data.data) {
-//         const user = Array.isArray(data.data) ? data.data[0] : data.data;
-//         const grower = Array.isArray(data.grower) ? data.grower[0] : data.grower;
-//         // console.log("✅ User data from API:", user);
-//         // console.log("✅ Grower data from API:", grower);
+  //       if (data.status === "success" && data.data) {
+  //         const user = Array.isArray(data.data) ? data.data[0] : data.data;
+  //         const grower = Array.isArray(data.grower) ? data.grower[0] : data.grower;
+  //         // console.log("✅ User data from API:", user);
+  //         // console.log("✅ Grower data from API:", grower);
 
-//         const newFormData = {
-//           name: user.name || '',
-//           email: user.email || '',
-//           phoneNumber: user.phone || '', 
-//           staffPhoneNumber: user.staff_phone || '',
-//           state: user.state || '',
-//           city: user.city || '',
-//           pincode: user.pincode || '',
-//           address: user.street_address || '',
-//           profilePic: user.profile_pic || '',
-//           isActive: user.status ? user.status === "active" : true,
-//         };
-//         // console.log("✅ Data being set to formData:", JSON.parse(JSON.stringify(newFormData)));
+  //         const newFormData = {
+  //           name: user.name || '',
+  //           email: user.email || '',
+  //           phoneNumber: user.phone || '', 
+  //           staffPhoneNumber: user.staff_phone || '',
+  //           state: user.state || '',
+  //           city: user.city || '',
+  //           pincode: user.pincode || '',
+  //           address: user.street_address || '',
+  //           profilePic: user.profile_pic || '',
+  //           isActive: user.status ? user.status === "active" : true,
+  //         };
+  //         // console.log("✅ Data being set to formData:", JSON.parse(JSON.stringify(newFormData)));
 
-//         setFormData(newFormData);
+  //         setFormData(newFormData);
 
-//         const customerPlants = Array.isArray(data.customer_plant)
-//           ? data.customer_plant.map((plant) => ({
-//               value: plant.name, // ✅ should match plantOptions value
-//               label: plant.name,
-//             }))
-//           : [];
-
-
-
-//         const newGrowerFormData = {
-//           growerId: grower.id,
-//           systemType: grower.system_type || '',
-//           systemTypeOther: '',
-//           numPlants: grower.no_of_plants,
-//           numLevels: grower.no_of_levels,
-//           setupDimension: grower.setup_dimension,
-//           motorType: grower.motor_used,
-//           motorTypeOther: '',
-//           timerUsed: grower.timer_used,
-//           timerUsedOther: '',
-//           numLights:grower.no_of_lights,
-//           modelOfLight: grower.model_of_lights,
-//           modelOfLightOther: "",
-//           lengthOfLight: grower.length_of_lights,
-//           lengthOfLightOther: "",
-//           tankCapacity: grower.tank_capacity,
-//           tankCapacityOther: "",
-//           nutritionGiven: grower.nutrition_given,
-//           otherSpecifications: grower.other_specifications,
-//           photoAtInstallation: grower.installation_photo_url || '',
-//           selectedPlants: customerPlants
-//         };
-
-//         setGrowers([newGrowerFormData]);
-
-//         // console.log("🔍 plantOptions:", plantOptions);
-//         // console.log("🔍 selectedPlants:", growers[0]?.selectedPlants);
+  //         const customerPlants = Array.isArray(data.customer_plant)
+  //           ? data.customer_plant.map((plant) => ({
+  //               value: plant.name, // ✅ should match plantOptions value
+  //               label: plant.name,
+  //             }))
+  //           : [];
 
 
 
-//         // Set cities based on state
-//         if (user.state && statesAndCities[user.state]) {
-//           setCities(statesAndCities[user.state]);
-//         }
+  //         const newGrowerFormData = {
+  //           growerId: grower.id,
+  //           systemType: grower.system_type || '',
+  //           systemTypeOther: '',
+  //           numPlants: grower.no_of_plants,
+  //           numLevels: grower.no_of_levels,
+  //           setupDimension: grower.setup_dimension,
+  //           motorType: grower.motor_used,
+  //           motorTypeOther: '',
+  //           timerUsed: grower.timer_used,
+  //           timerUsedOther: '',
+  //           numLights:grower.no_of_lights,
+  //           modelOfLight: grower.model_of_lights,
+  //           modelOfLightOther: "",
+  //           lengthOfLight: grower.length_of_lights,
+  //           lengthOfLightOther: "",
+  //           tankCapacity: grower.tank_capacity,
+  //           tankCapacityOther: "",
+  //           nutritionGiven: grower.nutrition_given,
+  //           otherSpecifications: grower.other_specifications,
+  //           photoAtInstallation: grower.installation_photo_url || '',
+  //           selectedPlants: customerPlants
+  //         };
 
-//       } else {
-//         console.error("API returned error or no data");
-//         alert('User not found!');
-//       }
-//     } catch (error) {
-//       console.error('Error fetching user:', error);
-//       alert('Failed to fetch user details!');
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
+  //         setGrowers([newGrowerFormData]);
 
-//   fetchUser();
-// }, [id]);
+  //         // console.log("🔍 plantOptions:", plantOptions);
+  //         // console.log("🔍 selectedPlants:", growers[0]?.selectedPlants);
 
-useEffect(() => {
-  const fetchUser = async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?id=${id}`);
-      const data = await response.json();
 
-      console.log("✅ API Response:", data);
 
-      if (data.status === "success" && data.data) {
-        // Normalize user (data.data might be an array)
-        const user = Array.isArray(data.data) ? data.data[0] : data.data;
+  //         // Set cities based on state
+  //         if (user.state && statesAndCities[user.state]) {
+  //           setCities(statesAndCities[user.state]);
+  //         }
 
-        // Normalize arrays from API
-        const growerArray = Array.isArray(data.grower) ? data.grower : (data.grower ? [data.grower] : []);
-        const customerPlants = Array.isArray(data.customer_plant) ? data.customer_plant : [];
+  //       } else {
+  //         console.error("API returned error or no data");
+  //         alert('User not found!');
+  //       }
+  //     } catch (error) {
+  //       console.error('Error fetching user:', error);
+  //       alert('Failed to fetch user details!');
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
 
-        // Set main formData
-        const newFormData = {
-          name: user.name || '',
-          email: user.email || '',
-          phoneNumber: user.phone || '',
-          staffPhoneNumber: user.staff_phone || '',
-          state: user.state || '',
-          city: user.city || '',
-          pincode: user.pincode || '',
-          address: user.street_address || '',
-          profilePic: user.profile_pic || '',
-          isActive: user.status ? user.status === "active" : true,
-        };
-        setFormData(newFormData);
+  //   fetchUser();
+  // }, [id]);
 
-        // Build growers array by mapping every grower returned
-        const newGrowersData = growerArray.map((g) => {
-          // For each grower, find plants that belong to it.
-          // Customer_plant might use grower_id or growerId — check both.
-          const plantsForThisGrower = customerPlants
-            .filter((p) => {
-              if (!p) return false;
-              // match by numeric/string id depending on your API
-              return String(p.grower_id ?? p.growerId ?? '') === String(g.id ?? g.grower_id ?? '');
-            })
-            .map((p) => ({
-              value: p.name,
-              label: p.name,
-            }));
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?id=${id}`);
+        const data = await response.json();
 
-          return {
-            growerId: g.id || g.grower_id || '',
-            systemType: g.system_type || '',
-            systemTypeOther: '',
-            numPlants: g.no_of_plants || '',
-            numLevels: g.no_of_levels || '',
-            setupDimension: g.setup_dimension || '',
-            motorType: g.motor_used || '',
-            motorTypeOther: '',
-            timerUsed: g.timer_used || '',
-            timerUsedOther: '',
-            numLights: g.no_of_lights || '',
-            modelOfLight: g.model_of_lights || '',
-            modelOfLightOther: '',
-            lengthOfLight: g.length_of_lights || '',
-            lengthOfLightOther: '',
-            tankCapacity: g.tank_capacity || '',
-            tankCapacityOther: '',
-            nutritionGiven: g.nutrition_given || '',
-            otherSpecifications: g.other_specifications || '',
-            photoAtInstallation: g.installation_photo_url || '',
-            selectedPlants: plantsForThisGrower
+        console.log("✅ API Response:", data);
+
+        if (data.status === "success" && data.data) {
+          // Normalize user (data.data might be an array)
+          const user = Array.isArray(data.data) ? data.data[0] : data.data;
+
+          // Normalize arrays from API
+          const growerArray = Array.isArray(data.grower) ? data.grower : (data.grower ? [data.grower] : []);
+          const customerPlants = Array.isArray(data.customer_plant) ? data.customer_plant : [];
+
+          // Set main formData
+          const newFormData = {
+            name: user.name || '',
+            email: user.email || '',
+            phoneNumber: user.phone || '',
+            staffPhoneNumber: user.staff_phone || '',
+            state: user.state || '',
+            city: user.city || '',
+            pincode: user.pincode || '',
+            address: user.street_address || '',
+            profilePic: user.profile_pic || '',
+            isActive: user.status ? user.status === "active" : true,
           };
-        });
+          setFormData(newFormData);
 
-        setGrowers(newGrowersData);
+          // Build growers array by mapping every grower returned
+          const newGrowersData = growerArray.map((g) => {
+            // For each grower, find plants that belong to it.
+            // Customer_plant might use grower_id or growerId — check both.
+            const plantsForThisGrower = customerPlants
+              .filter((p) => {
+                if (!p) return false;
+                // match by numeric/string id depending on your API
+                return String(p.grower_id ?? p.growerId ?? '') === String(g.id ?? g.grower_id ?? '');
+              })
+              .map((p) => ({
+                value: p.name,
+                label: p.name,
+              }));
 
-        // set cities if available
-        if (user.state && statesAndCities[user.state]) {
-          setCities(statesAndCities[user.state]);
+            return {
+              growerId: g.id || g.grower_id || '',
+              systemType: g.system_type || '',
+              systemTypeOther: '',
+              numPlants: g.no_of_plants || '',
+              numLevels: g.no_of_levels || '',
+              setupDimension: g.setup_dimension || '',
+              motorType: g.motor_used || '',
+              motorTypeOther: '',
+              timerUsed: g.timer_used || '',
+              timerUsedOther: '',
+              numLights: g.no_of_lights || '',
+              modelOfLight: g.model_of_lights || '',
+              modelOfLightOther: '',
+              lengthOfLight: g.length_of_lights || '',
+              lengthOfLightOther: '',
+              tankCapacity: g.tank_capacity || '',
+              tankCapacityOther: '',
+              nutritionGiven: g.nutrition_given || '',
+              otherSpecifications: g.other_specifications || '',
+              photoAtInstallation: g.installation_photo_url || '',
+              selectedPlants: plantsForThisGrower
+            };
+          });
+
+          setGrowers(newGrowersData);
+
+          // set cities if available
+          if (user.state && statesAndCities[user.state]) {
+            setCities(statesAndCities[user.state]);
+          }
+        } else {
+          console.error("API returned error or no data");
+          alert('User not found!');
         }
-      } else {
-        console.error("API returned error or no data");
-        alert('User not found!');
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        alert('Failed to fetch user details!');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      alert('Failed to fetch user details!');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  fetchUser();
-}, [id]);
+    fetchUser();
+  }, [id]);
 
 
   const validateStep = () => {
     let stepErrors = {};
+
 
     if (currentStep === 1) {
       if (!formData.name.trim()) stepErrors.name = 'Name is required';
@@ -374,6 +377,8 @@ useEffect(() => {
       }
       if (!formData.state) stepErrors.state = 'State is required';
       if (!formData.city) stepErrors.city = 'City is required';
+      if (!formData.locality.trim()) stepErrors.locality = 'Locality is required'; // ✅ new
+      if (!formData.landmark.trim()) stepErrors.landmark = 'Landmark is required'; // ✅ new
       if (!formData.pincode.trim()) stepErrors.pincode = 'Pincode is required';
       else if (!/^\d{6}$/.test(formData.pincode)) stepErrors.pincode = 'Pincode must be exactly 6 digits';
       if (!formData.address.trim()) stepErrors.address = 'Street address is required';
@@ -449,10 +454,10 @@ useEffect(() => {
         formPayload.append(`photoAtInstallation_${index}`, imageFile);
       }
     });
-      console.log("Form data entries:");
-      for (let [key, value] of formPayload.entries()) {
-        console.log(key, ":", value);
-      }
+    console.log("Form data entries:");
+    for (let [key, value] of formPayload.entries()) {
+      console.log(key, ":", value);
+    }
 
 
 
@@ -527,6 +532,7 @@ useEffect(() => {
       case 1:
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6">
+            {/* Name */}
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
                 Name (नाम) <span className="text-red-500">*</span>
@@ -537,11 +543,15 @@ useEffect(() => {
                 value={formData.name}
                 onChange={handleInputChange}
                 placeholder="Enter name"
-                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.name ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.name
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-400"
+                  }`}
               />
               {errors.name && <span className="text-red-500 text-sm mt-1">{errors.name}</span>}
             </div>
 
+            {/* Email */}
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
                 Email (ईमेल) <span className="text-red-500">*</span>
@@ -552,11 +562,15 @@ useEffect(() => {
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="Enter email"
-                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.email ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.email
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-400"
+                  }`}
               />
               {errors.email && <span className="text-red-500 text-sm mt-1">{errors.email}</span>}
             </div>
 
+            {/* Phone Number */}
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
                 Phone Number (फ़ोन नंबर) <span className="text-red-500">*</span>
@@ -567,11 +581,17 @@ useEffect(() => {
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
                 placeholder="Enter phone number"
-                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.phoneNumber ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.phoneNumber
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-400"
+                  }`}
               />
-              {errors.phoneNumber && <span className="text-red-500 text-sm mt-1">{errors.phoneNumber}</span>}
+              {errors.phoneNumber && (
+                <span className="text-red-500 text-sm mt-1">{errors.phoneNumber}</span>
+              )}
             </div>
 
+            {/* Staff Phone Number */}
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
                 Staff Phone Number (स्टाफ फ़ोन नंबर)
@@ -582,87 +602,158 @@ useEffect(() => {
                 value={formData.staffPhoneNumber}
                 onChange={handleInputChange}
                 placeholder="Enter staff phone"
-                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.staffPhoneNumber ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.staffPhoneNumber
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-400"
+                  }`}
               />
-              {errors.staffPhoneNumber && <span className="text-red-500 text-sm mt-1">{errors.staffPhoneNumber}</span>}
+              {errors.staffPhoneNumber && (
+                <span className="text-red-500 text-sm mt-1">{errors.staffPhoneNumber}</span>
+              )}
             </div>
 
-            
+            {/* Profile Pic */}
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
                 Profile Pic (प्रोफ़ाइल चित्र)
               </label>
               {formData.profilePic && typeof formData.profilePic === "string" && (
                 <img
-                    src={`${import.meta.env.VITE_API_URL}uploads/customers/${formData.profilePic}`}
-                    alt="Profile"
-                    className="w-24 h-24 object-cover rounded-full mb-2 border"
+                  src={`${import.meta.env.VITE_API_URL}uploads/customers/${formData.profilePic}`}
+                  alt="Profile"
+                  className="w-24 h-24 object-cover rounded-full mb-2 border"
                 />
               )}
               <input
                 type="file"
                 name="profilePic"
-                onChange={(e) => setFormData({ ...formData, profilePic: e.target.files[0] })}
+                onChange={(e) =>
+                  setFormData({ ...formData, profilePic: e.target.files[0] })
+                }
                 accept="image/*"
-                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.profilePic ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.profilePic
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-400"
+                  }`}
               />
-              {errors.profilePic && <span className="text-red-500 text-sm mt-1">{errors.profilePic}</span>}
+              {errors.profilePic && (
+                <span className="text-red-500 text-sm mt-1">{errors.profilePic}</span>
+              )}
             </div>
 
-            <div className="flex flex-wrap gap-4 md:col-span-2">
-              <div className="flex-1 flex flex-col">
-                <label className="mb-1 font-medium text-gray-700">
-                  State (राज्य) <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="state"
-                  value={formData.state}
-                  onChange={handleStateChange}
-                  className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.state ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                >
-                  <option value="">Select state</option>
-                  {Object.keys(statesAndCities).map((state) => (
-                    <option key={state} value={state}>{state}</option>
-                  ))}
-                </select>
-                {errors.state && <span className="text-red-500 text-sm mt-1">{errors.state}</span>}
-              </div>
-
-              <div className="flex-1 flex flex-col">
-                <label className="mb-1 font-medium text-gray-700">
-                  City (शहर) <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.city ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                  disabled={!cities.length}
-                >
-                  <option value="">Select city</option>
-                  {cities.map((city) => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </select>
-                {errors.city && <span className="text-red-500 text-sm mt-1">{errors.city}</span>}
-              </div>
-
-              <div className="flex-1 flex flex-col">
-                <label className="mb-1 font-medium text-gray-700">
-                  Pincode (पिनकोड) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  name="pincode"
-                  value={formData.pincode}
-                  onChange={handleInputChange}
-                  placeholder="Enter pincode"
-                  className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.pincode ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                />
-                {errors.pincode && <span className="text-red-500 text-sm mt-1">{errors.pincode}</span>}
-              </div>
+            {/* State */}
+            <div className="flex flex-col">
+              <label className="mb-1 font-medium text-gray-700">
+                State (राज्य) <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="state"
+                value={formData.state}
+                onChange={handleStateChange}
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.state
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-400"
+                  }`}
+              >
+                <option value="" disabled>Select state</option>
+                {Object.keys(statesAndCities).map((state) => (
+                  <option key={state} value={state}>
+                    {state}
+                  </option>
+                ))}
+              </select>
+              {errors.state && <span className="text-red-500 text-sm mt-1">{errors.state}</span>}
             </div>
 
+            {/* City */}
+            <div className="flex flex-col">
+              <label className="mb-1 font-medium text-gray-700">
+                City (शहर) <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="city"
+                value={formData.city}
+                onChange={handleInputChange}
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.city
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-400"
+                  }`}
+                disabled={!cities.length}
+              >
+                <option value="" disabled>Select city</option>
+                {cities.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
+              {errors.city && <span className="text-red-500 text-sm mt-1">{errors.city}</span>}
+            </div>
+
+            {/* Locality */}
+            <div className="flex flex-col">
+              <label className="mb-1 font-medium text-gray-700">
+                Locality (इलाका) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="locality"
+                value={formData.locality}
+                onChange={handleInputChange}
+                placeholder="Eg - Andheri."
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.locality
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-400"
+                  }`}
+              />
+              {errors.locality && (
+                <span className="text-red-500 text-sm mt-1">{errors.locality}</span>
+              )}
+            </div>
+
+            {/* Landmark */}
+            <div className="flex flex-col">
+              <label className="mb-1 font-medium text-gray-700">
+                Landmark (लैंडमार्क) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="landmark"
+                value={formData.landmark}
+                onChange={handleInputChange}
+                placeholder="Near City Mall"
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.landmark
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-400"
+                  }`}
+              />
+              {errors.landmark && (
+                <span className="text-red-500 text-sm mt-1">{errors.landmark}</span>
+              )}
+            </div>
+
+            {/* Pincode */}
+            <div className="flex flex-col">
+              <label className="mb-1 font-medium text-gray-700">
+                Pincode (पिनकोड) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                name="pincode"
+                value={formData.pincode}
+                onChange={handleInputChange}
+                placeholder="Enter pincode"
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.pincode
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-400"
+                  }`}
+              />
+              {errors.pincode && (
+                <span className="text-red-500 text-sm mt-1">{errors.pincode}</span>
+              )}
+            </div>
+
+            {/* Street Address */}
             <div className="flex flex-col md:col-span-2">
               <label className="mb-1 font-medium text-gray-700">
                 Street Address (सड़क पता) <span className="text-red-500">*</span>
@@ -673,11 +764,17 @@ useEffect(() => {
                 onChange={handleInputChange}
                 placeholder="Enter address"
                 rows={3}
-                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.address ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.address
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-400"
+                  }`}
               />
-              {errors.address && <span className="text-red-500 text-sm mt-1">{errors.address}</span>}
+              {errors.address && (
+                <span className="text-red-500 text-sm mt-1">{errors.address}</span>
+              )}
             </div>
 
+            {/* Active Checkbox */}
             <div className="flex items-center md:col-span-2">
               <input
                 type="checkbox"
@@ -691,6 +788,7 @@ useEffect(() => {
               </label>
             </div>
           </div>
+
         );
       case 2:
         return (
@@ -722,15 +820,15 @@ useEffect(() => {
                         placeholder="Specify other"
                         className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`systemTypeOther_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                       />
-                      
+
                     )}
                     <input
-                        type="hidden"
-                        name="gorwerId"
-                        value={grower.growerId}
-                        onChange={(e) => handleGrowerChange(index, e)}
-                        className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                      />
+                      type="hidden"
+                      name="gorwerId"
+                      value={grower.growerId}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    />
                     {errors[`systemTypeOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`systemTypeOther_${index}`]}</span>}
                   </div>
 
@@ -965,9 +1063,9 @@ useEffect(() => {
                     </label>
                     {grower.photoAtInstallation && typeof grower.photoAtInstallation === "string" && (
                       <img
-                          src={`${import.meta.env.VITE_API_URL}uploads/customers/${grower.photoAtInstallation}`}
-                          alt="Installation Photo"
-                          className="w-24 h-24 object-cover rounded-full mb-2 border"
+                        src={`${import.meta.env.VITE_API_URL}uploads/customers/${grower.photoAtInstallation}`}
+                        alt="Installation Photo"
+                        className="w-24 h-24 object-cover rounded-full mb-2 border"
                       />
                     )}
                     <input
@@ -977,8 +1075,8 @@ useEffect(() => {
                         handleGrowerChange(index, e, 'photoAtInstallation', e.target.files[0])
                       }
                       className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`photoAtInstallation_${index}`]
-                          ? 'border-red-500 focus:ring-red-400'
-                          : 'border-gray-300 focus:ring-blue-400'
+                        ? 'border-red-500 focus:ring-red-400'
+                        : 'border-gray-300 focus:ring-blue-400'
                         }`}
                     />
 
@@ -1017,219 +1115,259 @@ useEffect(() => {
           <div className="px-6 py-6">
             <h3 className="md:text-2xl sm:text-xl font-bold mb-6 text-gray-800">Review Your Information</h3>
 
-            <div className="space-y-6">
-              <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-                <h4 className="text-lg font-semibold mb-4 text-gray-700">Customer Details</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+              <h4 className="text-lg font-semibold mb-4 text-gray-700">Customer Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-gray-800">
+                    <span className="font-medium text-gray-600">Name: </span>
+                    {formData.name}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-800">
+                    <span className="font-medium text-gray-600">Phone Number: </span>
+                    {formData.phoneNumber}
+                  </p>
+                </div>
+
+                {formData.staffPhoneNumber && (
                   <div>
                     <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Name: </span>
-                      {formData.name}
+                      <span className="font-medium text-gray-600">Staff Phone Number: </span>
+                      {formData.staffPhoneNumber}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Phone Number: </span>
-                      {formData.phoneNumber}
-                    </p>
-                  </div>
-                  {formData.staffPhoneNumber && (
-                    <div>
-                      <p className="text-gray-800">
-                        <span className="font-medium text-gray-600">Staff Phone Number: </span>
-                        {formData.staffPhoneNumber}
-                      </p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">State: </span>
-                      {formData.state}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">City: </span>
-                      {formData.city}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Pincode: </span>
-                      {formData.pincode}
-                    </p>
-                  </div>
+                )}
+
+                <div>
+                  <p className="text-gray-800">
+                    <span className="font-medium text-gray-600">State: </span>
+                    {formData.state}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-800">
+                    <span className="font-medium text-gray-600">City: </span>
+                    {formData.city}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-800">
+                    <span className="font-medium text-gray-600">Locality: </span>
+                    {formData.locality}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-800">
+                    <span className="font-medium text-gray-600">Pincode: </span>
+                    {formData.pincode}
+                  </p>
+                </div>
+                {formData.landmark && (
                   <div className="md:col-span-2">
                     <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Address: </span>
-                      {formData.address}
+                      <span className="font-medium text-gray-600">Landmark: </span>
+                      {formData.landmark}
                     </p>
                   </div>
-                  <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">
-                            Profile Pic:
-                          </span>{" "}
-                          {formData.profilePic ? (
-                            <span>
-                              {typeof formData.profilePic === "string"
-                                ? formData.profilePic.split("/").pop() // show filename
-                                : formData.profilePic.name}
-                            </span>
-                          ) : (
-                            "No file uploaded"
-                          )}
-                        </p>
+                )}
+                <div className="md:col-span-2">
+                  <p className="text-gray-800">
+                    <span className="font-medium text-gray-600">Address: </span>
+                    {formData.address}
+                  </p>
+                </div>
 
-                        {formData.profilePic && (
-                          <img
-                            src={
-                              typeof formData.profilePic === "string"
-                                ? `${import.meta.env.VITE_API_URL}uploads/customers/${formData.profilePic}`
-                                : URL.createObjectURL(formData.profilePic)
-                            }
-                            alt="Profile Pic"
-                            className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
-                          />
-                        )}
-                      </div>
+                <div>
+                  <p className="text-gray-800">
+                    <span className="font-medium text-gray-600">Profile Pic:</span>{" "}
+                    {formData.profilePic ? (
+                      <span>
+                        {typeof formData.profilePic === "string"
+                          ? formData.profilePic.split("/").pop()
+                          : formData.profilePic.name}
+                      </span>
+                    ) : (
+                      "No file uploaded"
+                    )}
+                  </p>
+
+                  {formData.profilePic && (
+                    <img
+                      src={
+                        typeof formData.profilePic === "string"
+                          ? `${import.meta.env.VITE_API_URL}uploads/customers/${formData.profilePic}`
+                          : URL.createObjectURL(formData.profilePic)
+                      }
+                      alt="Profile Pic"
+                      className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
+                    />
+                  )}
                 </div>
               </div>
-              <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-                <h4 className="text-lg font-semibold mb-4 text-gray-700">Grower Information</h4>
-                {growers.map((grower, index) => (
-                  <div key={index} className="mb-6 last:mb-0">
-                    <h5 className="font-semibold text-gray-700 mb-3">Grower {index + 1}</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">System Type: </span>
-                          {grower.systemType === 'Other' ? grower.systemTypeOther : grower.systemType}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Plants: </span>
-                          {grower.numPlants}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Levels: </span>
-                          {grower.numLevels}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Setup Dimension: </span>
-                          {grower.setupDimension}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Motor Used: </span>
-                          {grower.motorType === 'Other' ? grower.motorTypeOther : grower.motorType}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Timer Used: </span>
-                          {grower.timerUsed === 'Other' ? grower.timerUsedOther : grower.timerUsed}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Lights: </span>
-                          {grower.numLights}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Model of Lights: </span>
-                          {grower.modelOfLight === 'Other' ? grower.modelOfLightOther : grower.modelOfLight}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Length of Lights: </span>
-                          {grower.lengthOfLight === 'Other' ? grower.lengthOfLightOther : grower.lengthOfLight}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Tank Capacity: </span>
-                          {grower.tankCapacity === 'Other' ? grower.tankCapacityOther : grower.tankCapacity}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Nutrition Given: </span>
-                          {grower.nutritionGiven}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Other Specifications: </span>
-                          {grower.otherSpecifications}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">
-                            Photo at Time of Installation:
-                          </span>{" "}
-                          {grower.photoAtInstallation ? (
-                            <span>
-                              {typeof grower.photoAtInstallation === "string"
-                                ? grower.photoAtInstallation.split("/").pop() // show filename
-                                : grower.photoAtInstallation.name}
-                            </span>
-                          ) : (
-                            "No file uploaded"
-                          )}
-                        </p>
-
-                        {grower.photoAtInstallation && (
-                          <img
-                            src={
-                              typeof grower.photoAtInstallation === "string"
-                                ? `${import.meta.env.VITE_API_URL}uploads/customers/${grower.photoAtInstallation}`
-                                : URL.createObjectURL(grower.photoAtInstallation)
-                            }
-                            alt="Installation Preview"
-                            className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
-                          />
-                        )}
-                      </div>
-
-
-                      <div className="md:col-span-2">
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Plants Chosen: </span>
-                          {grower.selectedPlants && grower.selectedPlants.length > 0
-                            ? grower.selectedPlants.map(p => p.label).join(', ')
-                            : 'N/A'}
-                        </p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Status: </span>
-                          <span
-                            className={`font-semibold ${formData.isActive ? 'text-green-600' : 'text-red-600'
-                              }`}
-                          >
-                            {formData.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-
-                    {index < growers.length - 1 && <hr className="my-4 border-gray-300" />}
-                  </div>
-                ))}
-              </div>
             </div>
+            <div className="border border-gray-200 rounded-lg p-6 bg-gray-50 mt-6">
+  <h4 className="text-lg font-semibold mb-4 text-gray-700">Grower Information</h4>
+
+  {growers && growers.length > 0 ? (
+    growers.map((grower, index) => (
+      <div key={index} className="mb-6 last:mb-0">
+        <h5 className="font-semibold text-gray-700 mb-3">
+          Grower {index + 1}
+        </h5>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">System Type: </span>
+              {grower.systemType === "Other"
+                ? grower.systemTypeOther
+                : grower.systemType}
+            </p>
           </div>
+          <div>
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">No. of Plants: </span>
+              {grower.numPlants}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">No. of Levels: </span>
+              {grower.numLevels}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">Setup Dimension: </span>
+              {grower.setupDimension}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">Motor Used: </span>
+              {grower.motorType === "Other"
+                ? grower.motorTypeOther
+                : grower.motorType}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">Timer Used: </span>
+              {grower.timerUsed === "Other"
+                ? grower.timerUsedOther
+                : grower.timerUsed}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">No. of Lights: </span>
+              {grower.numLights}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">Model of Lights: </span>
+              {grower.modelOfLight === "Other"
+                ? grower.modelOfLightOther
+                : grower.modelOfLight}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">Length of Lights: </span>
+              {grower.lengthOfLight === "Other"
+                ? grower.lengthOfLightOther
+                : grower.lengthOfLight}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">Tank Capacity: </span>
+              {grower.tankCapacity === "Other"
+                ? grower.tankCapacityOther
+                : grower.tankCapacity}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">Nutrition Given: </span>
+              {grower.nutritionGiven}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">Other Specifications: </span>
+              {grower.otherSpecifications || "N/A"}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">
+                Photo at Time of Installation:
+              </span>{" "}
+              {grower.photoAtInstallation ? (
+                <span>
+                  {typeof grower.photoAtInstallation === "string"
+                    ? grower.photoAtInstallation.split("/").pop()
+                    : grower.photoAtInstallation.name}
+                </span>
+              ) : (
+                "No file uploaded"
+              )}
+            </p>
+
+            {grower.photoAtInstallation && (
+              <img
+                src={
+                  typeof grower.photoAtInstallation === "string"
+                    ? `${import.meta.env.VITE_API_URL}uploads/customers/${grower.photoAtInstallation}`
+                    : URL.createObjectURL(grower.photoAtInstallation)
+                }
+                alt="Installation Preview"
+                className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
+              />
+            )}
+          </div>
+
+          <div className="md:col-span-2">
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">Plants Chosen: </span>
+              {grower.selectedPlants && grower.selectedPlants.length > 0
+                ? grower.selectedPlants.map((p) => p.label).join(", ")
+                : "N/A"}
+            </p>
+          </div>
+
+          <div className="md:col-span-2">
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">Status: </span>
+              <span
+                className={`font-semibold ${
+                  formData.isActive ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {formData.isActive ? "Active" : "Inactive"}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {index < growers.length - 1 && (
+          <hr className="my-4 border-gray-300" />
+        )}
+      </div>
+    ))
+  ) : (
+    <p className="text-gray-600 italic">No grower information added yet.</p>
+  )}
+</div>
+
+
+          </div>
+          
         );
       default:
         return null;
@@ -1255,7 +1393,7 @@ useEffect(() => {
                     onClick={addGrower}
                     className="bg-[#9FC762] hover:bg-[#8DB350] text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
                   >
-                    + Add Grower(उत्पादक जोड़ें)
+                    + Add Grower(उत्पादK जोड़ें)
                   </button>
 
                   {/* {growers.length > 1 && (
@@ -1274,7 +1412,7 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={prevStep}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
+                    className="btn-primary ml-auto"
                   >
                     Previous(पिछला)
                   </button>
@@ -1282,7 +1420,7 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
+                    className="btn-primary ml-auto"
                   >
                     Next(आगे)
                   </button>
@@ -1295,7 +1433,7 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={prevStep}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg w-full md:w-auto transition"
+                    className="btn-primary "
                   >
                     Previous(पिछला)
                   </button>
@@ -1305,7 +1443,7 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg w-full md:w-auto transition ml-auto"
+                    className="btn-primary ml-auto"
                   >
                     Next (आगे)
                   </button>
@@ -1313,7 +1451,7 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={handleSubmit}
-                    className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-lg w-full md:w-auto transition ml-auto"
+                    className="btn-primary "
                   >
                     Submit(जमा करें)
                   </button>
