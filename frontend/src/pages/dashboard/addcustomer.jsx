@@ -62,6 +62,8 @@ const StepperCustomerForm = () => {
 
 
   const [errors, setErrors] = useState({});
+  const [previews, setPreviews] = useState([]);
+  const [profilePreview, setProfilePreview] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [growers, setGrowers] = useState([{
     systemType: '',
@@ -100,6 +102,32 @@ const StepperCustomerForm = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
+  const handleFileChange = (e, index) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Update grower's photo
+      const updatedGrowers = [...growers];
+      updatedGrowers[index] = {
+        ...updatedGrowers[index],
+        photoAtInstallation: file
+      };
+      setGrowers(updatedGrowers);
+
+      // Update preview
+      const updatedPreviews = [...previews];
+      updatedPreviews[index] = URL.createObjectURL(file);
+      setPreviews(updatedPreviews);
+    }
+  };
+
+  const handleProfilePicChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData({ ...formData, profilePic: file }); // Update form data
+      setProfilePreview(URL.createObjectURL(file)); // Set preview
+    }
+  };
+
 
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
@@ -138,13 +166,7 @@ const StepperCustomerForm = () => {
     }
   };
 
-  // const handleGrowerChange = (index, e) => {
-  //   const { name, value } = e.target;
-  //   const updatedGrowers = [...growers];
-  //   updatedGrowers[index] = { ...updatedGrowers[index], [name]: value };
-  //   setGrowers(updatedGrowers);
-  //   setErrors(prev => ({ ...prev, [`${name}_${index}`]: '' }));
-  // };           
+
 
   const handleGrowerChange = (index, e, customField, customValue) => {
     const updatedGrowers = [...growers];
@@ -189,14 +211,6 @@ const StepperCustomerForm = () => {
     }]);
   };
 
-  // plantselecthandlechange
-  // const handlePlantSelectChange = (index, selectedOptions) => {
-  //   const updatedGrowers = [...growers];
-  //   updatedGrowers[index].selectedPlants = selectedOptions || [];
-  //   setGrowers(updatedGrowers);
-  //   setErrors(prev => ({ ...prev, [`selectedPlants_${index}`]: '' }));
-  // };
-
   const handlePlantSelectChange = (index, selectedOptions) => {
     const updatedGrowers = [...growers];
     updatedGrowers[index].selectedPlants = selectedOptions || [];
@@ -210,10 +224,6 @@ const StepperCustomerForm = () => {
     setGrowers(updatedGrowers);
     setErrors((prev) => ({ ...prev, [`selectedPlants_${index}`]: "" }));
   };
-
-
-
-
   const removeGrower = () => {
     if (growers.length <= 1) return;
     setGrowers(growers.slice(0, -1));
@@ -344,56 +354,6 @@ const StepperCustomerForm = () => {
       alert("Server error. Contact admin.");
     }
   };
-
-
-  // const handleSubmit = async () => {
-  //   if (!validateStep()) return;
-
-  //   const formPayload = new FormData();
-
-  //   // Append main form fields
-  //   for (const key in formData) {
-  //     formPayload.append(key, formData[key]);
-  //   }
-
-  //   // Append growers as JSON string
-  //   formPayload.append("growers", JSON.stringify(growers));
-
-  //   console.log("Form Payload Data:");
-  //   for (let pair of formPayload.entries()) {
-  //     console.log(pair[0] + ": ", pair[1]);
-  //   }
-
-  //   try {
-  //     const response = await fetch(
-  //       "http://localhost/growpro/growpro-stage-1/backend/api/customer.php",
-  //       {
-  //         method: "POST",
-  //         body: formPayload
-  //       }
-  //     );
-
-  //     const result = await response.json();
-  //     console.log("Server response:", result);
-
-  //     if (result.status === "success") {
-  //       toast.success("Customer added successfully");
-
-  //       // Reset form after success
-  //       // setFormData(initialCustomerState);
-  //       // setGrowers([initialGrowerState]);
-  //       // setCurrentStep(1);
-  //       setErrors({});
-  //     } else {
-  //       toast.error(result.message);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error submitting form:", error);
-  //     alert("Server error. Contact admin.");
-  //   }
-  // };
-
-
   const [cities, setCities] = useState([]);
   const statesAndCities = {
     Maharashtra: ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
@@ -506,15 +466,38 @@ const StepperCustomerForm = () => {
               <label className="mb-1 font-medium text-gray-700">
                 Profile Pic (प्रोफ़ाइल चित्र)
               </label>
-              <input
-                type="file"
-                name="profilePic"
-                onChange={(e) => setFormData({ ...formData, profilePic: e.target.files[0] })}
-                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.profilePic ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                  }`}
-              />
-              {errors.profilePic && <span className="text-red-500 text-sm mt-1">{errors.profilePic}</span>}
+
+              <div className="flex items-center gap-3">
+                {/* ✅ Image Preview */}
+                {profilePreview && (
+                  <img
+                    src={profilePreview}
+                    alt="Profile Preview"
+                    className="w-16 h-16 object-cover rounded-md border"
+                  />
+                )}
+
+                <input
+                  type="file"
+                  name="profilePic"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setFormData({ ...formData, profilePic: file });
+                      setProfilePreview(URL.createObjectURL(file)); // <-- set preview
+                    }
+                  }}
+                  className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.profilePic ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                    }`}
+                />
+              </div>
+
+              {/* Error Message */}
+              {errors.profilePic && (
+                <span className="text-red-500 text-sm mt-1">{errors.profilePic}</span>
+              )}
             </div>
+
 
             {/* State */}
             <div className="flex-1 flex flex-col">
@@ -528,7 +511,7 @@ const StepperCustomerForm = () => {
                 className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.state ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
                   }`}
               >
-                <option value="">Select state</option>
+                <option value="" disabled>Select state</option>
                 {Object.keys(statesAndCities).map((state) => (
                   <option key={state} value={state}>{state}</option>
                 ))}
@@ -549,7 +532,7 @@ const StepperCustomerForm = () => {
                   }`}
                 disabled={!cities.length}
               >
-                <option value="">Select city</option>
+                <option value="" disabled>Select city</option>
                 {cities.map((city) => (
                   <option key={city} value={city}>{city}</option>
                 ))}
@@ -904,24 +887,36 @@ const StepperCustomerForm = () => {
                       Photo at Time of Installation <span className="text-red-500">*</span>
                     </label>
 
-                    <input
-                      type="file"
-                      name="photoAtInstallation"
-                      onChange={(e) =>
-                        handleGrowerChange(index, e, 'photoAtInstallation', e.target.files[0])
-                      }
-                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`photoAtInstallation_${index}`]
-                        ? 'border-red-500 focus:ring-red-400'
-                        : 'border-gray-300 focus:ring-blue-400'
-                        }`}
-                    />
+                    <div className="flex items-center gap-3">
+                      {/* ✅ Image Preview */}
+                      {previews[index] && (
+                        <img
+                          src={previews[index]}
+                          alt="Installation Preview"
+                          className="w-16 h-16 object-cover rounded-md border"
+                        />
+                      )}
 
+                      <input
+                        type="file"
+                        name="photoAtInstallation"
+                        accept="image/*"
+                        onChange={(e) => handleFileChange(e, index)} // Pass the current grower index
+                        className={`flex-1 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`photoAtInstallation_${index}`]
+                          ? "border-red-500 focus:ring-red-400"
+                          : "border-gray-300 focus:ring-blue-400"
+                          }`}
+                      />
+                    </div>
+
+                    {/* Error Message */}
                     {errors[`photoAtInstallation_${index}`] && (
                       <span className="text-red-500 text-sm mt-1">
                         {errors[`photoAtInstallation_${index}`]}
                       </span>
                     )}
                   </div>
+
 
                   <div className="flex flex-col md:col-span-2">
                     <label className="mb-1 font-medium text-gray-700">
@@ -970,218 +965,233 @@ const StepperCustomerForm = () => {
         );
       case 3:
         return (
-          <div className="px-6 py-6">
-            <h3 className="md:text-2xl sm:text-xl font-bold mb-6 text-gray-800">Review Your Information</h3>
+        <div className="px-6 py-6">
+  <h3 className="md:text-2xl sm:text-xl font-bold mb-6 text-gray-800">Review Your Information</h3>
 
-            <div className="space-y-6">
-              <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-                <h4 className="text-lg font-semibold mb-4 text-gray-700">Customer Details</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Name: </span>
-                      {formData.name}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Email: </span>
-                      {formData.email}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Phone Number: </span>
-                      {formData.phoneNumber}
-                    </p>
-                  </div>
-                  {formData.staffPhoneNumber && (
-                    <div>
-                      <p className="text-gray-800">
-                        <span className="font-medium text-gray-600">Staff Phone Number: </span>
-                        {formData.staffPhoneNumber}
-                      </p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">State: </span>
-                      {formData.state}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">City: </span>
-                      {formData.city}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Pincode: </span>
-                      {formData.pincode}
-                    </p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Address: </span>
-                      {formData.address}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-                <h4 className="text-lg font-semibold mb-4 text-gray-700">Grower Information</h4>
-                {growers.map((grower, index) => (
-                  <div key={index} className="mb-6 last:mb-0">
-                    <h5 className="font-semibold text-gray-700 mb-3">Grower {index + 1}</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">System Type: </span>
-                          {grower.systemType === 'Other' ? grower.systemTypeOther : grower.systemType}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Plants: </span>
-                          {grower.numPlants}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Levels: </span>
-                          {grower.numLevels}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Setup Dimension: </span>
-                          {grower.setupDimension}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Motor Used: </span>
-                          {grower.motorType === 'Other' ? grower.motorTypeOther : grower.motorType}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Timer Used: </span>
-                          {grower.timerUsed === 'Other' ? grower.timerUsedOther : grower.timerUsed}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Lights: </span>
-                          {grower.numLights}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Model of Lights: </span>
-                          {grower.modelOfLight === 'Other' ? grower.modelOfLightOther : grower.modelOfLight}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Length of Lights: </span>
-                          {grower.lengthOfLight === 'Other' ? grower.lengthOfLightOther : grower.lengthOfLight}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Tank Capacity: </span>
-                          {grower.tankCapacity === 'Other' ? grower.tankCapacityOther : grower.tankCapacity}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Nutrition Given: </span>
-                          {grower.nutritionGiven}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Other Specifications: </span>
-                          {grower.otherSpecifications}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">
-                            Photo at Time of Installation:
-                          </span>{" "}
-                          {grower.photoAtInstallation ? (
-                            <span>{grower.photoAtInstallation.name}</span>
-                          ) : (
-                            "No file uploaded"
-                          )}
-                        </p>
+  <div className="space-y-6">
+    {/* Profile Picture */}
+    <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+      <h4 className="text-lg font-semibold mb-4 text-gray-700">Profile Picture</h4>
+      <div className="flex items-center gap-4">
+        {formData.profilePic ? (
+          <>
+            <p className="text-gray-800">{formData.profilePic.name}</p>
+            <img
+              src={profilePreview || URL.createObjectURL(formData.profilePic)}
+              alt="Profile Preview"
+              className="w-24 h-24 object-cover rounded-md border border-gray-300 shadow-sm"
+            />
+          </>
+        ) : (
+          <p className="text-gray-800">No profile picture uploaded</p>
+        )}
+      </div>
+    </div>
 
-                        {grower.photoAtInstallation && (
-                          <img
-                            src={URL.createObjectURL(grower.photoAtInstallation)}
-                            alt="Installation Preview"
-                            className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
-                          />
-                        )}
-                      </div>
+    {/* Customer Details */}
+    <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+      <h4 className="text-lg font-semibold mb-4 text-gray-700">Customer Details</h4>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p className="text-gray-800">
+            <span className="font-medium text-gray-600">Name: </span>
+            {formData.name}
+          </p>
+        </div>
+        <div>
+          <p className="text-gray-800">
+            <span className="font-medium text-gray-600">Email: </span>
+            {formData.email}
+          </p>
+        </div>
+        <div>
+          <p className="text-gray-800">
+            <span className="font-medium text-gray-600">Phone Number: </span>
+            {formData.phoneNumber}
+          </p>
+        </div>
+        {formData.staffPhoneNumber && (
+          <div>
+            <p className="text-gray-800">
+              <span className="font-medium text-gray-600">Staff Phone Number: </span>
+              {formData.staffPhoneNumber}
+            </p>
+          </div>
+        )}
+        <div>
+          <p className="text-gray-800">
+            <span className="font-medium text-gray-600">State: </span>
+            {formData.state}
+          </p>
+        </div>
+        <div>
+          <p className="text-gray-800">
+            <span className="font-medium text-gray-600">City: </span>
+            {formData.city}
+          </p>
+        </div>
+        <div>
+          <p className="text-gray-800">
+            <span className="font-medium text-gray-600">Pincode: </span>
+            {formData.pincode}
+          </p>
+        </div>
 
-                      {/* <div className="flex flex-col">
-                        <label className="mb-1 font-medium text-gray-700">
-                          Photo at Time of Installation:
-                        </label>
-                        <input
-                          type="file"
-                          name="installationPhoto"
-                          onChange={(e) => setFormData({ ...formData, installationPhoto: e.target.files[0] })}
-                          className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.installationPhoto ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                        />
-                        {errors.installationPhoto && <span className="text-red-500 text-sm mt-1">{errors.installationPhoto}</span>}
-                      </div> */}
-                      <div className="md:col-span-2">
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Plants Chosen: </span>
-                          {grower.selectedPlants && grower.selectedPlants.length > 0 ? (
-                            <>
-                              {grower.selectedPlants
-                                .map((p) => {
-                                  // ✅ If "other" is selected, show typed value instead of "Other (Specify Below)"
-                                  if (p.value === "other") {
-                                    return grower.selectedPlantsOther
-                                      ? `Other: ${grower.selectedPlantsOther}`
-                                      : "Other";
-                                  }
-                                  return p.label;
-                                })
-                                .join(", ")}
-                            </>
-                          ) : (
-                            "N/A"
-                          )}
-                        </p>
-                      </div>
+        {/* Added Locality */}
+        <div>
+          <p className="text-gray-800">
+            <span className="font-medium text-gray-600">Locality: </span>
+            {formData.locality || "N/A"}
+          </p>
+        </div>
 
-                      <div className="md:col-span-2">
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Status: </span>
-                          <span
-                            className={`font-semibold ${formData.isActive ? 'text-green-600' : 'text-red-600'
-                              }`}
-                          >
-                            {formData.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
+        {/* Added Landmark */}
+        <div>
+          <p className="text-gray-800">
+            <span className="font-medium text-gray-600">Landmark: </span>
+            {formData.landmark || "N/A"}
+          </p>
+        </div>
 
-                    {index < growers.length - 1 && <hr className="my-4 border-gray-300" />}
-                  </div>
-                ))}
-              </div>
+        <div className="md:col-span-2">
+          <p className="text-gray-800">
+            <span className="font-medium text-gray-600">Address: </span>
+            {formData.address}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    {/* Grower Information */}
+    <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+      <h4 className="text-lg font-semibold mb-4 text-gray-700">Grower Information</h4>
+      {growers.map((grower, index) => (
+        <div key={index} className="mb-6 last:mb-0">
+          <h5 className="font-semibold text-gray-700 mb-3">Grower {index + 1}</h5>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-gray-800">
+                <span className="font-medium text-gray-600">System Type: </span>
+                {grower.systemType === 'Other' ? grower.systemTypeOther : grower.systemType}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-800">
+                <span className="font-medium text-gray-600">No. of Plants: </span>
+                {grower.numPlants}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-800">
+                <span className="font-medium text-gray-600">No. of Levels: </span>
+                {grower.numLevels}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-800">
+                <span className="font-medium text-gray-600">Setup Dimension: </span>
+                {grower.setupDimension}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-800">
+                <span className="font-medium text-gray-600">Motor Used: </span>
+                {grower.motorType === 'Other' ? grower.motorTypeOther : grower.motorType}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-800">
+                <span className="font-medium text-gray-600">Timer Used: </span>
+                {grower.timerUsed === 'Other' ? grower.timerUsedOther : grower.timerUsed}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-800">
+                <span className="font-medium text-gray-600">No. of Lights: </span>
+                {grower.numLights}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-800">
+                <span className="font-medium text-gray-600">Model of Lights: </span>
+                {grower.modelOfLight === 'Other' ? grower.modelOfLightOther : grower.modelOfLight}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-800">
+                <span className="font-medium text-gray-600">Length of Lights: </span>
+                {grower.lengthOfLight === 'Other' ? grower.lengthOfLightOther : grower.lengthOfLight}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-800">
+                <span className="font-medium text-gray-600">Tank Capacity: </span>
+                {grower.tankCapacity === 'Other' ? grower.tankCapacityOther : grower.tankCapacity}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-800">
+                <span className="font-medium text-gray-600">Nutrition Given: </span>
+                {grower.nutritionGiven}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-800">
+                <span className="font-medium text-gray-600">Other Specifications: </span>
+                {grower.otherSpecifications}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-800">
+                <span className="font-medium text-gray-600">Photo at Time of Installation: </span>
+                {grower.photoAtInstallation ? (
+                  <span>{grower.photoAtInstallation.name}</span>
+                ) : (
+                  "No file uploaded"
+                )}
+              </p>
+              {grower.photoAtInstallation && (
+                <img
+                  src={URL.createObjectURL(grower.photoAtInstallation)}
+                  alt="Installation Preview"
+                  className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
+                />
+              )}
+            </div>
+            <div className="md:col-span-2">
+              <p className="text-gray-800">
+                <span className="font-medium text-gray-600">Plants Chosen: </span>
+                {grower.selectedPlants && grower.selectedPlants.length > 0 ? (
+                  <>
+                    {grower.selectedPlants
+                      .map((p) =>
+                        p.value === "other" ? `Other: ${grower.selectedPlantsOther || "N/A"}` : p.label
+                      )
+                      .join(", ")}
+                  </>
+                ) : (
+                  "N/A"
+                )}
+              </p>
+            </div>
+            <div className="md:col-span-2">
+              <p className="text-gray-800">
+                <span className="font-medium text-gray-600">Status: </span>
+                <span className={`font-semibold ${formData.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                  {formData.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </p>
             </div>
           </div>
+
+          {index < growers.length - 1 && <hr className="my-4 border-gray-300" />}
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
+
+
         );
       default:
         return null;
@@ -1222,7 +1232,7 @@ const StepperCustomerForm = () => {
                 </div>
 
                 {/* Navigation Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <div className="flex flex-col-2 sm:flex-row gap-3 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={prevStep}
@@ -1234,7 +1244,7 @@ const StepperCustomerForm = () => {
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="btn-primary"
+                    className="btn-primary "
                   >
                     Next(आगे)
                   </button>
@@ -1242,7 +1252,7 @@ const StepperCustomerForm = () => {
               </div>
             ) : (
               // Other Step Buttons
-              <div className="flex flex-col md:flex-row justify-between w-full gap-3">
+              <div className="flex flex-col md:flex-row justify-end w-full gap-3">
                 {currentStep > 1 && (
                   <button
                     type="button"

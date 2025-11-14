@@ -1208,166 +1208,165 @@ const StepperCustomerForm = () => {
               </div>
             </div>
             <div className="border border-gray-200 rounded-lg p-6 bg-gray-50 mt-6">
-  <h4 className="text-lg font-semibold mb-4 text-gray-700">Grower Information</h4>
+              <h4 className="text-lg font-semibold mb-4 text-gray-700">Grower Information</h4>
 
-  {growers && growers.length > 0 ? (
-    growers.map((grower, index) => (
-      <div key={index} className="mb-6 last:mb-0">
-        <h5 className="font-semibold text-gray-700 mb-3">
-          Grower {index + 1}
-        </h5>
+              {growers && growers.length > 0 ? (
+                growers.map((grower, index) => (
+                  <div key={index} className="mb-6 last:mb-0">
+                    <h5 className="font-semibold text-gray-700 mb-3">
+                      Grower {index + 1}
+                    </h5>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <p className="text-gray-800">
-              <span className="font-medium text-gray-600">System Type: </span>
-              {grower.systemType === "Other"
-                ? grower.systemTypeOther
-                : grower.systemType}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-800">
-              <span className="font-medium text-gray-600">No. of Plants: </span>
-              {grower.numPlants}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-800">
-              <span className="font-medium text-gray-600">No. of Levels: </span>
-              {grower.numLevels}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-800">
-              <span className="font-medium text-gray-600">Setup Dimension: </span>
-              {grower.setupDimension}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-800">
-              <span className="font-medium text-gray-600">Motor Used: </span>
-              {grower.motorType === "Other"
-                ? grower.motorTypeOther
-                : grower.motorType}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-800">
-              <span className="font-medium text-gray-600">Timer Used: </span>
-              {grower.timerUsed === "Other"
-                ? grower.timerUsedOther
-                : grower.timerUsed}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-800">
-              <span className="font-medium text-gray-600">No. of Lights: </span>
-              {grower.numLights}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-800">
-              <span className="font-medium text-gray-600">Model of Lights: </span>
-              {grower.modelOfLight === "Other"
-                ? grower.modelOfLightOther
-                : grower.modelOfLight}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-800">
-              <span className="font-medium text-gray-600">Length of Lights: </span>
-              {grower.lengthOfLight === "Other"
-                ? grower.lengthOfLightOther
-                : grower.lengthOfLight}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-800">
-              <span className="font-medium text-gray-600">Tank Capacity: </span>
-              {grower.tankCapacity === "Other"
-                ? grower.tankCapacityOther
-                : grower.tankCapacity}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-800">
-              <span className="font-medium text-gray-600">Nutrition Given: </span>
-              {grower.nutritionGiven}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-800">
-              <span className="font-medium text-gray-600">Other Specifications: </span>
-              {grower.otherSpecifications || "N/A"}
-            </p>
-          </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">System Type: </span>
+                          {grower.systemType === "Other"
+                            ? grower.systemTypeOther
+                            : grower.systemType}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">No. of Plants: </span>
+                          {grower.numPlants}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">No. of Levels: </span>
+                          {grower.numLevels}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Setup Dimension: </span>
+                          {grower.setupDimension}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Motor Used: </span>
+                          {grower.motorType === "Other"
+                            ? grower.motorTypeOther
+                            : grower.motorType}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Timer Used: </span>
+                          {grower.timerUsed === "Other"
+                            ? grower.timerUsedOther
+                            : grower.timerUsed}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">No. of Lights: </span>
+                          {grower.numLights}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Model of Lights: </span>
+                          {grower.modelOfLight === "Other"
+                            ? grower.modelOfLightOther
+                            : grower.modelOfLight}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Length of Lights: </span>
+                          {grower.lengthOfLight === "Other"
+                            ? grower.lengthOfLightOther
+                            : grower.lengthOfLight}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Tank Capacity: </span>
+                          {grower.tankCapacity === "Other"
+                            ? grower.tankCapacityOther
+                            : grower.tankCapacity}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Nutrition Given: </span>
+                          {grower.nutritionGiven}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Other Specifications: </span>
+                          {grower.otherSpecifications || "N/A"}
+                        </p>
+                      </div>
 
-          <div>
-            <p className="text-gray-800">
-              <span className="font-medium text-gray-600">
-                Photo at Time of Installation:
-              </span>{" "}
-              {grower.photoAtInstallation ? (
-                <span>
-                  {typeof grower.photoAtInstallation === "string"
-                    ? grower.photoAtInstallation.split("/").pop()
-                    : grower.photoAtInstallation.name}
-                </span>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">
+                            Photo at Time of Installation:
+                          </span>{" "}
+                          {grower.photoAtInstallation ? (
+                            <span>
+                              {typeof grower.photoAtInstallation === "string"
+                                ? grower.photoAtInstallation.split("/").pop()
+                                : grower.photoAtInstallation.name}
+                            </span>
+                          ) : (
+                            "No file uploaded"
+                          )}
+                        </p>
+
+                        {grower.photoAtInstallation && (
+                          <img
+                            src={
+                              typeof grower.photoAtInstallation === "string"
+                                ? `${import.meta.env.VITE_API_URL}uploads/customers/${grower.photoAtInstallation}`
+                                : URL.createObjectURL(grower.photoAtInstallation)
+                            }
+                            alt="Installation Preview"
+                            className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
+                          />
+                        )}
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Plants Chosen: </span>
+                          {grower.selectedPlants && grower.selectedPlants.length > 0
+                            ? grower.selectedPlants.map((p) => p.label).join(", ")
+                            : "N/A"}
+                        </p>
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Status: </span>
+                          <span
+                            className={`font-semibold ${formData.isActive ? "text-green-600" : "text-red-600"
+                              }`}
+                          >
+                            {formData.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    {index < growers.length - 1 && (
+                      <hr className="my-4 border-gray-300" />
+                    )}
+                  </div>
+                ))
               ) : (
-                "No file uploaded"
+                <p className="text-gray-600 italic">No grower information added yet.</p>
               )}
-            </p>
-
-            {grower.photoAtInstallation && (
-              <img
-                src={
-                  typeof grower.photoAtInstallation === "string"
-                    ? `${import.meta.env.VITE_API_URL}uploads/customers/${grower.photoAtInstallation}`
-                    : URL.createObjectURL(grower.photoAtInstallation)
-                }
-                alt="Installation Preview"
-                className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
-              />
-            )}
-          </div>
-
-          <div className="md:col-span-2">
-            <p className="text-gray-800">
-              <span className="font-medium text-gray-600">Plants Chosen: </span>
-              {grower.selectedPlants && grower.selectedPlants.length > 0
-                ? grower.selectedPlants.map((p) => p.label).join(", ")
-                : "N/A"}
-            </p>
-          </div>
-
-          <div className="md:col-span-2">
-            <p className="text-gray-800">
-              <span className="font-medium text-gray-600">Status: </span>
-              <span
-                className={`font-semibold ${
-                  formData.isActive ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {formData.isActive ? "Active" : "Inactive"}
-              </span>
-            </p>
-          </div>
-        </div>
-
-        {index < growers.length - 1 && (
-          <hr className="my-4 border-gray-300" />
-        )}
-      </div>
-    ))
-  ) : (
-    <p className="text-gray-600 italic">No grower information added yet.</p>
-  )}
-</div>
+            </div>
 
 
           </div>
-          
+
         );
       default:
         return null;

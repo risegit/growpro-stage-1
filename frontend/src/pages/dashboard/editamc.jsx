@@ -1,4 +1,3 @@
-// AMCForm.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import Select from 'react-select';
@@ -11,7 +10,7 @@ export default function AMCForm() {
     duration: '',
     customDuration: '',
     visitsPerMonth: '',
-    consumables: [], // array of {value,label}
+    consumables: [],
     customConsumable: '',
     pricing: '',
     transport: '',
@@ -180,59 +179,91 @@ useEffect(() => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
-    // If user types into numeric fields, keep them as string until parse
-    setFormData((prev) => ({
+  const handleRemoveAddon = (index) => {
+    setAddonForms(addonForms.filter((_, i) => i !== index));
+    setErrors(prev => ({
       ...prev,
-      [name]: value,
+      addons: prev.addons.filter((_, i) => i !== index)
     }));
+  };
 
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+  const handleMainInputChange = (e) => {
+    const { name, value } = e.target;
+    setMainForm(prev => ({ ...prev, [name]: value }));
+    if (errors.main[name]) {
+      setErrors(prev => ({ ...prev, main: { ...prev.main, [name]: '' } }));
+    }
+    if (name === 'pricing' || name === 'transport' || name === 'gst') {
+      calculateTotal('main', name, value);
+    }
+  };
+
+  const handleAddonInputChange = (index, e) => {
+    const { name, value } = e.target;
+    const updatedAddons = [...addonForms];
+    updatedAddons[index] = { ...updatedAddons[index], [name]: value };
+    setAddonForms(updatedAddons);
+
+    if (errors.addons[index]?.[name]) {
+      const newAddonErrors = [...errors.addons];
+      newAddonErrors[index] = { ...newAddonErrors[index], [name]: '' };
+      setErrors(prev => ({ ...prev, addons: newAddonErrors }));
     }
 
     if (name === 'pricing' || name === 'transport' || name === 'gst') {
-      calculateTotal(name, value);
+      calculateTotal('addon', name, value, index);
     }
   };
 
-  // react-select customer change (single select)
-  const handleCustomerChange = (selected) => {
-    setFormData((prev) => ({ ...prev, customer: selected }));
-
-    if (errors.customer) {
-      setErrors((prev) => ({ ...prev, customer: '' }));
+  const handleMainCustomerChange = (selected) => {
+    setMainForm(prev => ({ ...prev, customer: selected }));
+    if (errors.main.customer) {
+      setErrors(prev => ({ ...prev, main: { ...prev.main, customer: '' } }));
     }
   };
 
-  // react-select consumables (multi)
-  const handleConsumableChange = (selected) => {
-    setFormData((prev) => ({
-      ...prev,
-      consumables: selected || []
-    }));
-
-    if (errors.consumables) {
-      setErrors((prev) => ({ ...prev, consumables: '' }));
+  const handleMainConsumableChange = (selected) => {
+    setMainForm(prev => ({ ...prev, consumables: selected || [] }));
+    if (errors.main.consumables) {
+      setErrors(prev => ({ ...prev, main: { ...prev.main, consumables: '' } }));
     }
   };
 
-  const calculateTotal = (changedField, changedValue) => {
-    const pricing = parseFloat(changedField === 'pricing' ? changedValue : formData.pricing) || 0;
-    const transport = parseFloat(changedField === 'transport' ? changedValue : formData.transport) || 0;
-    const gst = parseFloat(changedField === 'gst' ? changedValue : formData.gst) || 0;
+  const handleAddonConsumableChange = (index, selected) => {
+    const updatedAddons = [...addonForms];
+    updatedAddons[index] = { ...updatedAddons[index], consumables: selected || [] };
+    setAddonForms(updatedAddons);
+
+    if (errors.addons[index]?.consumables) {
+      const newAddonErrors = [...errors.addons];
+      newAddonErrors[index] = { ...newAddonErrors[index], consumables: '' };
+      setErrors(prev => ({ ...prev, addons: newAddonErrors }));
+    }
+  };
+
+  const calculateTotal = (formType, changedField, changedValue, index = null) => {
+    const form = formType === 'main' ? mainForm : addonForms[index];
+    const pricing = parseFloat(changedField === 'pricing' ? changedValue : form.pricing) || 0;
+    const transport = parseFloat(changedField === 'transport' ? changedValue : form.transport) || 0;
+    const gst = parseFloat(changedField === 'gst' ? changedValue : form.gst) || 0;
 
     const subtotal = pricing + transport;
     const gstAmount = (subtotal * gst) / 100;
     const total = subtotal + gstAmount;
 
-    setFormData((prev) => ({ ...prev, total: total.toFixed(2) }));
+    if (formType === 'main') {
+      setMainForm(prev => ({ ...prev, total: total.toFixed(2) }));
+    } else {
+      const updatedAddons = [...addonForms];
+      updatedAddons[index] = { ...updatedAddons[index], total: total.toFixed(2) };
+      setAddonForms(updatedAddons);
+    }
   };
 
-  // Validate form before submit
-  const validateForm = () => {
+  const validateSingleForm = (formData, isMain = false) => {
     const newErrors = {};
 
-    if (!formData.customer || !formData.customer.value) {
+    if (isMain && (!formData.customer || !formData.customer.value)) {
       newErrors.customer = 'Please select a customer';
     }
 
@@ -266,22 +297,31 @@ useEffect(() => {
       newErrors.gst = 'GST must be between 0 and 100';
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return newErrors;
   };
 
-  // Submit handler - POSTs to /api/amc (replace with your real endpoint)
+  const validateAllForms = () => {
+    const mainErrors = validateSingleForm(mainForm, true);
+    const addonErrors = addonForms.map(form => validateSingleForm(form, false));
+
+    setErrors({ main: mainErrors, addons: addonErrors });
+
+    const hasMainErrors = Object.keys(mainErrors).length > 0;
+    const hasAddonErrors = addonErrors.some(err => Object.keys(err).length > 0);
+
+    return !hasMainErrors && !hasAddonErrors;
+  };
+
   const handleSubmit = async () => {
-    if (!validateForm()) {
+    if (!validateAllForms()) {
       showToast('Please fix form errors before submitting', 'error');
       return;
     }
 
     setSubmitting(true);
     try {
-      // Build payload
-      const payload = {
-        customerId: formData.customer.value,
+      const buildPayload = (formData, isMain = false) => ({
+        ...(isMain && { customerId: formData.customer.value }),
         validityFrom: formData.validityFrom,
         validityUpto: formData.validityUpto,
         duration: formData.duration === 'other' ? formData.customDuration : formData.duration,
@@ -293,15 +333,20 @@ useEffect(() => {
         transport: parseFloat(formData.transport),
         gst: parseFloat(formData.gst),
         total: parseFloat(formData.total) || 0,
+      });
+
+      const mainPayload = buildPayload(mainForm, true);
+      const addonPayloads = addonForms.map(form => buildPayload(form, false));
+
+      const fullPayload = {
+        main: mainPayload,
+        addons: addonPayloads
       };
 
-   
       const res = await fetch('/api/amc', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fullPayload),
       });
 
       if (!res.ok) {
@@ -310,12 +355,10 @@ useEffect(() => {
       }
 
       const respJson = await res.json().catch(() => ({}));
-
-      // Success
       showToast('AMC submitted successfully', 'success');
 
-      // Reset form
-      setFormData({
+      // Reset all forms
+      setMainForm({
         customer: null,
         validityFrom: '',
         validityUpto: '',
@@ -329,8 +372,9 @@ useEffect(() => {
         gst: '',
         total: ''
       });
-      setErrors({});
-      console.log('Submitted payload:', payload, 'server response:', respJson);
+      setAddonForms([]);
+      setErrors({ main: {}, addons: [] });
+      console.log('Submitted payload:', fullPayload, 'server response:', respJson);
     } catch (err) {
       console.error('Submit failed:', err);
       showToast('Submission failed. See console for details.', 'error');
@@ -345,58 +389,41 @@ useEffect(() => {
 
   return (
     <div className="w-full min-h-screen bg-gray-100 mt-10">
-      {/* Toast */}
-  
-
-       <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
+      <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
         {/* Header */}
         <div className="px-2 py-4 border-b">
           <h1 className="text-2xl font-bold mb-1 text-gray-800">Edit AMC Contract</h1>
           <p className="text-sm text-gray-600">Annual Maintenance Contract Details</p>
         </div>
 
-        {/* Form */}
+        {/* Main Form */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 py-6 [&_input]:h-[44px] [&_select]:h-[44px]">
-          {/* Customer - react-select single */}
+          {/* Customer - only in main form */}
           <div className="flex flex-col md:col-span-2">
             <label className="mb-1 font-medium text-gray-700">Customer Name: <span className="text-green-500">{formData.customer}</span></label>
           </div>
 
-          {/* Validity From */}
-          <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700">Validity From <span className="text-red-500">*</span></label>
-            <input
-              type="date"
-              name="validityFrom"
-              value={formData.validityFrom}
-              onChange={handleInputChange}
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityFrom ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-            />
-            {errors.validityFrom && <span className="text-red-500 text-sm mt-1">{errors.validityFrom}</span>}
-          </div>
+          {renderFormFields(mainForm, true)}
+        </div>
 
-          {/* Validity Upto */}
-          <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700">Validity Upto <span className="text-red-500">*</span></label>
-            <input
-              type="date"
-              name="validityUpto"
-              value={formData.validityUpto}
-              onChange={handleInputChange}
-              min={formData.validityFrom || undefined}
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityUpto ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-            />
-            {errors.validityUpto && <span className="text-red-500 text-sm mt-1">{errors.validityUpto}</span>}
+        {/* Add-on Forms */}
+        {addonForms.map((addonForm, index) => (
+          <div key={addonForm.id} className="border-t-2 border-gray-200 mt-6 pt-6">
+           
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 [&_input]:h-[44px] [&_select]:h-[44px]">
+              {renderFormFields(addonForm, false, index)}
+            </div>
           </div>
+        ))}
 
-          {/* Duration */}
-          <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700">Duration of AMC <span className="text-red-500">*</span></label>
-            <select
-              name="duration"
-              value={formData.duration}
-              onChange={handleInputChange}
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.duration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+        {/* Footer with Add-on and Submit buttons */}
+        {/* Footer with Add-on and Submit buttons */}
+        <div className="flex items-center justify-between px-4 py-4 border-t mt-6">
+          {addonForms.length === 0 ? (
+            <button
+              type="button"
+              onClick={handleAddAddon}
+              className="bg-[#9FC762] hover:bg-[#8DB350] text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
             >
               <option value="">Select duration</option>
               {durationOptions.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
@@ -522,19 +549,16 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Submit */}
-        <div className="flex items-center justify-between px-4 py-4 border-t">
-          <div className="text-sm text-gray-500">
-            <span className="font-medium">Tip: </span> Make sure dates & values are correct before submitting.
-          </div>
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className={`px-6 py-2 rounded-lg text-white font-medium shadow ${submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+            className={`px-6 py-2 rounded-lg text-white font-medium shadow ${submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+              }`}
           >
             {submitting ? 'Submitting...' : 'Submit'}
           </button>
         </div>
+
       </div>
     </div>
   );
