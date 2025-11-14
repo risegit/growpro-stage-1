@@ -18,6 +18,10 @@ export default function AMCForm() {
     total: ''
   });
 
+  const [growerData, setGrowerData] = useState({
+    name: '',
+  });
+
   const [addonFormData, setAddonFormData] = useState({
     grower: '',
     validityFrom: '',
@@ -38,6 +42,18 @@ export default function AMCForm() {
     id: '',
     name: ''
   });
+
+  const [systemTypeOptions, setSystemTypeOptions] = useState([]);
+
+// const systemTypes = ['Small Grower', 'Long Grower', 'Mini Pro Grower',
+//     'Semi Pro Grower', 'Pro Grower', 'Vertical Outdoor Grower', 'Flat Bed',
+//     'Indoor Grower', 'Furniture Integrated Grower', 'Mini Grower', 'Dutch Bucket',
+//     'Growbags', 'Microgreen Racks', 'Other'];
+
+// const systemTypeOptions = systemTypes.map(s => ({
+//   value: s,
+//   label: s
+// }));
 
   const [errors, setErrors] = useState({});
   const [addonErrors, setAddonErrors] = useState({});
@@ -67,59 +83,188 @@ export default function AMCForm() {
     { value: '3', label: 'Grower C' },
   ];
 
+    useEffect(() => {
+    const fetchSystemTypes = async () => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`);
+    const apiData = await response.json();
+
+    console.log("API system types response:", apiData);
+
+    // apiData = [ { id: "45", system_type: "Mini Grower" } ]
+
+    const options = apiData.map(item => ({
+      value: item.system_type,
+      label: item.system_type
+    }));
+
+    setSystemTypeOptions(options);
+
+  } catch (error) {
+    console.error("Error fetching system types:", error);
+  }
+};
+
+    fetchSystemTypes();
+  }, []);
+
+  // useEffect(() => {
+  //   const fetchUser = async () => {
+  //     if (!id) return;
+  //     setLoading(true);
+  //     try {
+  //       const response = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`);
+  //       const data = await response.json();
+
+  //       console.log("Fetched user data:", data.amc_data);
+
+  //       const amc = Array.isArray(data.amc_data) ? data.amc_data[0] : data.amc_data;
+  //       const grower_data = Array.isArray(data.grower_data) ? data.grower_data[0] : data.grower_data;
+  //       const consumable_data = Array.isArray(data.consumable_data) ? data.consumable_data : [];
+  //       const consumable_value = (consumable_data || []).map((p) => ({
+  //         value: p.id,
+  //         label: p.name,
+  //       }));
+  //       if (data.status === "success" && amc) {
+  //         setFormData({
+  //           customer: amc.name || '',
+  //           duration: amc.duration || '',
+  //           customDuration: amc.duration_other || '',
+  //           validityFrom: amc.validity_from || '',
+  //           validityUpto: amc.validity_upto || '',
+  //           visitsPerMonth: amc.visits_per_month || '',
+  //           consumables: consumable_value,
+  //           customConsumable: '',
+  //           pricing: amc.pricing || '',
+  //           transport: amc.transport || '',
+  //           gst: amc.gst || '',
+  //           total: amc.total || ''
+  //         });
+  //       } else {
+  //         console.log('AMC not found!');
+  //       }
+
+  //       if (data.status === "success" && grower_data) {
+  //         let apiGrowers = grower_data.system_type;   // example: "Mini Grower"
+
+  //         let parsedGrowers = [];
+
+  //         if (Array.isArray(apiGrowers)) {
+  //           parsedGrowers = apiGrowers;
+  //         } else if (typeof apiGrowers === "string") {
+  //           parsedGrowers = apiGrowers.split(",").map(v => v.trim());
+  //         }
+
+  //         setGrowerData({
+  //           name: grower_data.system_type || ''
+  //         });
+  //       } else {
+  //         console.log('AMC not found!');
+  //       }
+        
+  //       if (data.status === "success" && consumable_data) {
+  //         setConsumableData({
+  //           id: amc.id || '',
+  //           name: amc.name || ''
+  //         });
+  //       } else {
+  //         console.log('AMC not found!');
+  //       }
+  //     } catch (error) {
+  //       console.error('Error fetching user:', error);
+  //       alert('Failed to fetch user details!');
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchUser();
+  // }, [id]);
+
   useEffect(() => {
-    const fetchUser = async () => {
-      if (!id) return;
-      setLoading(true);
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`);
-        const data = await response.json();
+  const fetchUser = async () => {
+    if (!id) return;
+    setLoading(true);
 
-        console.log("Fetched user data:", data.amc_data);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`);
+      const data = await response.json();
 
-        const amc = Array.isArray(data.amc_data) ? data.amc_data[0] : data.amc_data;
-        const consumable_data = Array.isArray(data.consumable_data) ? data.consumable_data : [];
-        const consumable_value = (consumable_data || []).map((p) => ({
-          value: p.id,
-          label: p.name,
-        }));
-        if (data.status === "success" && amc) {
-          setFormData({
-            customer: amc.name || '',
-            duration: amc.duration || '',
-            customDuration: amc.duration_other || '',
-            validityFrom: amc.validity_from || '',
-            validityUpto: amc.validity_upto || '',
-            visitsPerMonth: amc.visits_per_month || '',
-            consumables: consumable_value,
-            customConsumable: '',
-            pricing: amc.pricing || '',
-            transport: amc.transport || '',
-            gst: amc.gst || '',
-            total: amc.total || ''
-          });
-        } else {
-          console.log('AMC not found!');
-        }
+      console.log("Fetched data:", data);
 
-        if (data.status === "success" && consumable_data) {
-          setConsumableData({
-            id: amc.id || '',
-            name: amc.name || ''
-          });
-        } else {
-          console.log('AMC not found!');
-        }
-      } catch (error) {
-        console.error('Error fetching user:', error);
-        alert('Failed to fetch user details!');
-      } finally {
-        setLoading(false);
+      const amc = Array.isArray(data.amc_data) ? data.amc_data[0] : data.amc_data;
+      const grower_data = Array.isArray(data.grower_data) ? data.grower_data[0] : data.grower_data;
+      const consumable_data = Array.isArray(data.consumable_data) ? data.consumable_data : [];
+
+      // -----------------------------
+      // Set AMC FORM DATA
+      // -----------------------------
+      if (amc) {
+        setFormData({
+          customer: amc.name || '',
+          duration: amc.duration || '',
+          customDuration: amc.duration_other || '',
+          validityFrom: amc.validity_from || '',
+          validityUpto: amc.validity_upto || '',
+          visitsPerMonth: amc.visits_per_month || '',
+          consumables: consumable_data.map(p => ({ value: p.id, label: p.name })),
+          customConsumable: '',
+          pricing: amc.pricing || '',
+          transport: amc.transport || '',
+          gst: amc.gst || '',
+          total: amc.total || ''
+        });
       }
-    };
 
-    fetchUser();
-  }, [id]);
+      // -----------------------------
+      // PROCESS GROWER SYSTEM TYPES
+      // -----------------------------
+      if (grower_data?.system_type) {
+        let incoming = grower_data.system_type;   // e.g. "Mini Grower" or "Mini Grower, Small Grower"
+        let parsedGrowers = [];
+
+        // Convert API value → array
+        if (Array.isArray(incoming)) {
+          parsedGrowers = incoming;
+        } else if (typeof incoming === "string") {
+          parsedGrowers = incoming.split(",").map(v => v.trim());
+        }
+
+        // Convert array → react-select format
+        let selectedGrowers = parsedGrowers.map(g => {
+          if (systemTypeOptions.some(opt => opt.value === g)) {
+            return { value: g, label: g };
+          }
+          return { value: "Other", label: "Other", otherValue: g };
+        });
+
+
+        setGrowerData({
+          grower: selectedGrowers
+        });
+      }
+
+      // -----------------------------
+      // OTHER CONSUMABLE DATA
+      // -----------------------------
+      if (consumable_data) {
+        setConsumableData({
+          id: amc?.id || '',
+          name: amc?.name || ''
+        });
+      }
+
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      alert("Failed to fetch user details!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchUser();
+}, [id]);
+
 
   useEffect(() => {
     const fetchConsumable = async () => {
@@ -396,8 +541,27 @@ export default function AMCForm() {
         {/* Main Form */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 py-6 [&_input]:h-[44px] [&_select]:h-[44px]">
           {/* Customer */}
-          <div className="flex flex-col md:col-span-2">
+          <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">Customer Name: <span className="text-green-500">{formData.customer}</span></label>
+          </div>
+
+          <div className="flex flex-col">
+            <label className="mb-1 font-medium text-gray-700">
+              Select Grower <span className="text-red-500">{growerData.name}</span>
+            </label>
+            <Select
+              isMulti
+              options={systemTypeOptions}
+              value={growerData.grower}   // <-- Array of values
+              onChange={(selected) =>
+                setGrowerData(prev => ({ ...prev, grower: selected }))
+              }
+              placeholder="Select grower..."
+              classNamePrefix="react-select"
+            />
+
+
+            {errors.grower && <span className="text-red-500 text-sm mt-1">{errors.grower}</span>}
           </div>
 
           {/* Validity From */}
