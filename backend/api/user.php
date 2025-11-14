@@ -80,6 +80,8 @@ switch ($method) {
         $ifscNo = $_POST['ifscNo'] ?? '';
         $state = $_POST['state'] ?? '';
         $city = $_POST['city'] ?? '';
+        $locality = $_POST['locality'] ?? '';
+        $landmark = $_POST['landmark'] ?? '';
         $pincode = $_POST['pincode'] ?? '';
         $streetAddress = $_POST['streetAddress'] ?? '';
 
@@ -156,9 +158,9 @@ switch ($method) {
                 $role = strtolower(trim($_POST['role'] ?? ''));
                 if (in_array($role, ['admin','manager', 'technician'])) {
                     $sql2 = "INSERT INTO employee_other_details
-                            (user_id, aadhaar_no, bank_name, acc_no, IFSC_code, state, city, pincode, street_address, date, time)
+                            (user_id, aadhaar_no, bank_name, acc_no, IFSC_code, state, city, locality, landmark, pincode, street_address, date, time)
                             VALUES
-                            ('$user_id', '$aadharno', '$bankName', '$accountNumber', '$ifscNo', '$state', '$city', '$pincode', '$streetAddress', '$date', '$time')";
+                            ('$user_id', '$aadharno', '$bankName', '$accountNumber', '$ifscNo', '$state', '$city', '$locality', '$landmark', '$pincode', '$streetAddress', '$date', '$time')";
                     $conn->query($sql2);
                 }
 
@@ -193,6 +195,8 @@ switch ($method) {
         $ifscNo = $_POST['ifscNo'] ?? '';
         $state = $_POST['state'] ?? '';
         $city = $_POST['city'] ?? '';
+        $locality = $_POST['locality'] ?? '';
+        $landmark = $_POST['landmark'] ?? '';
         $pincode = $_POST['pincode'] ?? '';
         $streetAddress = $_POST['streetAddress'] ?? '';
 
@@ -274,16 +278,6 @@ switch ($method) {
         if (!empty($updateFields)) {
             $sqlUpdateUser = "UPDATE users SET " . implode(',', $updateFields) . ", date='$date', time='$time' WHERE id='$user_id'";
             if($conn->query($sqlUpdateUser)){
-                $aadharno = $_POST['aadhaarNo'] ?? '';
-                $bankName = $_POST['bankName'] ?? '';
-                $accountNumber = $_POST['accountNumber'] ?? '';
-                $ifscNo = $_POST['ifscNo'] ?? '';
-                $state = $_POST['state'] ?? '';
-                $city = $_POST['city'] ?? '';
-                $pincode = $_POST['pincode'] ?? '';
-                $streetAddress = $_POST['streetAddress'] ?? '';
-
-
                 $updateFields1 = [];
                 if ($aadharno) $updateFields1[] = "aadhaar_no='$aadharno'";
                 if ($bankName) $updateFields1[] = "bank_name='$bankName'";
@@ -291,6 +285,8 @@ switch ($method) {
                 if ($ifscNo) $updateFields1[] = "IFSC_code='$ifscNo'";
                 if ($state) $updateFields1[] = "state='$state'";
                 if ($city) $updateFields1[] = "city='$city'";
+                if ($locality) $updateFields1[] = "locality='$locality'";
+                if ($landmark) $updateFields1[] = "landmark='$landmark'";
                 if ($pincode) $updateFields1[] = "pincode='$pincode'";
                 if ($streetAddress) $updateFields1[] = "street_address='$streetAddress'";
                 // if ($newProfilePicName) $updateFields1[] = "profile_pic='$newProfilePicName'";

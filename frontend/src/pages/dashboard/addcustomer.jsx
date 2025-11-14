@@ -152,12 +152,12 @@ const StepperCustomerForm = () => {
           ...prev,
           email: "An account with this email already exists. Please use a different email.",
         }));
-        setTimeout(() => {
-          setFormData((prev) => ({
-            ...prev,
-            email: "",
-          }));
-        }, 2000);
+        // setTimeout(() => {
+        //   setFormData((prev) => ({
+        //     ...prev,
+        //     email: "",
+        //   }));
+        // }, 2000);
       }
     } catch (error) {
       console.error("Error checking email:", error);

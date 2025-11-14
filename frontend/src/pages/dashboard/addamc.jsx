@@ -26,23 +26,23 @@ export default function AMCForm() {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const toastTimerRef = useRef(null);
   const [growers, setGrowers] = useState([]); // list of growers for selected customer
-  const [consumable, setConsumable] = useState([]);
+  const [consumableoptions, setConsumable] = useState([]);
   const [loadingGrowers, setLoadingGrowers] = useState(false);
   const [loadingConsumable, setLoadingConsumable] = useState(false);
 
 
   // Consumable options including "Other"
-  const consumableOptions = [
-    { value: 'germinated-plants', label: 'Germinated Plants in Jiffy Bags' },
-    { value: 'seeds', label: 'Seeds' },
-    { value: 'jiffy-bags', label: 'Jiffy Bags' },
-    { value: 'leafy-nutrients', label: 'Leafy Nutrients' },
-    { value: 'fruiting-nutrients', label: 'Fruiting Nutrients' },
-    { value: 'neem-oil', label: 'Neem Oil' },
-    { value: 'ph-updown', label: 'pH up/down' },
-    { value: 'organic-pesticide', label: 'Organic Pesticide' },
-    { value: 'other', label: 'Other (Specify Below)' },
-  ];
+  // const consumableOptions = [
+  //   { value: 'germinated-plants', label: 'Germinated Plants in Jiffy Bags' },
+  //   { value: 'seeds', label: 'Seeds' },
+  //   { value: 'jiffy-bags', label: 'Jiffy Bags' },
+  //   { value: 'leafy-nutrients', label: 'Leafy Nutrients' },
+  //   { value: 'fruiting-nutrients', label: 'Fruiting Nutrients' },
+  //   { value: 'neem-oil', label: 'Neem Oil' },
+  //   { value: 'ph-updown', label: 'pH up/down' },
+  //   { value: 'organic-pesticide', label: 'Organic Pesticide' },
+  //   { value: 'other', label: 'Other (Specify Below)' },
+  // ];
 
   const durationOptions = [
     { value: '30', label: 'Monthly' },
@@ -432,7 +432,7 @@ const handleGrowerChange = (selected) => {
                 name="customDuration"
                 value={formData.customDuration}
                 onChange={handleInputChange}
-                placeholder="Enter custom duration (e.g., 18 months)"
+                placeholder="In days (e.g., 30)"
                 className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.customDuration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
               />
             )}
@@ -487,7 +487,7 @@ const handleGrowerChange = (selected) => {
             <label className="mb-2 font-medium text-gray-700">Consumables Included in the AMC <span className="text-red-500">*</span></label>
             <Select
               isMulti
-              options={consumable}
+              options={consumableoptions}
               value={formData.consumables}
               onChange={handleConsumableChange}
               classNamePrefix="react-select"

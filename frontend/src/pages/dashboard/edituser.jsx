@@ -19,6 +19,8 @@ export default function EditUserForm() {
         landmark: '',
         state: '',
         city: '',
+        locality: '',
+        landmark: '',
         pincode: '',
         streetAddress: '',
         role: ''
@@ -62,6 +64,8 @@ export default function EditUserForm() {
                         ifscNo: user.IFSC_code || '',
                         state: user.state || '',
                         city: user.city || '',
+                        locality: user.locality || '',
+                        landmark: user.landmark || '',
                         pincode: user.pincode || '',
                         streetAddress: user.street_address || '',
                         role: user.role || '',

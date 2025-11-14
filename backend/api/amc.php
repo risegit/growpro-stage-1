@@ -6,7 +6,7 @@ header("Content-Type: application/json");
 include('../inc/config.php');
 
 $method = $_SERVER['REQUEST_METHOD'];
-$customerId = $_GET['customer_id'] ?? null;
+$amcId = $_GET['id'] ?? null;
 $input = json_decode(file_get_contents("php://input"), true);
 $date = date("Y-m-d");
 $time = date("H:i:s");
@@ -18,23 +18,20 @@ if ($method === 'POST' && isset($_POST['_method'])) {
 switch ($method) {
 
     case 'GET':
-        if ($customerId) {
-            $growerResult = $conn->query("SELECT growers.id,growers.system_type FROM users INNER JOIN growers ON users.id=growers.customer_id where growers.customer_id='$customerId'");
-            $growerData = [];
-            while ($row1 = $growerResult->fetch_assoc()) {
-                $growerData[] = $row1;
+        if ($amcId) {
+            $amc_detail = $conn->query("SELECT amc.id,amc.duration,amc.validity_from,amc.validity_upto,amc.duration_other,amc.visits_per_month,amc.pricing,amc.transport,amc.gst,amc.total,users.name FROM amc_details as amc INNER JOIN users ON amc.customer_id=users.id WHERE amc.id='$amcId'");
+            $amc_data = [];
+            while ($row = $amc_detail->fetch_assoc()) {
+                $amc_data[] = $row;
             }
-            echo json_encode(["status" => "success", "data" => $growerData]);
-        }elseif ($emailId) {
-            $userResult = $conn->query("SELECT * FROM users where email='$emailId'");
-            if ($userResult && $userResult->num_rows > 0) {
-                echo json_encode(["status" => "error", "message" => 'An account with this email already exists']);
-            }else{
-                echo json_encode(["status" => "success", "message" => 'An account with this email not exists']);
+            $consumable_detail = $conn->query("SELECT consum_master.id,consum_master.name FROM amc_consumables as consum INNER JOIN consumables_master as consum_master ON consum.consumable_id=consum_master.id WHERE consum.amc_id='$amcId'");
+            $consumable_data = [];
+            while ($row = $consumable_detail->fetch_assoc()) {
+                $consumable_data[] = $row;
             }
-            
+            echo json_encode(["status" => "success", "amc_data" => $amc_data, "consumable_data" => $consumable_data]);
         }else{
-            $result = $conn->query("SELECT * FROM users where role='customer' ORDER BY id DESC");
+            $result = $conn->query("SELECT users.name,users.phone,amc.id,amc.validity_upto,amc.visits_per_month FROM amc_details as amc INNER JOIN users ON users.id=amc.customer_id");
             $data = [];
             while ($row = $result->fetch_assoc()) {
                 $data[] = $row;
