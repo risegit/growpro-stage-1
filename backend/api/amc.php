@@ -7,6 +7,7 @@ include('../inc/config.php');
 
 $method = $_SERVER['REQUEST_METHOD'];
 $amcId = $_GET['id'] ?? null;
+$customerId = $_GET['customer_id'] ?? null;
 $input = json_decode(file_get_contents("php://input"), true);
 $date = date("Y-m-d");
 $time = date("H:i:s");
@@ -19,17 +20,37 @@ switch ($method) {
 
     case 'GET':
         if ($amcId) {
-            $amc_detail = $conn->query("SELECT amc.id,amc.duration,amc.validity_from,amc.validity_upto,amc.duration_other,amc.visits_per_month,amc.pricing,amc.transport,amc.gst,amc.total,users.name FROM amc_details as amc INNER JOIN users ON amc.customer_id=users.id WHERE amc.id='$amcId'");
+            $amc_detail = $conn->query("SELECT amc.id,amc.duration,amc.validity_from,amc.validity_upto,amc.duration_other,amc.visits_per_month,amc.pricing,amc.transport,amc.gst,amc.total,users.name,amc.customer_id FROM amc_details as amc INNER JOIN users ON amc.customer_id=users.id WHERE amc.id='$amcId'");
             $amc_data = [];
             while ($row = $amc_detail->fetch_assoc()) {
                 $amc_data[] = $row;
             }
+            // $customerId = $amc_detail['customer_id'];
+            $grower_detail = $conn->query("SELECT growers.id,growers.system_type FROM amc_growers INNER JOIN growers ON amc_growers.grower_id=growers.id where amc_growers.amc_id='$amcId'");
+            $grower_data = [];
+            while ($row = $grower_detail->fetch_assoc()) {
+                $grower_data[] = $row;
+            }
+
+            // $grower_options = $conn->query("SELECT growers.id,growers.system_type FROM users INNER JOIN growers ON users.id=growers.customer_id where growers.customer_id='$customerId'");
+            // $grower_data = [];
+            // while ($row = $grower_detail->fetch_assoc()) {
+            //     $grower_data[] = $row;
+            // }
+            
             $consumable_detail = $conn->query("SELECT consum_master.id,consum_master.name FROM amc_consumables as consum INNER JOIN consumables_master as consum_master ON consum.consumable_id=consum_master.id WHERE consum.amc_id='$amcId'");
             $consumable_data = [];
             while ($row = $consumable_detail->fetch_assoc()) {
                 $consumable_data[] = $row;
             }
-            echo json_encode(["status" => "success", "amc_data" => $amc_data, "consumable_data" => $consumable_data]);
+            echo json_encode(["status" => "success", "amc_data" => $amc_data, "grower_data" => $grower_data, "consumable_data" => $consumable_data]);
+        }elseif ($customerId) {
+            $growerResult = $conn->query("SELECT growers.id,growers.system_type FROM users INNER JOIN growers ON users.id=growers.customer_id where growers.customer_id='$customerId'");
+            $growerData = [];
+            while ($row1 = $growerResult->fetch_assoc()) {
+                $growerData[] = $row1;
+            }
+            echo json_encode(["status" => "success", "data" => $growerData]);
         }else{
             $result = $conn->query("SELECT users.name,users.phone,amc.id,amc.validity_upto,amc.visits_per_month FROM amc_details as amc INNER JOIN users ON users.id=amc.customer_id");
             $data = [];
@@ -42,7 +63,7 @@ switch ($method) {
         break;
     
     case 'POST':
-        $customerId = $_POST['customer'] ?? '';
+        $amcId = $_POST['id'] ?? '';
         $duration = $_POST['duration'] ?? '';
         $visitsPerMonth = $_POST['visitsPerMonth'] ?? '';
         $validityFrom = $_POST['validityFrom'] ?? '';
