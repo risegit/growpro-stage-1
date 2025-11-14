@@ -575,7 +575,7 @@ const handleGrowerChange = (selected) => {
         </div>
 
         {/* Submit */}
-        <div className="flex items-center justify-between px-4 py-4 border-t">
+        <div className="flex items-center justify-end px-4 py-4 border-t">
       
           <button
             onClick={handleSubmit}

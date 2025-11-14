@@ -102,15 +102,6 @@ const StepperCustomerForm = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
-
-  // const handleGrowerChange = (index, e) => {
-  //   const { name, value } = e.target;
-  //   const updatedGrowers = [...growers];
-  //   updatedGrowers[index] = { ...updatedGrowers[index], [name]: value };
-  //   setGrowers(updatedGrowers);
-  //   setErrors(prev => ({ ...prev, [`${name}_${index}`]: '' }));
-  // };           
-
   const handleGrowerChange = (index, e, customField, customValue) => {
     const updatedGrowers = [...growers];
 
@@ -169,105 +160,11 @@ const StepperCustomerForm = () => {
 
   const [loading, setLoading] = useState(false);
 
-  // Add this separate useEffect to log formData when it changes
-  // Add this useEffect at the top level (after your state declarations)
   useEffect(() => {
     console.log("FormData updated:", formData);
   }, [formData]);
 
-  // Your existing fetch useEffect
-  // useEffect(() => {
-  //   const fetchUser = async () => {
-  //     if (!id) return;
-  //     setLoading(true);
-  //     try {
-  //       const response = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?id=${id}`);
-  //       const data = await response.json();
-
-  //       console.log("✅ API Response:", data);
-
-  //       if (data.status === "success" && data.data) {
-  //         const user = Array.isArray(data.data) ? data.data[0] : data.data;
-  //         const grower = Array.isArray(data.grower) ? data.grower[0] : data.grower;
-  //         // console.log("✅ User data from API:", user);
-  //         // console.log("✅ Grower data from API:", grower);
-
-  //         const newFormData = {
-  //           name: user.name || '',
-  //           email: user.email || '',
-  //           phoneNumber: user.phone || '', 
-  //           staffPhoneNumber: user.staff_phone || '',
-  //           state: user.state || '',
-  //           city: user.city || '',
-  //           pincode: user.pincode || '',
-  //           address: user.street_address || '',
-  //           profilePic: user.profile_pic || '',
-  //           isActive: user.status ? user.status === "active" : true,
-  //         };
-  //         // console.log("✅ Data being set to formData:", JSON.parse(JSON.stringify(newFormData)));
-
-  //         setFormData(newFormData);
-
-  //         const customerPlants = Array.isArray(data.customer_plant)
-  //           ? data.customer_plant.map((plant) => ({
-  //               value: plant.name, // ✅ should match plantOptions value
-  //               label: plant.name,
-  //             }))
-  //           : [];
-
-
-
-  //         const newGrowerFormData = {
-  //           growerId: grower.id,
-  //           systemType: grower.system_type || '',
-  //           systemTypeOther: '',
-  //           numPlants: grower.no_of_plants,
-  //           numLevels: grower.no_of_levels,
-  //           setupDimension: grower.setup_dimension,
-  //           motorType: grower.motor_used,
-  //           motorTypeOther: '',
-  //           timerUsed: grower.timer_used,
-  //           timerUsedOther: '',
-  //           numLights:grower.no_of_lights,
-  //           modelOfLight: grower.model_of_lights,
-  //           modelOfLightOther: "",
-  //           lengthOfLight: grower.length_of_lights,
-  //           lengthOfLightOther: "",
-  //           tankCapacity: grower.tank_capacity,
-  //           tankCapacityOther: "",
-  //           nutritionGiven: grower.nutrition_given,
-  //           otherSpecifications: grower.other_specifications,
-  //           photoAtInstallation: grower.installation_photo_url || '',
-  //           selectedPlants: customerPlants
-  //         };
-
-  //         setGrowers([newGrowerFormData]);
-
-  //         // console.log("🔍 plantOptions:", plantOptions);
-  //         // console.log("🔍 selectedPlants:", growers[0]?.selectedPlants);
-
-
-
-  //         // Set cities based on state
-  //         if (user.state && statesAndCities[user.state]) {
-  //           setCities(statesAndCities[user.state]);
-  //         }
-
-  //       } else {
-  //         console.error("API returned error or no data");
-  //         alert('User not found!');
-  //       }
-  //     } catch (error) {
-  //       console.error('Error fetching user:', error);
-  //       alert('Failed to fetch user details!');
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchUser();
-  // }, [id]);
-
+ 
   useEffect(() => {
     const fetchUser = async () => {
       if (!id) return;
@@ -295,6 +192,8 @@ const StepperCustomerForm = () => {
             state: user.state || '',
             city: user.city || '',
             pincode: user.pincode || '',
+            landmark: user.landmark || '',
+            locality: user.locality || '',
             address: user.street_address || '',
             profilePic: user.profile_pic || '',
             isActive: user.status ? user.status === "active" : true,
@@ -368,21 +267,36 @@ const StepperCustomerForm = () => {
 
 
     if (currentStep === 1) {
+      let stepErrors = {};
+
       if (!formData.name.trim()) stepErrors.name = 'Name is required';
       if (!formData.email.trim()) stepErrors.email = 'Email is required';
       if (!formData.phoneNumber.trim()) stepErrors.phoneNumber = 'Phone number is required';
-      else if (!/^\d{10}$/.test(formData.phoneNumber)) stepErrors.phoneNumber = 'Phone number must be 10 digits';
-      if (formData.staffPhoneNumber && !/^\d{10}$/.test(formData.staffPhoneNumber)) {
+      else if (!/^\d{10}$/.test(formData.phoneNumber))
+        stepErrors.phoneNumber = 'Phone number must be 10 digits';
+
+      if (formData.staffPhoneNumber && !/^\d{10}$/.test(formData.staffPhoneNumber))
         stepErrors.staffPhoneNumber = 'Staff phone number must be 10 digits';
-      }
+
       if (!formData.state) stepErrors.state = 'State is required';
       if (!formData.city) stepErrors.city = 'City is required';
-      if (!formData.locality.trim()) stepErrors.locality = 'Locality is required'; // ✅ new
-      if (!formData.landmark.trim()) stepErrors.landmark = 'Landmark is required'; // ✅ new
+
+      // ⭐ YOUR NEW FIELDS
+      if (!formData.locality.trim()) stepErrors.locality = 'Locality is required';
+      if (!formData.landmark.trim()) stepErrors.landmark = 'Landmark is required';
+
       if (!formData.pincode.trim()) stepErrors.pincode = 'Pincode is required';
-      else if (!/^\d{6}$/.test(formData.pincode)) stepErrors.pincode = 'Pincode must be exactly 6 digits';
+      else if (!/^\d{6}$/.test(formData.pincode))
+        stepErrors.pincode = 'Pincode must be exactly 6 digits';
+
       if (!formData.address.trim()) stepErrors.address = 'Street address is required';
+
+      // 🚀 CRUCIAL
+      setErrors(stepErrors);
+
+      return Object.keys(stepErrors).length === 0;
     }
+
 
     if (currentStep === 2) {
       growers.forEach((grower, index) => {

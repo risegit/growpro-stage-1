@@ -80,6 +80,47 @@ switch ($method) {
 
         break;
 
+        case 'PUT':
+        $amcId = $_POST['id'] ?? '';
+        $duration = $_POST['duration'] ?? '';
+        $customDuration = $_POST['customDuration'] ?? '';
+        $visitsPerMonth = $_POST['visitsPerMonth'] ?? '';
+        $validityFrom = $_POST['validityFrom'] ?? '';
+        $validityUpto = $_POST['validityUpto'] ?? '';
+        $pricing = $_POST['pricing'] ?? '';
+        $transport = $_POST['transport'] ?? '';
+        $gst = $_POST['gst'] ?? '';
+        $customConsumable = $_POST['customConsumable'] ?? '';
+        // if(!empty($_POST['customDuration'])){
+        //     $duration=$_POST['customDuration'];
+        // }
+        // $jsonGrowers = isset($_POST['growers']) ? $_POST['growers'] : '';
+        // $growers = json_decode($jsonGrowers, true);
+        // $growerdata=var_dump($growers);
+        
+        // $jsonConsumables = isset($_POST['consumables']) ? $_POST['consumables'] : '';
+        // $consumables = json_decode($jsonConsumables, true);
+        // echo json_encode(["status" => "error", "grower_data" => $growers, "consumable" => $consumables]);
+        $subtotal = $pricing+$transport;
+        $gstAmount = ($subtotal * $gst) / 100;
+        $total = round($subtotal + $gstAmount);
+        $sql = "INSERT INTO amc_details (`customer_id`, `duration`, `visits_per_month`, `validity_from`, `validity_upto`, `pricing`, `transport`, `gst`,`total`, `updated_by`, `created_at`, `updated_at`) VALUES ('$amcId', '$duration', '$visitsPerMonth', '$validityFrom', '$validityUpto', '$pricing', '$transport', '$gst', '$total', '1', '$date', '$time')";
+        // if ($conn->query($sql)) {
+        //     $amc_id = $conn->insert_id;
+        //     foreach ($growers as $index => $grower) {
+        //         $sql1 = "INSERT INTO `amc_growers`(`amc_id`, `grower_id`) VALUES ('$amc_id','$grower')";
+        //         $conn->query($sql1);
+        //     }
+        //     foreach ($consumables as $index => $consumable) {
+        //         $sql1 = "INSERT INTO `amc_consumables`(`amc_id`, `consumable_id`) VALUES ('$amc_id','$consumable')";
+        //         $conn->query($sql1);
+        //     }
+            
+        // }
+        echo json_encode(["status" => "error", "message" => "Customer Already Exist123".'==userstatus='.$duration.'===sql='.$sql]);
+
+        break;
+
     default:
         echo json_encode(["status" => "error", "message" => "Invalid request method"]);
         break;

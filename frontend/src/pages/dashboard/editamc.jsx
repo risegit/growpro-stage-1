@@ -1,10 +1,10 @@
+// AMCForm.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import Select from 'react-select';
 
 export default function AMCForm() {
   const [formData, setFormData] = useState({
-    customer: '',
     validityFrom: '',
     validityUpto: '',
     duration: '',
@@ -18,14 +18,31 @@ export default function AMCForm() {
     total: ''
   });
 
-  
+  const [addonFormData, setAddonFormData] = useState({
+    grower: '',
+    validityFrom: '',
+    validityUpto: '',
+    duration: '',
+    customDuration: '',
+    visitsPerMonth: '',
+    consumables: [],
+    customConsumable: '',
+    pricing: '',
+    transport: '',
+    gst: '',
+    total: ''
+  });
+
+  const [showAddon, setShowAddon] = useState(false);
   const [consumableData, setConsumableData] = useState({
     id: '',
     name: ''
   });
 
   const [errors, setErrors] = useState({});
-  const [customers, setCustomers] = useState([]); 
+  const [addonErrors, setAddonErrors] = useState({});
+  const [customers, setCustomers] = useState([]);
+  const [growers, setGrowers] = useState([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
@@ -35,9 +52,6 @@ export default function AMCForm() {
   const [loadingConsumable, setLoadingConsumable] = useState(false);
   const toastTimerRef = useRef(null);
 
-  // Consumable options including "Other"
-
-
   const durationOptions = [
     { value: '30', label: 'Monthly' },
     { value: '90', label: 'Quarterly' },
@@ -46,226 +60,191 @@ export default function AMCForm() {
     { value: 'other', label: 'Other' },
   ];
 
+  // Mock growers data - replace with your API call
+  const growerOptions = [
+    { value: '1', label: 'Grower A' },
+    { value: '2', label: 'Grower B' },
+    { value: '3', label: 'Grower C' },
+  ];
+
   useEffect(() => {
-          const fetchUser = async () => {
-              if (!id) return;
-              setLoading(true);
-              try {
-                  const response = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`);
-                  const data = await response.json();
-  
-                  console.log("Fetched user data:", data.amc_data);
+    const fetchUser = async () => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`);
+        const data = await response.json();
 
-                  const amc = Array.isArray(data.amc_data) ? data.amc_data[0] : data.amc_data;
-                  const consumable_data = Array.isArray(data.consumable_data) ? data.consumable_data : [];
-                  const consumable_value = (consumable_data || []).map((p) => ({
-                          value: p.id,
-                          label: p.name,
-                        }));
-                  if (data.status === "success" && amc) {
-                      setFormData({
-                          customer: amc.name || '',
-                          duration: amc.duration || '',
-                          customDuration: amc.duration_other || '',
-                          validityFrom: amc.validity_from || '',
-                          validityUpto: amc.validity_upto || '',
-                          visitsPerMonth: amc.visits_per_month || '',
-                          consumables: consumable_value,
-                          customConsumable: '',
-                          pricing: amc.pricing || '',
-                          transport: amc.transport || '',
-                          gst: amc.gst || '',
-                          total: amc.total || ''
-                      });
-                      
-                  } else {
-                      console.log('AMC not found!');
-                  }
+        console.log("Fetched user data:", data.amc_data);
 
-                  if (data.status === "success" && consumable_data) {
-                      setConsumableData({
-                          id: amc.id || '',
-                          name: amc.name || ''
-                      });
-                      
-                  } else {
-                      console.log('AMC not found!');
-                  }
-              } catch (error) {
-                  console.error('Error fetching user:', error);
-                  alert('Failed to fetch user details!');
-              } finally {
-                  setLoading(false);
-              }
-          };
-  
-          fetchUser();
-      }, [id]);
-useEffect(() => {
-  const fetchConsumable = async () => {
-    try {
-      setLoadingConsumable(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL}api/consumable.php`);
-      const data = await response.json();
+        const amc = Array.isArray(data.amc_data) ? data.amc_data[0] : data.amc_data;
+        const consumable_data = Array.isArray(data.consumable_data) ? data.consumable_data : [];
+        const consumable_value = (consumable_data || []).map((p) => ({
+          value: p.id,
+          label: p.name,
+        }));
+        if (data.status === "success" && amc) {
+          setFormData({
+            customer: amc.name || '',
+            duration: amc.duration || '',
+            customDuration: amc.duration_other || '',
+            validityFrom: amc.validity_from || '',
+            validityUpto: amc.validity_upto || '',
+            visitsPerMonth: amc.visits_per_month || '',
+            consumables: consumable_value,
+            customConsumable: '',
+            pricing: amc.pricing || '',
+            transport: amc.transport || '',
+            gst: amc.gst || '',
+            total: amc.total || ''
+          });
+        } else {
+          console.log('AMC not found!');
+        }
 
-      console.log("✅ API Response:", data);
-
-      if (data.status === "success" && data.data?.length > 0) {
-        const opts = Array.isArray(data.data)
-          ? data.data.map((c) => ({ 
-            value: c.id,
-            label: `${c.name}`,
-            }))
-          : [];
-        setConsumable(opts);
-      } else {
-        
+        if (data.status === "success" && consumable_data) {
+          setConsumableData({
+            id: amc.id || '',
+            name: amc.name || ''
+          });
+        } else {
+          console.log('AMC not found!');
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        alert('Failed to fetch user details!');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching consumables:", error);
-      
-    } finally {
-      setLoadingConsumable(false);
-    }
-  };
+    };
 
-  fetchConsumable();
+    fetchUser();
+  }, [id]);
 
-  return () => {
-    if (toastTimerRef?.current) clearTimeout(toastTimerRef.current);
-  };
-}, []);
+  useEffect(() => {
+    const fetchConsumable = async () => {
+      try {
+        setLoadingConsumable(true);
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/consumable.php`);
+        const data = await response.json();
 
-  // Fetch customers from backend on mount
-  // useEffect(() => {
-  //   let mounted = true;
-  //   const loadCustomers = async () => {
-  //     setLoadingCustomers(true);
-  //     try {
-  //       // Replace endpoint with your actual API
-  //       const res = await fetch('/api/customers');
-  //       if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
-  //       const data = await res.json();
-  //       // Expecting data to be an array of objects with id and name fields
-  //       // Convert to react-select format
-  //       const opts = Array.isArray(data)
-  //         ? data.map((c) => ({ value: c.id ?? c._id ?? c.value ?? c.name, label: c.name ?? c.label ?? String(c.value) }))
-  //         : [];
-  //       if (mounted) setCustomers(opts);
-  //     } catch (err) {
-  //       // If fetch fails, we still allow user to type customer (react-select will show no options)
-  //       console.error('Error loading customers:', err);
-  //     } finally {
-  //       if (mounted) setLoadingCustomers(false);
-  //     }
-  //   };
+        console.log("✅ API Response:", data);
 
-  //   loadCustomers();
-  //   return () => {
-  //     mounted = false;
-  //     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-  //   };
-  // }, []);
+        if (data.status === "success" && data.data?.length > 0) {
+          const opts = Array.isArray(data.data)
+            ? data.data.map((c) => ({
+              value: c.id,
+              label: `${c.name}`,
+            }))
+            : [];
+          setConsumable(opts);
+        }
+      } catch (error) {
+        console.error("Error fetching consumables:", error);
+      } finally {
+        setLoadingConsumable(false);
+      }
+    };
 
-  // const showToast = (message, type = 'success', duration = 3000) => {
-  //   if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-  //   setToast({ show: true, message, type });
-  //   toastTimerRef.current = setTimeout(() => {
-  //     setToast({ show: false, message: '', type: 'success' });
-  //   }, duration);
-  // };
+    fetchConsumable();
 
-  // Generic input change handler
+    return () => {
+      if (toastTimerRef?.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-
-  const handleRemoveAddon = (index) => {
-    setAddonForms(addonForms.filter((_, i) => i !== index));
-    setErrors(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      addons: prev.addons.filter((_, i) => i !== index)
+      [name]: value,
     }));
-  };
 
-  const handleMainInputChange = (e) => {
-    const { name, value } = e.target;
-    setMainForm(prev => ({ ...prev, [name]: value }));
-    if (errors.main[name]) {
-      setErrors(prev => ({ ...prev, main: { ...prev.main, [name]: '' } }));
-    }
-    if (name === 'pricing' || name === 'transport' || name === 'gst') {
-      calculateTotal('main', name, value);
-    }
-  };
-
-  const handleAddonInputChange = (index, e) => {
-    const { name, value } = e.target;
-    const updatedAddons = [...addonForms];
-    updatedAddons[index] = { ...updatedAddons[index], [name]: value };
-    setAddonForms(updatedAddons);
-
-    if (errors.addons[index]?.[name]) {
-      const newAddonErrors = [...errors.addons];
-      newAddonErrors[index] = { ...newAddonErrors[index], [name]: '' };
-      setErrors(prev => ({ ...prev, addons: newAddonErrors }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
     }
 
     if (name === 'pricing' || name === 'transport' || name === 'gst') {
-      calculateTotal('addon', name, value, index);
+      calculateTotal(name, value);
     }
   };
 
-  const handleMainCustomerChange = (selected) => {
-    setMainForm(prev => ({ ...prev, customer: selected }));
-    if (errors.main.customer) {
-      setErrors(prev => ({ ...prev, main: { ...prev.main, customer: '' } }));
+  const handleAddonInputChange = (e) => {
+    const { name, value } = e.target;
+    setAddonFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    if (addonErrors[name]) {
+      setAddonErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+
+    if (name === 'pricing' || name === 'transport' || name === 'gst') {
+      calculateAddonTotal(name, value);
     }
   };
 
-  const handleMainConsumableChange = (selected) => {
-    setMainForm(prev => ({ ...prev, consumables: selected || [] }));
-    if (errors.main.consumables) {
-      setErrors(prev => ({ ...prev, main: { ...prev.main, consumables: '' } }));
+  const handleCustomerChange = (selected) => {
+    setFormData((prev) => ({ ...prev, customer: selected }));
+    if (errors.customer) {
+      setErrors((prev) => ({ ...prev, customer: '' }));
     }
   };
 
-  const handleAddonConsumableChange = (index, selected) => {
-    const updatedAddons = [...addonForms];
-    updatedAddons[index] = { ...updatedAddons[index], consumables: selected || [] };
-    setAddonForms(updatedAddons);
-
-    if (errors.addons[index]?.consumables) {
-      const newAddonErrors = [...errors.addons];
-      newAddonErrors[index] = { ...newAddonErrors[index], consumables: '' };
-      setErrors(prev => ({ ...prev, addons: newAddonErrors }));
+  const handleGrowerChange = (selected) => {
+    setAddonFormData((prev) => ({ ...prev, grower: selected }));
+    if (addonErrors.grower) {
+      setAddonErrors((prev) => ({ ...prev, grower: '' }));
     }
   };
 
-  const calculateTotal = (formType, changedField, changedValue, index = null) => {
-    const form = formType === 'main' ? mainForm : addonForms[index];
-    const pricing = parseFloat(changedField === 'pricing' ? changedValue : form.pricing) || 0;
-    const transport = parseFloat(changedField === 'transport' ? changedValue : form.transport) || 0;
-    const gst = parseFloat(changedField === 'gst' ? changedValue : form.gst) || 0;
+  const handleConsumableChange = (selected) => {
+    setFormData((prev) => ({
+      ...prev,
+      consumables: selected || []
+    }));
+    if (errors.consumables) {
+      setErrors((prev) => ({ ...prev, consumables: '' }));
+    }
+  };
+
+  const handleAddonConsumableChange = (selected) => {
+    setAddonFormData((prev) => ({
+      ...prev,
+      consumables: selected || []
+    }));
+    if (addonErrors.consumables) {
+      setAddonErrors((prev) => ({ ...prev, consumables: '' }));
+    }
+  };
+
+  const calculateTotal = (changedField, changedValue) => {
+    const pricing = parseFloat(changedField === 'pricing' ? changedValue : formData.pricing) || 0;
+    const transport = parseFloat(changedField === 'transport' ? changedValue : formData.transport) || 0;
+    const gst = parseFloat(changedField === 'gst' ? changedValue : formData.gst) || 0;
 
     const subtotal = pricing + transport;
     const gstAmount = (subtotal * gst) / 100;
     const total = subtotal + gstAmount;
 
-    if (formType === 'main') {
-      setMainForm(prev => ({ ...prev, total: total.toFixed(2) }));
-    } else {
-      const updatedAddons = [...addonForms];
-      updatedAddons[index] = { ...updatedAddons[index], total: total.toFixed(2) };
-      setAddonForms(updatedAddons);
-    }
+    setFormData((prev) => ({ ...prev, total: total.toFixed(2) }));
   };
 
-  const validateSingleForm = (formData, isMain = false) => {
-    const newErrors = {};
+  const calculateAddonTotal = (changedField, changedValue) => {
+    const pricing = parseFloat(changedField === 'pricing' ? changedValue : addonFormData.pricing) || 0;
+    const transport = parseFloat(changedField === 'transport' ? changedValue : addonFormData.transport) || 0;
+    const gst = parseFloat(changedField === 'gst' ? changedValue : addonFormData.gst) || 0;
 
-    if (isMain && (!formData.customer || !formData.customer.value)) {
-      newErrors.customer = 'Please select a customer';
-    }
+    const subtotal = pricing + transport;
+    const gstAmount = (subtotal * gst) / 100;
+    const total = subtotal + gstAmount;
+
+    setAddonFormData((prev) => ({ ...prev, total: total.toFixed(2) }));
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
 
     if (!formData.validityFrom) newErrors.validityFrom = 'Validity From date is required';
     if (!formData.validityUpto) newErrors.validityUpto = 'Validity Upto date is required';
@@ -282,9 +261,6 @@ useEffect(() => {
     else if (formData.visitsPerMonth !== '' && Number(formData.visitsPerMonth) < 0) newErrors.visitsPerMonth = 'Visits cannot be negative';
 
     if (!formData.consumables || formData.consumables.length === 0) newErrors.consumables = 'Select at least one consumable';
-    else if (formData.consumables.some((c) => c.value === 'other') && !formData.customConsumable.trim()) {
-      newErrors.customConsumable = 'Please specify the other consumable';
-    }
 
     if (formData.pricing === '') newErrors.pricing = 'Pricing is required';
     else if (isNaN(parseFloat(formData.pricing)) || parseFloat(formData.pricing) < 0) newErrors.pricing = 'Pricing must be a positive number';
@@ -297,95 +273,116 @@ useEffect(() => {
       newErrors.gst = 'GST must be between 0 and 100';
     }
 
-    return newErrors;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const validateAllForms = () => {
-    const mainErrors = validateSingleForm(mainForm, true);
-    const addonErrors = addonForms.map(form => validateSingleForm(form, false));
+  const validateAddonForm = () => {
+    if (!showAddon) return true;
 
-    setErrors({ main: mainErrors, addons: addonErrors });
+    const newErrors = {};
 
-    const hasMainErrors = Object.keys(mainErrors).length > 0;
-    const hasAddonErrors = addonErrors.some(err => Object.keys(err).length > 0);
+    if (!addonFormData.grower || !addonFormData.grower.value) {
+      newErrors.grower = 'Please select a grower';
+    }
 
-    return !hasMainErrors && !hasAddonErrors;
+    if (!addonFormData.validityFrom) newErrors.validityFrom = 'Validity From date is required';
+    if (!addonFormData.validityUpto) newErrors.validityUpto = 'Validity Upto date is required';
+    else if (addonFormData.validityFrom && new Date(addonFormData.validityUpto) <= new Date(addonFormData.validityFrom)) {
+      newErrors.validityUpto = 'Validity Upto must be after Validity From';
+    }
+
+    if (!addonFormData.duration) newErrors.duration = 'Duration of AMC is required';
+    else if (addonFormData.duration === 'other' && !addonFormData.customDuration.trim()) {
+      newErrors.customDuration = 'Please specify the custom duration';
+    }
+
+    if (!addonFormData.visitsPerMonth && addonFormData.visitsPerMonth !== 0) newErrors.visitsPerMonth = 'Number of visits is required';
+    else if (addonFormData.visitsPerMonth !== '' && Number(addonFormData.visitsPerMonth) < 0) newErrors.visitsPerMonth = 'Visits cannot be negative';
+
+    if (!addonFormData.consumables || addonFormData.consumables.length === 0) newErrors.consumables = 'Select at least one consumable';
+
+    if (addonFormData.pricing === '') newErrors.pricing = 'Pricing is required';
+    else if (isNaN(parseFloat(addonFormData.pricing)) || parseFloat(addonFormData.pricing) < 0) newErrors.pricing = 'Pricing must be a positive number';
+
+    if (addonFormData.transport === '') newErrors.transport = 'Transport is required';
+    else if (isNaN(parseFloat(addonFormData.transport)) || parseFloat(addonFormData.transport) < 0) newErrors.transport = 'Transport must be a positive number';
+
+    if (addonFormData.gst === '') newErrors.gst = 'GST is required';
+    else if (isNaN(parseFloat(addonFormData.gst)) || parseFloat(addonFormData.gst) < 0 || parseFloat(addonFormData.gst) > 100) {
+      newErrors.gst = 'GST must be between 0 and 100';
+    }
+
+    setAddonErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
+
+  // const showToast = (message, type) => {
+  //   setToast({ show: true, message, type });
+  //   toastTimerRef.current = setTimeout(() => {
+  //     setToast({ show: false, message: '', type: 'success' });
+  //   }, 3000);
+  // };
 
   const handleSubmit = async () => {
-    if (!validateAllForms()) {
-      showToast('Please fix form errors before submitting', 'error');
-      return;
-    }
+  if (!validateForm()) return;
 
-    setSubmitting(true);
-    try {
-      const buildPayload = (formData, isMain = false) => ({
-        ...(isMain && { customerId: formData.customer.value }),
-        validityFrom: formData.validityFrom,
-        validityUpto: formData.validityUpto,
-        duration: formData.duration === 'other' ? formData.customDuration : formData.duration,
-        visitsPerMonth: Number(formData.visitsPerMonth),
-        consumables: formData.consumables.map((c) =>
-          c.value === 'other' ? formData.customConsumable : c.label
-        ),
-        pricing: parseFloat(formData.pricing),
-        transport: parseFloat(formData.transport),
-        gst: parseFloat(formData.gst),
-        total: parseFloat(formData.total) || 0,
-      });
+  try {
+    const form = new FormData();
 
-      const mainPayload = buildPayload(mainForm, true);
-      const addonPayloads = addonForms.map(form => buildPayload(form, false));
+    // convert consumables to array of ids
+    const consumableIds = formData.consumables.map((c) => c.value);
+    form.append("consumables", JSON.stringify(consumableIds));
 
-      const fullPayload = {
-        main: mainPayload,
-        addons: addonPayloads
-      };
-
-      const res = await fetch('/api/amc', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(fullPayload),
-      });
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => null);
-        throw new Error(`Server error: ${res.status} ${text ?? ''}`);
+    // append remaining keys
+    Object.entries(formData).forEach(([key, value]) => {
+      if (key !== "consumables") {
+        form.append(key, value);
       }
+    });
 
-      const respJson = await res.json().catch(() => ({}));
-      showToast('AMC submitted successfully', 'success');
+    form.append("id", id);
+    form.append("_method", "PUT");
 
-      // Reset all forms
-      setMainForm({
-        customer: null,
-        validityFrom: '',
-        validityUpto: '',
-        duration: '',
-        customDuration: '',
-        visitsPerMonth: '',
-        consumables: [],
-        customConsumable: '',
-        pricing: '',
-        transport: '',
-        gst: '',
-        total: ''
-      });
-      setAddonForms([]);
-      setErrors({ main: {}, addons: [] });
-      console.log('Submitted payload:', fullPayload, 'server response:', respJson);
-    } catch (err) {
-      console.error('Submit failed:', err);
-      showToast('Submission failed. See console for details.', 'error');
-    } finally {
-      setSubmitting(false);
-    }
+    console.log("Payload you are sending:");
+    for (let p of form.entries()) console.log(p[0], p[1]);
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`,
+      { method: "POST", body: form }
+    );
+
+    const result = await response.json();
+    console.log("API Response:", result);
+
+  } catch (error) {
+    console.error("Submit Error:", error);
+  }
+};
+
+
+  const handleAddOn = () => {
+    setShowAddon(true);
   };
 
-  // Small helper to derive whether consumables include 'other'
-  // const consumablesHasOther = formData.consumables.some((c) => c.value === 'other');
-  // const consumablesHasOther = "test";
+  const handleRemoveAddon = () => {
+    setShowAddon(false);
+    setAddonFormData({
+      grower: '',
+      validityFrom: '',
+      validityUpto: '',
+      duration: '',
+      customDuration: '',
+      visitsPerMonth: '',
+      consumables: [],
+      customConsumable: '',
+      pricing: '',
+      transport: '',
+      gst: '',
+      total: ''
+    });
+    setAddonErrors({});
+  };
 
   return (
     <div className="w-full min-h-screen bg-gray-100 mt-10">
@@ -398,32 +395,46 @@ useEffect(() => {
 
         {/* Main Form */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 py-6 [&_input]:h-[44px] [&_select]:h-[44px]">
-          {/* Customer - only in main form */}
+          {/* Customer */}
           <div className="flex flex-col md:col-span-2">
             <label className="mb-1 font-medium text-gray-700">Customer Name: <span className="text-green-500">{formData.customer}</span></label>
           </div>
 
-          {renderFormFields(mainForm, true)}
-        </div>
-
-        {/* Add-on Forms */}
-        {addonForms.map((addonForm, index) => (
-          <div key={addonForm.id} className="border-t-2 border-gray-200 mt-6 pt-6">
-           
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 [&_input]:h-[44px] [&_select]:h-[44px]">
-              {renderFormFields(addonForm, false, index)}
-            </div>
+          {/* Validity From */}
+          <div className="flex flex-col">
+            <label className="mb-1 font-medium text-gray-700">Validity From <span className="text-red-500">*</span></label>
+            <input
+              type="date"
+              name="validityFrom"
+              value={formData.validityFrom}
+              onChange={handleInputChange}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityFrom ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+            />
+            {errors.validityFrom && <span className="text-red-500 text-sm mt-1">{errors.validityFrom}</span>}
           </div>
-        ))}
 
-        {/* Footer with Add-on and Submit buttons */}
-        {/* Footer with Add-on and Submit buttons */}
-        <div className="flex items-center justify-between px-4 py-4 border-t mt-6">
-          {addonForms.length === 0 ? (
-            <button
-              type="button"
-              onClick={handleAddAddon}
-              className="bg-[#9FC762] hover:bg-[#8DB350] text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
+          {/* Validity Upto */}
+          <div className="flex flex-col">
+            <label className="mb-1 font-medium text-gray-700">Validity Upto <span className="text-red-500">*</span></label>
+            <input
+              type="date"
+              name="validityUpto"
+              value={formData.validityUpto}
+              onChange={handleInputChange}
+              min={formData.validityFrom || undefined}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityUpto ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+            />
+            {errors.validityUpto && <span className="text-red-500 text-sm mt-1">{errors.validityUpto}</span>}
+          </div>
+
+          {/* Duration */}
+          <div className="flex flex-col">
+            <label className="mb-1 font-medium text-gray-700">Duration of AMC <span className="text-red-500">*</span></label>
+            <select
+              name="duration"
+              value={formData.duration}
+              onChange={handleInputChange}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.duration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
             >
               <option value="">Select duration</option>
               {durationOptions.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
@@ -442,9 +453,9 @@ useEffect(() => {
             {errors.customDuration && <span className="text-red-500 text-sm mt-1">{errors.customDuration}</span>}
           </div>
 
-          {/* Visits per Month (number input) */}
+          {/* Visits per Month */}
           <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700"> Visits per Month <span className="text-red-500">*</span></label>
+            <label className="mb-1 font-medium text-gray-700">Visits per Month <span className="text-red-500">*</span></label>
             <input
               type="number"
               name="visitsPerMonth"
@@ -457,7 +468,7 @@ useEffect(() => {
             {errors.visitsPerMonth && <span className="text-red-500 text-sm mt-1">{errors.visitsPerMonth}</span>}
           </div>
 
-          {/* Consumables - multi select with Other */}
+          {/* Consumables */}
           <div className="flex flex-col md:col-span-2">
             <label className="mb-2 font-medium text-gray-700">Consumables Included in the AMC <span className="text-red-500">*</span></label>
             <Select
@@ -471,18 +482,7 @@ useEffect(() => {
                 menu: (provided) => ({ ...provided, zIndex: 9999 }),
               }}
             />
-            {/* {consumablesHasOther && (
-              <input
-                type="text"
-                name="customConsumable"
-                value={formData.customConsumable}
-                onChange={handleInputChange}
-                placeholder="Specify other consumable"
-                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.customConsumable ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-              />
-            )} */}
             {errors.consumables && <span className="text-red-500 text-sm mt-1">{errors.consumables}</span>}
-            {errors.customConsumable && <span className="text-red-500 text-sm mt-1">{errors.customConsumable}</span>}
           </div>
 
           {/* Pricing */}
@@ -549,16 +549,213 @@ useEffect(() => {
           </div>
         </div>
 
+
+        {/* Add On Form */}
+        {showAddon && (
+          <div className="border-t pt-6">
+            <div className="px-2 py-4 border-b flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">Add On Contract</h2>
+                <p className="text-sm text-gray-600">Additional AMC Details</p>
+              </div>
+              <button
+                onClick={handleRemoveAddon}
+                className="bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded-lg transition"
+              >
+                Remove
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 py-6 [&_input]:h-[44px] [&_select]:h-[44px]">
+              {/* Grower - Full Width */}
+              <div className="flex flex-col md:col-span-2">
+                <label className="mb-2 font-medium text-gray-700">Select Grower <span className="text-red-500">*</span></label>
+                <Select
+                  options={growerOptions}
+                  value={addonFormData.grower}
+                  onChange={handleGrowerChange}
+                  classNamePrefix="react-select"
+                  placeholder="Select grower..."
+                  styles={{
+                    menu: (provided) => ({ ...provided, zIndex: 9999 }),
+                    control: (provided) => ({ ...provided, minHeight: '44px' }),
+                  }}
+                />
+                {addonErrors.grower && <span className="text-red-500 text-sm mt-1">{addonErrors.grower}</span>}
+              </div>
+
+              {/* Validity From */}
+              <div className="flex flex-col">
+                <label className="mb-1 font-medium text-gray-700">Validity From <span className="text-red-500">*</span></label>
+                <input
+                  type="date"
+                  name="validityFrom"
+                  value={addonFormData.validityFrom}
+                  onChange={handleAddonInputChange}
+                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.validityFrom ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                />
+                {addonErrors.validityFrom && <span className="text-red-500 text-sm mt-1">{addonErrors.validityFrom}</span>}
+              </div>
+
+              {/* Validity Upto */}
+              <div className="flex flex-col">
+                <label className="mb-1 font-medium text-gray-700">Validity Upto <span className="text-red-500">*</span></label>
+                <input
+                  type="date"
+                  name="validityUpto"
+                  value={addonFormData.validityUpto}
+                  onChange={handleAddonInputChange}
+                  min={addonFormData.validityFrom || undefined}
+                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.validityUpto ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                />
+                {addonErrors.validityUpto && <span className="text-red-500 text-sm mt-1">{addonErrors.validityUpto}</span>}
+              </div>
+
+              {/* Duration */}
+              <div className="flex flex-col">
+                <label className="mb-1 font-medium text-gray-700">Duration of AMC <span className="text-red-500">*</span></label>
+                <select
+                  name="duration"
+                  value={addonFormData.duration}
+                  onChange={handleAddonInputChange}
+                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.duration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                >
+                  <option value="">Select duration</option>
+                  {durationOptions.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                </select>
+                {addonFormData.duration === 'other' && (
+                  <input
+                    type="text"
+                    name="customDuration"
+                    value={addonFormData.customDuration}
+                    onChange={handleAddonInputChange}
+                    placeholder="Enter custom duration (e.g., 18 months)"
+                    className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.customDuration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                  />
+                )}
+                {addonErrors.duration && <span className="text-red-500 text-sm mt-1">{addonErrors.duration}</span>}
+                {addonErrors.customDuration && <span className="text-red-500 text-sm mt-1">{addonErrors.customDuration}</span>}
+              </div>
+
+              {/* Visits per Month */}
+              <div className="flex flex-col">
+                <label className="mb-1 font-medium text-gray-700">Visits per Month <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  name="visitsPerMonth"
+                  value={addonFormData.visitsPerMonth}
+                  onChange={handleAddonInputChange}
+                  placeholder="Enter number of visits"
+                  min="0"
+                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.visitsPerMonth ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                />
+                {addonErrors.visitsPerMonth && <span className="text-red-500 text-sm mt-1">{addonErrors.visitsPerMonth}</span>}
+              </div>
+
+              {/* Consumables */}
+              <div className="flex flex-col md:col-span-2">
+                <label className="mb-2 font-medium text-gray-700">Consumables Included in the AMC <span className="text-red-500">*</span></label>
+                <Select
+                  isMulti
+                  options={consumableoptions}
+                  value={addonFormData.consumables}
+                  onChange={handleAddonConsumableChange}
+                  classNamePrefix="react-select"
+                  placeholder="Select consumables..."
+                  styles={{
+                    menu: (provided) => ({ ...provided, zIndex: 9999 }),
+                  }}
+                />
+                {addonErrors.consumables && <span className="text-red-500 text-sm mt-1">{addonErrors.consumables}</span>}
+              </div>
+
+              {/* Pricing */}
+              <div className="flex flex-col">
+                <label className="mb-1 font-medium text-gray-700">Pricing (₹) <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  name="pricing"
+                  value={addonFormData.pricing}
+                  onChange={handleAddonInputChange}
+                  placeholder="Enter pricing"
+                  step="0.01"
+                  min="0"
+                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.pricing ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                />
+                {addonErrors.pricing && <span className="text-red-500 text-sm mt-1">{addonErrors.pricing}</span>}
+              </div>
+
+              {/* Transport */}
+              <div className="flex flex-col">
+                <label className="mb-1 font-medium text-gray-700">Transport (₹) <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  name="transport"
+                  value={addonFormData.transport}
+                  onChange={handleAddonInputChange}
+                  placeholder="Enter transport cost"
+                  step="0.01"
+                  min="0"
+                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.transport ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                />
+                {addonErrors.transport && <span className="text-red-500 text-sm mt-1">{addonErrors.transport}</span>}
+              </div>
+
+              {/* GST */}
+              <div className="flex flex-col">
+                <label className="mb-1 font-medium text-gray-700">GST (%) <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  name="gst"
+                  value={addonFormData.gst}
+                  onChange={handleAddonInputChange}
+                  placeholder="Enter GST percentage"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.gst ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                />
+                {addonErrors.gst && <span className="text-red-500 text-sm mt-1">{addonErrors.gst}</span>}
+              </div>
+
+              {/* Total */}
+              <div className="flex flex-col">
+                <label className="mb-1 font-medium text-gray-700">Total (₹)</label>
+                <input
+                  type="text"
+                  name="total"
+                  value={addonFormData.total ? `₹ ${addonFormData.total}` : ''}
+                  readOnly
+                  placeholder="Auto-calculated"
+                  className="px-3 py-2 border rounded-lg bg-gray-50 text-gray-700 font-semibold cursor-not-allowed"
+                />
+                <span className="text-xs text-gray-500 mt-1">Auto-calculated from Pricing + Transport + GST</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Submit Button */}
+        <div className="flex items-center justify-end px-4 py-4">
+          {!showAddon && (
+            <div className="px-4 py-4  flex justify-center">
+              {/* <button
+                onClick={handleAddOn}
+                className="bg-[#9FC762] hover:bg-[#8DB350] text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
+              >
+                + Add On
+              </button> */}
+            </div>
+          )}
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className={`px-6 py-2 rounded-lg text-white font-medium shadow ${submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-              }`}
+            className={`btn-primary ${submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600'}`}
+
           >
             {submitting ? 'Submitting...' : 'Submit'}
           </button>
         </div>
-
       </div>
     </div>
   );
