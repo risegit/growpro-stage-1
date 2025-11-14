@@ -41,32 +41,32 @@ export default function AddUserForm() {
 
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
-          if (formData.email && formData.email.includes("@")) {
-            checkEmailExists(formData.email);
-          }
+            if (formData.email && formData.email.includes("@")) {
+                checkEmailExists(formData.email);
+            }
         }, 600); // Wait 600ms after typing stops
-    
+
         return () => clearTimeout(delayDebounce);
-      }, [formData.email]);
-    
-      // 👇 Function to check email existence in backend
-      const checkEmailExists = async (email) => {
+    }, [formData.email]);
+
+    // 👇 Function to check email existence in backend
+    const checkEmailExists = async (email) => {
         setChecking(true);
         try {
-          const res = await fetch(`${import.meta.env.VITE_API_URL}api/user.php?email=${encodeURIComponent(email)}`);
-          const data = await res.json();
-    
-          if (data.status === "error") {
-            // toast.error(data.message);
-            setErrors((prev) => ({
-              ...prev,
-              email: "An account with this email already exists. Please use a different email.",
-            }));
-          }
+            const res = await fetch(`${import.meta.env.VITE_API_URL}api/user.php?email=${encodeURIComponent(email)}`);
+            const data = await res.json();
+
+            if (data.status === "error") {
+                // toast.error(data.message);
+                setErrors((prev) => ({
+                    ...prev,
+                    email: "An account with this email already exists. Please use a different email.",
+                }));
+            }
         } catch (error) {
-          console.error("Error checking email:", error);
+            console.error("Error checking email:", error);
         } finally {
-          setChecking(false);
+            setChecking(false);
         }
     };
 
@@ -177,38 +177,39 @@ export default function AddUserForm() {
 
         if (!formData.role) newErrors.role = 'Role is required';
 
-        // Only validate bank details if role is manager or technician
+        // bank details only for manager or technician
         if (['manager', 'technician'].includes(formData.role)) {
             if (!formData.aadhaarNo.trim()) newErrors.aadhaarNo = 'Aadhaar number is required';
-            else if (!/^\d{12}$/.test(formData.aadhaarNo.trim())) newErrors.aadhaarNo = 'Aadhaar number must be 12 digits';
-
-            if (!formData.locality.trim()) newErrors.locality = 'Locality is required';
-            if (!formData.landmark.trim()) newErrors.landmark = 'Landmark is required';
+            else if (!/^\d{12}$/.test(formData.aadhaarNo.trim()))
+                newErrors.aadhaarNo = 'Aadhaar number must be 12 digits';
 
             if (!formData.bankName.trim()) newErrors.bankName = 'Bank name is required';
             if (!formData.accountNumber) newErrors.accountNumber = 'Account number is required';
-            else if (formData.accountNumber.length < 9 || formData.accountNumber.length > 18) {
+            else if (formData.accountNumber.length < 9 || formData.accountNumber.length > 18)
                 newErrors.accountNumber = 'Account number must be between 9 and 18 digits';
-            }
+
             if (!formData.ifscNo) newErrors.ifscNo = 'IFSC code is required';
-            else if (formData.ifscNo.length !== 11) {
+            else if (formData.ifscNo.length !== 11)
                 newErrors.ifscNo = 'IFSC code must be exactly 11 characters';
-            } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscNo)) {
+            else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscNo))
                 newErrors.ifscNo = 'Invalid IFSC code format';
-            }
         }
 
+        // ✅ Locality and Landmark required for ALL ROLES
+        if (!formData.locality.trim()) newErrors.locality = 'Locality is required';
+        if (!formData.landmark.trim()) newErrors.landmark = 'Landmark is required';
 
         if (!formData.state) newErrors.state = 'State is required';
         if (!formData.city) newErrors.city = 'City is required';
         if (!formData.pincode) newErrors.pincode = 'Pincode is required';
-        else if (formData.pincode.length !== 6) {
+        else if (formData.pincode.length !== 6)
             newErrors.pincode = 'Pincode must be exactly 6 digits';
-        }
+
         if (!formData.streetAddress.trim()) newErrors.streetAddress = 'Street address is required';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
+
     };
 
     const handleSubmit = async () => {
