@@ -64,6 +64,8 @@ switch ($method) {
         $address = $_POST['address'] ?? '';
         $state = $_POST['state'] ?? '';
         $city = $_POST['city'] ?? '';
+        $locality = $_POST['locality'] ?? '';
+        $landmark = $_POST['landmark'] ?? '';
         $pincode = $_POST['pincode'] ?? '';
         $status = $_POST['status'] ?? '';
         $status = ($status === 'success' ? 'active' : 'inactive');
@@ -125,7 +127,7 @@ switch ($method) {
             if ($conn->query($sql)) {
                 $user_id = $conn->insert_id;
                 
-                $sql1="INSERT INTO `customers_details` (`user_id`, `staff_phone`, `state`, `city`, `pincode`, `street_address`,  `created_by`, `updated_by`, `date`, `time`) VALUES ('$user_id','$staffPhone','$state','$city','$pincode','$address','1','1','$date','$time')";
+                $sql1="INSERT INTO `customers_details` (`user_id`, `staff_phone`, `state`, `city`, `locality`, `landmark`, `pincode`, `street_address`,  `created_by`, `updated_by`, `date`, `time`) VALUES ('$user_id','$staffPhone','$state','$city','$locality','$landmark','$pincode','$address','1','1','$date','$time')";
                 $queryPlant='';
                 $newName='';
                 $k=0;
@@ -225,6 +227,8 @@ switch ($method) {
         $address = $_POST['address'] ?? '';
         $state = $_POST['state'] ?? '';
         $city = $_POST['city'] ?? '';
+        $locality = $_POST['locality'] ?? '';
+        $landmark = $_POST['landmark'] ?? '';
         $pincode = $_POST['pincode'] ?? '';
         $status = $_POST['isActive'] ?? '';
         $userstatus = filter_var($status, FILTER_VALIDATE_BOOLEAN) ? 'active' : 'inactive';
@@ -305,7 +309,7 @@ switch ($method) {
             $growerIDs=[];
             if ($conn->query($sql)) {
                                 
-                $sql1="UPDATE `customers_details` SET `staff_phone`='$staffPhone',`state`='$state',`city`='$city',`pincode`='$pincode',`street_address`='$address' WHERE user_id=$user_id";
+                $sql1="UPDATE `customers_details` SET `staff_phone`='$staffPhone',`state`='$state',`city`='$city',`locality`='$locality',`landmark`='$landmark',`pincode`='$pincode',`street_address`='$address' WHERE user_id=$user_id";
                 $plantNAME='';
                 $queryPlant='';
                 $newName='';

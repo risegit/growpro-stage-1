@@ -115,7 +115,7 @@ const routes = [
           },
           {
             name: "Edit AMC",
-            path: "/amc/editamc",
+            path: "/amc/editamc/:id",
             element: <Editamc />,
             hidden: true,
           },
