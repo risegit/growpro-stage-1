@@ -20,13 +20,13 @@ switch ($method) {
 
     case 'GET':
         if ($amcId) {
-            $amc_detail = $conn->query("SELECT amc.id,amc.duration,amc.validity_from,amc.validity_upto,amc.duration_other,amc.visits_per_month,amc.pricing,amc.transport,amc.gst,amc.total,users.name,amc.customer_id FROM amc_details as amc INNER JOIN users ON amc.customer_id=users.id WHERE amc.id='$amcId'");
+            $amc_detail = $conn->query("SELECT amc.id,amc.duration,amc.validity_from,amc.validity_upto,amc.other_duration,amc.visits_per_month,amc.pricing,amc.transport,amc.gst,amc.total,users.name,amc.customer_id FROM amc_details as amc INNER JOIN users ON amc.customer_id=users.id WHERE amc.id='$amcId'");
             $amc_data = [];
             while ($row = $amc_detail->fetch_assoc()) {
                 $amc_data[] = $row;
             }
             // $customerId = $amc_detail['customer_id'];
-            $grower_detail = $conn->query("SELECT growers.id,growers.system_type FROM amc_growers INNER JOIN growers ON amc_growers.grower_id=growers.id where amc_growers.amc_id='$amcId'");
+            $grower_detail = $conn->query("SELECT growers.id,growers.system_type,growers.system_type_other FROM amc_growers INNER JOIN growers ON amc_growers.grower_id=growers.id where amc_growers.amc_id='$amcId'");
             $grower_data = [];
             while ($row = $grower_detail->fetch_assoc()) {
                 $grower_data[] = $row;
@@ -63,17 +63,17 @@ switch ($method) {
         break;
     
     case 'POST':
-        $amcId = $_POST['id'] ?? '';
+        $customerId = $_POST['customer_id'] ?? '';
         $duration = $_POST['duration'] ?? '';
+        $other_duration=$_POST['otherDuration'] ?? '';
         $visitsPerMonth = $_POST['visitsPerMonth'] ?? '';
         $validityFrom = $_POST['validityFrom'] ?? '';
         $validityUpto = $_POST['validityUpto'] ?? '';
         $pricing = $_POST['pricing'] ?? '';
         $transport = $_POST['transport'] ?? '';
         $gst = $_POST['gst'] ?? '';
-        if(!empty($_POST['customDuration'])){
-            $duration=$_POST['customDuration'];
-        }
+        $other_consumable=$_POST['otherConsumable'] ?? '';
+
         $jsonGrowers = isset($_POST['growers']) ? $_POST['growers'] : '';
         $growers = json_decode($jsonGrowers, true);
         // $growerdata=var_dump($growers);
@@ -84,7 +84,7 @@ switch ($method) {
         $subtotal = $pricing+$transport;
         $gstAmount = ($subtotal * $gst) / 100;
         $total = round($subtotal + $gstAmount);
-        $sql = "INSERT INTO amc_details (`customer_id`, `duration`, `visits_per_month`, `validity_from`, `validity_upto`, `pricing`, `transport`, `gst`,`total`, `updated_by`, `created_at`, `updated_at`) VALUES ('$customerId', '$duration', '$visitsPerMonth', '$validityFrom', '$validityUpto', '$pricing', '$transport', '$gst', '$total', '1', '$date', '$time')";
+        $sql = "INSERT INTO amc_details (`customer_id`, `duration`, `other_duration`, `visits_per_month`, `validity_from`, `validity_upto`, `pricing`, `transport`, `gst`,`total`, `updated_by`, `created_at`, `updated_at`) VALUES ('$customerId', '$duration', '$other_duration', '$visitsPerMonth', '$validityFrom', '$validityUpto', '$pricing', '$transport', '$gst', '$total', '1', '$date', '$time')";
         if ($conn->query($sql)) {
             $amc_id = $conn->insert_id;
             foreach ($growers as $index => $grower) {
@@ -92,26 +92,32 @@ switch ($method) {
                 $conn->query($sql1);
             }
             foreach ($consumables as $index => $consumable) {
-                $sql1 = "INSERT INTO `amc_consumables`(`amc_id`, `consumable_id`) VALUES ('$amc_id','$consumable')";
+                // If this is the "other" option
+                if ($consumable === "9") {
+                    $sql1 = "INSERT INTO amc_consumables (amc_id, consumable_id, other_consumable) 
+                            VALUES ('$amc_id', $consumable, '$other_consumable')";
+                }else{
+                    $sql1 = "INSERT INTO `amc_consumables`(`amc_id`, `consumable_id`, `other_consumable`) VALUES ('$amc_id','$consumable','')";
+                }
                 $conn->query($sql1);
             }
             
         }
-        echo json_encode(["status" => "error", "message" => "Customer Already Exist123".'==userstatus='.$subtotal.'===sql='.$sql1]);
+        echo json_encode(["status" => "success", "message" => "AMC created successfully"]);
 
         break;
 
-        case 'PUT':
+    case 'PUT':
         $amcId = $_POST['id'] ?? '';
         $duration = $_POST['duration'] ?? '';
-        $customDuration = $_POST['customDuration'] ?? '';
+        $other_duration = $_POST['otherDuration'] ?? '';
         $visitsPerMonth = $_POST['visitsPerMonth'] ?? '';
         $validityFrom = $_POST['validityFrom'] ?? '';
         $validityUpto = $_POST['validityUpto'] ?? '';
         $pricing = $_POST['pricing'] ?? '';
         $transport = $_POST['transport'] ?? '';
         $gst = $_POST['gst'] ?? '';
-        $customConsumable = $_POST['customConsumable'] ?? '';
+        $other_consumable = $_POST['otherConsumable'] ?? '';
         // if(!empty($_POST['customDuration'])){
         //     $duration=$_POST['customDuration'];
         // }
@@ -125,20 +131,19 @@ switch ($method) {
         $subtotal = $pricing+$transport;
         $gstAmount = ($subtotal * $gst) / 100;
         $total = round($subtotal + $gstAmount);
-        $sql = "INSERT INTO amc_details (`customer_id`, `duration`, `visits_per_month`, `validity_from`, `validity_upto`, `pricing`, `transport`, `gst`,`total`, `updated_by`, `created_at`, `updated_at`) VALUES ('$amcId', '$duration', '$visitsPerMonth', '$validityFrom', '$validityUpto', '$pricing', '$transport', '$gst', '$total', '1', '$date', '$time')";
-        // if ($conn->query($sql)) {
-        //     $amc_id = $conn->insert_id;
-        //     foreach ($growers as $index => $grower) {
-        //         $sql1 = "INSERT INTO `amc_growers`(`amc_id`, `grower_id`) VALUES ('$amc_id','$grower')";
-        //         $conn->query($sql1);
-        //     }
-        //     foreach ($consumables as $index => $consumable) {
-        //         $sql1 = "INSERT INTO `amc_consumables`(`amc_id`, `consumable_id`) VALUES ('$amc_id','$consumable')";
-        //         $conn->query($sql1);
-        //     }
+        $sql = "INSERT INTO amc_details (`customer_id`, `duration`, `other_duration`, `visits_per_month`, `validity_from`, `validity_upto`, `pricing`, `transport`, `gst`,`total`, `updated_by`, `created_at`, `updated_at`) VALUES ('$amcId', '$duration','$other_duration', '$visitsPerMonth', '$validityFrom', '$validityUpto', '$pricing', '$transport', '$gst', '$total', '1', '$date', '$time')";
+        if ($conn->query($sql)) {
+            foreach ($growers as $index => $grower) {
+                $sql1 = "INSERT INTO `amc_growers`(`amc_id`, `grower_id`) VALUES ('$amc_id','$grower')";
+                $conn->query($sql1);
+            }
+            foreach ($consumables as $index => $consumable) {
+                $sql1 = "INSERT INTO `amc_consumables`(`amc_id`, `consumable_id`) VALUES ('$amc_id','$consumable')";
+                $conn->query($sql1);
+            }
             
-        // }
-        echo json_encode(["status" => "error", "message" => "Customer Already Exist123".'==userstatus='.$duration.'===sql='.$sql]);
+        }
+        echo json_encode(["status" => "error", "message" => "AMC updated successfully."]);
 
         break;
 

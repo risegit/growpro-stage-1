@@ -110,10 +110,10 @@ export default function UserTable() {
                 <table className="w-full text-left">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="py-4 px-4 font-medium text-gray-700">Name</th>
-                      <th className="py-4 px-4 font-medium text-gray-700">Email</th>
-                      <th className="py-4 px-4 font-medium text-gray-700">Active</th>
+                      <th className="py-4 px-1 font-medium text-gray-700">Name</th>
                       <th className="py-4 px-4 font-medium text-gray-700">Phone</th>
+                      <th className="py-4 px-4 font-medium text-gray-700">Email</th>
+                      <th className="py-4 px-4 font-medium text-gray-700">Status</th>
                       <th className="py-4 px-4 font-medium text-gray-700 text-right">
                         Action
                       </th>
@@ -125,8 +125,8 @@ export default function UserTable() {
                         key={user._id}
                         className="border-b border-gray-200 hover:bg-gray-50 transition"
                       >
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3">
+                        <td className="py-4 px-1">
+                          <div className="flex items-center gap-2">
                             <img
                               src={
                                 user.profile_pic
@@ -143,20 +143,18 @@ export default function UserTable() {
                             </span>
                           </div>
                         </td>
-                        <td className="py-4 px-4 text-gray-700"> <a href={`mailto:${user.email}`}>{user.email}</a></td>
+                        <td className="py-4 px-4 text-gray-700"> <a href={`tel:${user.phone}`}>{user.phone}</a></td>
+                        <td className="py-4 px-4 text-gray-700"> <a href={`mailto:${user.email}`}>{user.email}</a></td>  
                         <td className="py-4 px-4">
                           <span
-                            className={`px-3 py-1 rounded-lg text-sm font-medium ${user.role === "Admin"
-                                ? "bg-blue-100 text-blue-700"
-                                : user.role === "Manager"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-gray-100 text-gray-700"
+                            className={`px-3 py-1 rounded-lg text-sm font-medium ${user.status === "active"
+                                ? "bg-green-600 text-white border-green-600"
+                                  : "bg-red-600 text-white border-red-600"
                               }`}
                           >
-                            {user.role}
+                            {user.status}
                           </span>
-                        </td>
-                        <td className="py-4 px-4 text-gray-700"> <a href={`tel:${user.phone}`}>{user.phone}</a></td>
+                        </td>                      
                         <td className="py-4 px-4 text-right">
                           <button
                             onClick={() => handleEdit(user.id)}

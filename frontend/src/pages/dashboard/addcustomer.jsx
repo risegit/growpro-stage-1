@@ -609,7 +609,7 @@ const StepperCustomerForm = () => {
             </div>
 
             {/* Active Checkbox */}
-            <div className="flex items-center md:col-span-2">
+            {/* <div className="flex items-center md:col-span-2">
               <input
                 type="checkbox"
                 checked={formData.isActive}
@@ -620,7 +620,7 @@ const StepperCustomerForm = () => {
               <label htmlFor="isActive" className="ml-2 block text-gray-700 font-medium">
                 Active (सक्रिय)
               </label>
-            </div>
+            </div> */}
           </div>
 
         );

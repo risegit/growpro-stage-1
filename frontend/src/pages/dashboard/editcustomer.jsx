@@ -218,21 +218,21 @@ const StepperCustomerForm = () => {
             return {
               growerId: g.id || g.grower_id || '',
               systemType: g.system_type || '',
-              systemTypeOther: '',
+              systemTypeOther: g.system_type_other || '',
               numPlants: g.no_of_plants || '',
               numLevels: g.no_of_levels || '',
               setupDimension: g.setup_dimension || '',
               motorType: g.motor_used || '',
-              motorTypeOther: '',
+              motorTypeOther: g.motor_used_other || '',
               timerUsed: g.timer_used || '',
-              timerUsedOther: '',
+              timerUsedOther: g.timer_used_other || '',
               numLights: g.no_of_lights || '',
               modelOfLight: g.model_of_lights || '',
-              modelOfLightOther: '',
+              modelOfLightOther: g.model_of_lights_other || '',
               lengthOfLight: g.length_of_lights || '',
-              lengthOfLightOther: '',
+              lengthOfLightOther: g.length_of_lights_other || '',
               tankCapacity: g.tank_capacity || '',
-              tankCapacityOther: '',
+              tankCapacityOther: g.tank_capacity_other || '',
               nutritionGiven: g.nutrition_given || '',
               otherSpecifications: g.other_specifications || '',
               photoAtInstallation: g.installation_photo_url || '',
@@ -738,8 +738,8 @@ const StepperCustomerForm = () => {
                     )}
                     <input
                       type="hidden"
-                      name="gorwerId"
-                      value={grower.growerId}
+                      name="systemTypeOther"
+                      value={grower.systemTypeOther}
                       onChange={(e) => handleGrowerChange(index, e)}
                       className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                     />
