@@ -548,7 +548,6 @@ const systemTypeOptions = systemTypes.map(s => ({
             </label>
             <Select
               isMulti
-  git config --global user.name "Your Name"
               name="systemType"
               options={systemTypeOptions}
               value={growerData.systemType}   // <-- Array of values
