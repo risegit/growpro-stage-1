@@ -63,7 +63,7 @@ const routes = [
             element: <AddUser />,
           },
           {
-            name: "View Employees",
+            name: "Manage Employees",
             path: "/users/viewusers",
             element: <ViewUser />,
           },
@@ -86,7 +86,7 @@ const routes = [
             element: <Addcustomer />,
           },
           {
-            name: "View Customer",
+            name: "Manage Customer",
             path: "/customers/viewcustomers",
             element: <Viewcustomer />,
           },
@@ -109,7 +109,7 @@ const routes = [
             element: <Addamc />,
           },
           {
-            name: "View AMC",
+            name: "Manage AMC",
             path: "/amc/viewamc",
             element: <Viewamc />,
           },
@@ -134,7 +134,7 @@ const routes = [
       element: <Createvisits />,
     },
     {
-      name: "View Visits",
+      name: "Manage Visits",
       path: "/sitevisits/viewvisits",
       element: <Viewvisits />,
     },

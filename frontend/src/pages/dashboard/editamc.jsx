@@ -18,9 +18,16 @@ export default function AMCForm() {
     total: ''
   });
 
+  const consumablesHasOther = formData.consumables.some((c) => c.value === '9');
+
   const [growerData, setGrowerData] = useState({
-    name: '',
+    systemType: [],
+    systemTypeOther: ''
   });
+
+  // const growerHasOther = growerData.systemType.some((c) => c.value === 'Other');
+  const growerHasOther = growerData.systemType.some(item => item.value === "Other");
+
 
   const [addonFormData, setAddonFormData] = useState({
     grower: '',
@@ -43,31 +50,27 @@ export default function AMCForm() {
     name: ''
   });
 
-  const [systemTypeOptions, setSystemTypeOptions] = useState([]);
 
-// const systemTypes = ['Small Grower', 'Long Grower', 'Mini Pro Grower',
-//     'Semi Pro Grower', 'Pro Grower', 'Vertical Outdoor Grower', 'Flat Bed',
-//     'Indoor Grower', 'Furniture Integrated Grower', 'Mini Grower', 'Dutch Bucket',
-//     'Growbags', 'Microgreen Racks', 'Other'];
+const systemTypes = ['Small Grower', 'Long Grower', 'Mini Pro Grower',
+    'Semi Pro Grower', 'Pro Grower', 'Vertical Outdoor Grower', 'Flat Bed',
+    'Indoor Grower', 'Furniture Integrated Grower', 'Mini Grower', 'Dutch Bucket',
+    'Growbags', 'Microgreen Racks', 'Other'];
 
-// const systemTypeOptions = systemTypes.map(s => ({
-//   value: s,
-//   label: s
-// }));
+const systemTypeOptions = systemTypes.map(s => ({
+  value: s,
+  label: s
+}));
 
   const [errors, setErrors] = useState({});
   const [addonErrors, setAddonErrors] = useState({});
-  const [customers, setCustomers] = useState([]);
+  
   const [growers, setGrowers] = useState([]);
-  const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const { id } = useParams();
   const [loading, setLoading] = useState(false);
   const [consumableoptions, setConsumable] = useState([]);
   const [loadingConsumable, setLoadingConsumable] = useState(false);
-  const toastTimerRef = useRef(null);
-
+  
   const durationOptions = [
     { value: '30', label: 'Monthly' },
     { value: '90', label: 'Quarterly' },
@@ -76,37 +79,31 @@ export default function AMCForm() {
     { value: 'other', label: 'Other' },
   ];
 
-  // Mock growers data - replace with your API call
-  const growerOptions = [
-    { value: '1', label: 'Grower A' },
-    { value: '2', label: 'Grower B' },
-    { value: '3', label: 'Grower C' },
-  ];
 
-    useEffect(() => {
-    const fetchSystemTypes = async () => {
-  try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`);
-    const apiData = await response.json();
+//     useEffect(() => {
+//     const fetchSystemTypes = async () => {
+//   try {
+//     const response = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`);
+//     const apiData = await response.json();
 
-    console.log("API system types response:", apiData);
+//     console.log("API system types response:", apiData);
 
-    // apiData = [ { id: "45", system_type: "Mini Grower" } ]
+//     // apiData = [ { id: "45", system_type: "Mini Grower" } ]
 
-    const options = apiData.map(item => ({
-      value: item.system_type,
-      label: item.system_type
-    }));
+//     const options = apiData.map(item => ({
+//       value: item.id,
+//       label: item.system_type
+//     }));
 
-    setSystemTypeOptions(options);
+//     setSystemTypeOptions(options);
 
-  } catch (error) {
-    console.error("Error fetching system types:", error);
-  }
-};
+//   } catch (error) {
+//     console.error("Error fetching system types:", error);
+//   }
+// };
 
-    fetchSystemTypes();
-  }, []);
+//     fetchSystemTypes();
+//   }, []);
 
   // useEffect(() => {
   //   const fetchUser = async () => {
@@ -216,33 +213,43 @@ export default function AMCForm() {
         });
       }
 
-      // -----------------------------
-      // PROCESS GROWER SYSTEM TYPES
-      // -----------------------------
-      if (grower_data?.system_type) {
-        let incoming = grower_data.system_type;   // e.g. "Mini Grower" or "Mini Grower, Small Grower"
-        let parsedGrowers = [];
+      if (grower_data) {
+  let systemType = grower_data.system_type;
+  let systemTypeOther = grower_data.system_type_other;
 
-        // Convert API value → array
-        if (Array.isArray(incoming)) {
-          parsedGrowers = incoming;
-        } else if (typeof incoming === "string") {
-          parsedGrowers = incoming.split(",").map(v => v.trim());
-        }
+  let parsedGrowers = [];
 
-        // Convert array → react-select format
-        let selectedGrowers = parsedGrowers.map(g => {
-          if (systemTypeOptions.some(opt => opt.value === g)) {
-            return { value: g, label: g };
-          }
-          return { value: "Other", label: "Other", otherValue: g };
-        });
-
-
-        setGrowerData({
-          grower: selectedGrowers
-        });
+  // -----------------------------
+  // RULE:
+  // If system_type_other has value → show "Other"
+  // -----------------------------
+  if (systemTypeOther && systemTypeOther.trim() !== "") {
+    parsedGrowers = ["Other"];  
+  } 
+  else {
+    // If system_type contains comma-separated values
+    if (Array.isArray(systemType)) {
+      parsedGrowers = systemType;
+    } else if (typeof systemType === "string") {
+      if (systemType.trim() !== "") {
+        parsedGrowers = systemType.split(",").map(v => v.trim());
       }
+    }
+  }
+
+  // Convert to react-select format
+  const selectedGrowers = parsedGrowers.map(g => ({
+    value: g,
+    label: g
+  }));
+
+  setGrowerData(prev => ({
+    ...prev,
+    systemType: selectedGrowers,
+    systemTypeOther: systemTypeOther || ""
+  }));
+}
+
 
       // -----------------------------
       // OTHER CONSUMABLE DATA
@@ -293,9 +300,6 @@ export default function AMCForm() {
 
     fetchConsumable();
 
-    return () => {
-      if (toastTimerRef?.current) clearTimeout(toastTimerRef.current);
-    };
   }, []);
 
   const handleInputChange = (e) => {
@@ -462,13 +466,6 @@ export default function AMCForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // const showToast = (message, type) => {
-  //   setToast({ show: true, message, type });
-  //   toastTimerRef.current = setTimeout(() => {
-  //     setToast({ show: false, message: '', type: 'success' });
-  //   }, 3000);
-  // };
-
   const handleSubmit = async () => {
   if (!validateForm()) return;
 
@@ -547,21 +544,32 @@ export default function AMCForm() {
 
           <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">
-              Select Grower <span className="text-red-500">{growerData.name}</span>
+              System Type <span className="text-red-500">*</span>
             </label>
             <Select
               isMulti
+  git config --global user.name "Your Name"
+              name="systemType"
               options={systemTypeOptions}
-              value={growerData.grower}   // <-- Array of values
+              value={growerData.systemType}   // <-- Array of values
               onChange={(selected) =>
-                setGrowerData(prev => ({ ...prev, grower: selected }))
+                setGrowerData(prev => ({ ...prev, systemType: selected }))
               }
               placeholder="Select grower..."
               classNamePrefix="react-select"
             />
-
-
+            {growerHasOther && (
+              <input
+                type="text"
+                name="systemTypeOther"
+                value={growerData.systemTypeOther}
+                onChange={handleInputChange}
+                placeholder="Specify other consumable"
+                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.systemTypeOther ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+              />
+            )}
             {errors.grower && <span className="text-red-500 text-sm mt-1">{errors.grower}</span>}
+            {errors.customDuration && <span className="text-red-500 text-sm mt-1">{errors.customDuration}</span>}
           </div>
 
           {/* Validity From */}
@@ -646,7 +654,18 @@ export default function AMCForm() {
                 menu: (provided) => ({ ...provided, zIndex: 9999 }),
               }}
             />
+            {consumablesHasOther && (
+              <input
+                type="text"
+                name="otherConsumable"
+                value={formData.customConsumable}
+                onChange={handleInputChange}
+                placeholder="Specify other consumable"
+                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.customConsumable ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+              />
+            )}
             {errors.consumables && <span className="text-red-500 text-sm mt-1">{errors.consumables}</span>}
+            {errors.otherConsumable && <span className="text-red-500 text-sm mt-1">{errors.otherConsumable}</span>}
           </div>
 
           {/* Pricing */}

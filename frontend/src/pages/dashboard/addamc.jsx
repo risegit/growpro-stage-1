@@ -1,6 +1,7 @@
 // AMCForm.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import Select from 'react-select';
+import { toast } from "react-toastify";
 
 export default function AMCForm() {
   const [formData, setFormData] = useState({
@@ -9,10 +10,10 @@ export default function AMCForm() {
     validityFrom: '',
     validityUpto: '',
     duration: '',
-    customDuration: '',
+    otherDuration: '',
     visitsPerMonth: '',
     consumables: [], // array of {value,label}
-    customConsumable: '',
+    otherConsumable: '',
     pricing: '',
     transport: '',
     gst: '',
@@ -23,8 +24,8 @@ export default function AMCForm() {
   const [customers, setCustomers] = useState([]); // options for react-select
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-  const toastTimerRef = useRef(null);
+  // const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  // const toastTimerRef = useRef(null);
   const [growers, setGrowers] = useState([]); // list of growers for selected customer
   const [consumableoptions, setConsumable] = useState([]);
   const [loadingGrowers, setLoadingGrowers] = useState(false);
@@ -39,9 +40,9 @@ export default function AMCForm() {
   //   { value: 'leafy-nutrients', label: 'Leafy Nutrients' },
   //   { value: 'fruiting-nutrients', label: 'Fruiting Nutrients' },
   //   { value: 'neem-oil', label: 'Neem Oil' },
-  //   { value: 'ph-updown', label: 'pH up/down' },
+  //   { value: 'ph-updown', label: 'PH up/down' },
   //   { value: 'organic-pesticide', label: 'Organic Pesticide' },
-  //   { value: 'other', label: 'Other (Specify Below)' },
+  //   { value: 'other', label: 'Other (Specify Below)' }
   // ];
 
   const durationOptions = [
@@ -52,12 +53,19 @@ export default function AMCForm() {
     { value: 'other', label: 'Other' },
   ];
 
+  const formatName = (str) => {
+    return str
+      .replace(/-/g, " ")                // replace hyphens with space
+      .toLowerCase()                     // convert all to lowercase
+      .replace(/\b\w/g, (c) => c.toUpperCase()); // capitalize each word
+  };
+
   useEffect(() => {
     let mounted = true;
     const loadCustomers = async () => {
       setLoadingCustomers(true);
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?status=active`);
         if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
         const data = await res.json();
         console.log("Fetched customers:", data);
@@ -78,7 +86,7 @@ export default function AMCForm() {
     loadCustomers();
     return () => {
       mounted = false;
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      // if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, []);
 
@@ -93,10 +101,11 @@ useEffect(() => {
 
       if (data.status === "success" && data.data?.length > 0) {
         const opts = Array.isArray(data.data)
-          ? data.data.map((c) => ({ 
+          ? [ ...data.data.map((c) => ({ 
             value: c.id,
-            label: `${c.name}`,
+            label: formatName(c.name),
             }))
+          ]
           : [];
         setConsumable(opts);
       } else {
@@ -113,7 +122,7 @@ useEffect(() => {
   fetchConsumable();
 
   return () => {
-    if (toastTimerRef?.current) clearTimeout(toastTimerRef.current);
+    // if (toastTimerRef?.current) clearTimeout(toastTimerRef.current);
   };
 }, []);
 
@@ -244,16 +253,16 @@ const handleGrowerChange = (selected) => {
     }
 
     if (!formData.duration) newErrors.duration = 'Duration of AMC is required';
-    else if (formData.duration === 'other' && !formData.customDuration.trim()) {
-      newErrors.customDuration = 'Please specify the custom duration';
+    else if (formData.duration === 'other' && !formData.otherDuration.trim()) {
+      newErrors.otherDuration = 'Please specify the custom duration';
     }
 
     if (!formData.visitsPerMonth && formData.visitsPerMonth !== 0) newErrors.visitsPerMonth = 'Number of visits is required';
     else if (formData.visitsPerMonth !== '' && Number(formData.visitsPerMonth) < 0) newErrors.visitsPerMonth = 'Visits cannot be negative';
 
     if (!formData.consumables || formData.consumables.length === 0) newErrors.consumables = 'Select at least one consumable';
-    else if (formData.consumables.some((c) => c.value === 'other') && !formData.customConsumable.trim()) {
-      newErrors.customConsumable = 'Please specify the other consumable';
+    else if (formData.consumables.some((c) => c.value === 'other') && !formData.otherConsumable.trim()) {
+      newErrors.otherConsumable = 'Please specify the other consumable';
     }
 
     if (formData.pricing === '') newErrors.pricing = 'Pricing is required';
@@ -274,7 +283,8 @@ const handleGrowerChange = (selected) => {
   // Submit handler - POSTs to /api/amc (replace with your real endpoint)
   const handleSubmit = async () => {
     if (!validateForm()) {
-      showToast('Please fix form errors before submitting', 'error');
+      // showToast('Please fix form errors before submitting', 'error');
+      // toast.error('Please fix form errors before submitting');
       return;
     }
 
@@ -291,7 +301,7 @@ const handleGrowerChange = (selected) => {
       });
 
       if (formData.customer) {
-        formPayload.append("customer", formData.customer.value || "");
+        formPayload.append("customer_id", formData.customer.value || "");
       }
 
       // Properly append multi-select arrays
@@ -315,45 +325,53 @@ const handleGrowerChange = (selected) => {
         method: "POST",
         body: formPayload,
       });
-
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => null);
-        throw new Error(`Server error: ${res.status} ${text ?? ''}`);
+      const result = await res.json();
+      if (result.status === "success") {
+          toast.success(result.message);
+          setErrors({});
+      } else {
+        toast.error(result.error);
+        // alert("Something went wrong. Please try again.");
       }
 
-      const respJson = await res.json().catch(() => ({}));
+      // if (!res.ok) {
+      //   const text = await res.text().catch(() => null);
+      //   throw new Error(`Server error: ${res.status} ${text ?? ''}`);
+      // }
+
+      // const respJson = await res.json().catch(() => ({}));
 
       // Success
-      showToast('AMC submitted successfully', 'success');
+      // showToast('AMC submitted successfully', 'success');
 
       // Reset form
-      // setFormData({
-      //   customer: null,
-      //   validityFrom: '',
-      //   validityUpto: '',
-      //   duration: '',
-      //   customDuration: '',
-      //   visitsPerMonth: '',
-      //   consumables: [],
-      //   customConsumable: '',
-      //   pricing: '',
-      //   transport: '',
-      //   gst: '',
-      //   total: ''
-      // });
-      setErrors({});
-      console.log('Submitted payload:', formPayload, 'server response:', respJson);
+      setFormData({
+        customer: null,
+        validityFrom: '',
+        validityUpto: '',
+        duration: '',
+        otherDuration: '',
+        visitsPerMonth: '',
+        consumables: [],
+        otherConsumable: '',
+        pricing: '',
+        transport: '',
+        gst: '',
+        total: ''
+      });
+      // setErrors({});
+      // console.log('Submitted payload:', formPayload, 'server response:', respJson);
     } catch (err) {
       console.error('Submit failed:', err);
-      showToast('Submission failed. See console for details.', 'error');
+      // showToast('Submission failed. See console for details.', 'error');
+      toast.error('Submission failed. See console for details.');
     } finally {
       setSubmitting(false);
     }
   };
 
   // Small helper to derive whether consumables include 'other'
-  const consumablesHasOther = formData.consumables.some((c) => c.value === 'other');
+  const consumablesHasOther = formData.consumables.some((c) => c.value === '9');
 
   return (
     <div className="w-full min-h-screen bg-gray-100 mt-10">
@@ -429,15 +447,15 @@ const handleGrowerChange = (selected) => {
             {formData.duration === 'other' && (
               <input
                 type="text"
-                name="customDuration"
-                value={formData.customDuration}
+                name="otherDuration"
+                value={formData.otherDuration}
                 onChange={handleInputChange}
                 placeholder="In days (e.g., 30)"
-                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.customDuration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.otherDuration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
               />
             )}
             {errors.duration && <span className="text-red-500 text-sm mt-1">{errors.duration}</span>}
-            {errors.customDuration && <span className="text-red-500 text-sm mt-1">{errors.customDuration}</span>}
+            {errors.otherDuration && <span className="text-red-500 text-sm mt-1">{errors.otherDuration}</span>}
           </div>
 
           {/* Visits per Month (number input) */}
@@ -499,15 +517,15 @@ const handleGrowerChange = (selected) => {
             {consumablesHasOther && (
               <input
                 type="text"
-                name="customConsumable"
-                value={formData.customConsumable}
+                name="otherConsumable"
+                value={formData.otherConsumable}
                 onChange={handleInputChange}
                 placeholder="Specify other consumable"
-                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.customConsumable ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.otherConsumable ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
               />
             )}
             {errors.consumables && <span className="text-red-500 text-sm mt-1">{errors.consumables}</span>}
-            {errors.customConsumable && <span className="text-red-500 text-sm mt-1">{errors.customConsumable}</span>}
+            {errors.otherConsumable && <span className="text-red-500 text-sm mt-1">{errors.otherConsumable}</span>}
           </div>
 
           {/* Pricing */}
