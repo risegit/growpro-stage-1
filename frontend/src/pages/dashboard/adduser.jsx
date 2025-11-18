@@ -379,7 +379,7 @@ export default function AddUserForm() {
 
                     <div className="flex flex-col">
                         <label className="mb-1 font-medium text-gray-700">
-                            Profile Photo (प्रोफ़ाइल चित्र)
+                           Photo of Setup
                         </label>
 
                         <div className="flex items-center gap-3">
