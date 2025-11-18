@@ -23,7 +23,7 @@ export default function UserTable() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?view-amc='viewamc'`, {
           method: "GET",
         });
         const data = await response.json();
@@ -119,15 +119,41 @@ export default function UserTable() {
                     <tr className="border-b border-gray-200">
                       <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Name</th>
                       <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">Contact</th>
-                      <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">Visit per Month</th>
-                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Days Remaining</th>
+                      <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">Visits per Month</th>
+                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Days Left</th>
                       <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Expire On</th>
                       <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {currentUsers.map((user) => {
-                      
+                      const getAMCStatus = (validity_upto) => {
+                        const validityDate = new Date(validity_upto);
+                        const today = new Date();
+
+                        validityDate.setHours(0, 0, 0, 0);
+                        today.setHours(0, 0, 0, 0);
+
+                        const diffTime = validityDate - today;
+                        const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        console.log("daysLeft=", daysLeft);
+
+                        if (daysLeft > 10) {
+                          
+                          return "Active";
+                        } else if (daysLeft > 6 && daysLeft < 10) {
+                          return "Renew Soon";
+                        } else {
+                          return "Expired";
+                        }
+                      };
+
+                      // return row...
+                    
+
+
+                    {/* console.log('getAMCStatus=', getAMCStatus(2025-11-25)); */}
+
                       return (
                         <tr
                           key={user.id}
@@ -158,12 +184,34 @@ export default function UserTable() {
                           </td>
 
                           <td className="py-4 px-4 text-gray-700 truncate">
-                              180
-                          </td>
+  <p>
+    {Math.ceil((new Date(user.validity_upto) - new Date()) / (1000 * 60 * 60 * 24))} Days
+  </p>
+
+  <em
+    className={`small-text py-1 rounded 
+      ${getAMCStatus(user.validity_upto) === "Active" ? " text-green-400" : ""}
+      ${getAMCStatus(user.validity_upto) === "Renew Soon" ? "text-red-300" : ""}
+      ${getAMCStatus(user.validity_upto) === "Expired" ? " text-red-600" : ""}
+    `}
+  >
+    ({formatDate(user.validity_upto)})
+  </em>
+</td>
+
 
                           <td className="py-4 px-4 text-gray-700 truncate">
-                              {formatDate(user.validity_upto)}
+                            <span
+                              className={`px-3 py-1 rounded-lg text-sm font-medium cust-status-label
+                                ${getAMCStatus(user.validity_upto) === "Active" ? "bg-green-400 text-white" : ""}
+                                ${getAMCStatus(user.validity_upto) === "Renew Soon" ? "bg-red-300 text-white" : ""}
+                                ${getAMCStatus(user.validity_upto) === "Expired" ? "bg-red-600 text-white" : ""}
+                              `}
+                            >
+                              {getAMCStatus(user.validity_upto)}
+                            </span>
                           </td>
+
 
                           {/* Status — moved down after Email */}
                           

@@ -2,20 +2,23 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import Select from 'react-select';
+import { toast } from "react-toastify";
 
 export default function AMCForm() {
-  const [formData, setFormData] = useState({
-    validityFrom: '',
-    validityUpto: '',
-    duration: '',
-    customDuration: '',
-    visitsPerMonth: '',
+const [formData, setFormData] = useState({
+    systemType: [],
+    systemTypeOther: "",
+    validityFrom: "",
+    validityUpto: "",
+    duration: "",
+    otherDuration: "",
+    visitsPerMonth: "",
     consumables: [],
-    customConsumable: '',
-    pricing: '',
-    transport: '',
-    gst: '',
-    total: ''
+    otherConsumable: "",
+    pricing: "",
+    transport: "",
+    gst: "",
+    total: ""
   });
 
   const consumablesHasOther = formData.consumables.some((c) => c.value === '9');
@@ -26,18 +29,17 @@ export default function AMCForm() {
   });
 
   // const growerHasOther = growerData.systemType.some((c) => c.value === 'Other');
-  const growerHasOther = growerData.systemType.some(item => item.value === "Other");
-
+  const growerHasOther = Array.isArray(formData.grower) && formData.grower.some((g) => g.label === "Other");
 
   const [addonFormData, setAddonFormData] = useState({
     grower: '',
     validityFrom: '',
     validityUpto: '',
     duration: '',
-    customDuration: '',
+    otherDuration: '',
     visitsPerMonth: '',
     consumables: [],
-    customConsumable: '',
+    otherConsumable: '',
     pricing: '',
     transport: '',
     gst: '',
@@ -70,6 +72,7 @@ const systemTypeOptions = systemTypes.map(s => ({
   const [loading, setLoading] = useState(false);
   const [consumableoptions, setConsumable] = useState([]);
   const [loadingConsumable, setLoadingConsumable] = useState(false);
+  const [isNoGrowers, setIsNoGrowers] = useState(false);
   
   const durationOptions = [
     { value: '30', label: 'Monthly' },
@@ -79,106 +82,16 @@ const systemTypeOptions = systemTypes.map(s => ({
     { value: 'other', label: 'Other' },
   ];
 
+  
+  const formatName = (str) => {
+    return str
+      .replace(/-/g, " ")                // replace hyphens with space
+      .toLowerCase()                     // convert all to lowercase
+      .replace(/\b\w/g, (c) => c.toUpperCase()); // capitalize each word
+  };
 
-//     useEffect(() => {
-//     const fetchSystemTypes = async () => {
-//   try {
-//     const response = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`);
-//     const apiData = await response.json();
 
-//     console.log("API system types response:", apiData);
-
-//     // apiData = [ { id: "45", system_type: "Mini Grower" } ]
-
-//     const options = apiData.map(item => ({
-//       value: item.id,
-//       label: item.system_type
-//     }));
-
-//     setSystemTypeOptions(options);
-
-//   } catch (error) {
-//     console.error("Error fetching system types:", error);
-//   }
-// };
-
-//     fetchSystemTypes();
-//   }, []);
-
-  // useEffect(() => {
-  //   const fetchUser = async () => {
-  //     if (!id) return;
-  //     setLoading(true);
-  //     try {
-  //       const response = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`);
-  //       const data = await response.json();
-
-  //       console.log("Fetched user data:", data.amc_data);
-
-  //       const amc = Array.isArray(data.amc_data) ? data.amc_data[0] : data.amc_data;
-  //       const grower_data = Array.isArray(data.grower_data) ? data.grower_data[0] : data.grower_data;
-  //       const consumable_data = Array.isArray(data.consumable_data) ? data.consumable_data : [];
-  //       const consumable_value = (consumable_data || []).map((p) => ({
-  //         value: p.id,
-  //         label: p.name,
-  //       }));
-  //       if (data.status === "success" && amc) {
-  //         setFormData({
-  //           customer: amc.name || '',
-  //           duration: amc.duration || '',
-  //           customDuration: amc.duration_other || '',
-  //           validityFrom: amc.validity_from || '',
-  //           validityUpto: amc.validity_upto || '',
-  //           visitsPerMonth: amc.visits_per_month || '',
-  //           consumables: consumable_value,
-  //           customConsumable: '',
-  //           pricing: amc.pricing || '',
-  //           transport: amc.transport || '',
-  //           gst: amc.gst || '',
-  //           total: amc.total || ''
-  //         });
-  //       } else {
-  //         console.log('AMC not found!');
-  //       }
-
-  //       if (data.status === "success" && grower_data) {
-  //         let apiGrowers = grower_data.system_type;   // example: "Mini Grower"
-
-  //         let parsedGrowers = [];
-
-  //         if (Array.isArray(apiGrowers)) {
-  //           parsedGrowers = apiGrowers;
-  //         } else if (typeof apiGrowers === "string") {
-  //           parsedGrowers = apiGrowers.split(",").map(v => v.trim());
-  //         }
-
-  //         setGrowerData({
-  //           name: grower_data.system_type || ''
-  //         });
-  //       } else {
-  //         console.log('AMC not found!');
-  //       }
-        
-  //       if (data.status === "success" && consumable_data) {
-  //         setConsumableData({
-  //           id: amc.id || '',
-  //           name: amc.name || ''
-  //         });
-  //       } else {
-  //         console.log('AMC not found!');
-  //       }
-  //     } catch (error) {
-  //       console.error('Error fetching user:', error);
-  //       alert('Failed to fetch user details!');
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchUser();
-  // }, [id]);
-
-  useEffect(() => {
+useEffect(() => {
   const fetchUser = async () => {
     if (!id) return;
     setLoading(true);
@@ -190,77 +103,96 @@ const systemTypeOptions = systemTypes.map(s => ({
       console.log("Fetched data:", data);
 
       const amc = Array.isArray(data.amc_data) ? data.amc_data[0] : data.amc_data;
-      const grower_data = Array.isArray(data.grower_data) ? data.grower_data[0] : data.grower_data;
+      // const grower_data = Array.isArray(data.grower_data) ? data.grower_data[0] : data.grower_data;
       const consumable_data = Array.isArray(data.consumable_data) ? data.consumable_data : [];
 
-      // -----------------------------
-      // Set AMC FORM DATA
-      // -----------------------------
+      // ------------------------------------
+      // FIND OTHER CONSUMABLE VALUE
+      // ------------------------------------
+      const otherItem = consumable_data.find(
+        c => c.other_consumable && c.other_consumable.trim() !== ""
+      );
+
+      // ------------------------------------
+      // SET AMC FIELDS
+      // ------------------------------------
       if (amc) {
-        setFormData({
-          customer: amc.name || '',
-          duration: amc.duration || '',
-          customDuration: amc.duration_other || '',
-          validityFrom: amc.validity_from || '',
-          validityUpto: amc.validity_upto || '',
-          visitsPerMonth: amc.visits_per_month || '',
+        setFormData(prev => ({
+          ...prev,
+          customer: amc.name || "",
+          duration: amc.duration || "",
+          otherDuration: amc.duration_other || "",
+          validityFrom: amc.validity_from || "",
+          validityUpto: amc.validity_upto || "",
+          visitsPerMonth: amc.visits_per_month || "",
           consumables: consumable_data.map(p => ({ value: p.id, label: p.name })),
-          customConsumable: '',
-          pricing: amc.pricing || '',
-          transport: amc.transport || '',
-          gst: amc.gst || '',
-          total: amc.total || ''
-        });
+          otherConsumable: otherItem ? otherItem.other_consumable : "",
+          pricing: amc.pricing || "",
+          transport: amc.transport || "",
+          gst: amc.gst || "",
+          total: amc.total || ""
+        }));
       }
 
-      if (grower_data) {
-  let systemType = grower_data.system_type;
-  let systemTypeOther = grower_data.system_type_other;
+      // ------------------------------------
+      // SET SYSTEM TYPE VALUES
+      // ------------------------------------
+      // if (grower_data) {
+      //   let { system_type, system_type_other } = grower_data;
 
-  let parsedGrowers = [];
+      //   let parsedSystemTypes = [];
 
-  // -----------------------------
-  // RULE:
-  // If system_type_other has value → show "Other"
-  // -----------------------------
-  if (systemTypeOther && systemTypeOther.trim() !== "") {
-    parsedGrowers = ["Other"];  
-  } 
-  else {
-    // If system_type contains comma-separated values
-    if (Array.isArray(systemType)) {
-      parsedGrowers = systemType;
-    } else if (typeof systemType === "string") {
-      if (systemType.trim() !== "") {
-        parsedGrowers = systemType.split(",").map(v => v.trim());
+      //   if (system_type_other && system_type_other.trim() !== "") {
+      //     parsedSystemTypes = ["Other"];
+      //   } else if (typeof system_type === "string" && system_type.trim() !== "") {
+      //     parsedSystemTypes = system_type.split(",").map(v => v.trim());
+      //   }
+
+      //   const systemTypeSelectData = parsedSystemTypes.map(g => ({
+      //     value: g,
+      //     label: g
+      //   }));
+
+      //   setFormData(prev => ({
+      //     ...prev,
+      //     systemType: systemTypeSelectData,
+      //     systemTypeOther: system_type_other || ""
+      //   }));
+      // }
+      
+      const opts = Array.isArray(data.grower_data)
+      ? data.grower_data.map((g) => ({
+          value: g.id,
+          label: g.system_type,
+          other: g.system_type_other   // <-- VERY IMPORTANT
+        }))
+      : [];
+
+      const isEmptyGrowers = opts.length === 0;
+      setIsNoGrowers(isEmptyGrowers);
+      if (isEmptyGrowers) {
+          // No growers available for customer → AMC for all growers
+          setGrowers([]);
+          setFormData((prev) => ({
+            ...prev,
+            grower: [],
+            systemTypeOther: "",
+          }));
+          return;
       }
-    }
-  }
 
-  // Convert to react-select format
-  const selectedGrowers = parsedGrowers.map(g => ({
-    value: g,
-    label: g
-  }));
+        const hasOther = opts.some((g) => g.other && g.other.trim() !== "");
+        const otherValue = hasOther
+          ? opts.find((g) => g.other && g.other.trim() !== "")?.other
+          : "";
 
-  setGrowerData(prev => ({
-    ...prev,
-    systemType: selectedGrowers,
-    systemTypeOther: systemTypeOther || ""
-  }));
-}
-
-
-      // -----------------------------
-      // OTHER CONSUMABLE DATA
-      // -----------------------------
-      if (consumable_data) {
-        setConsumableData({
-          id: amc?.id || '',
-          name: amc?.name || ''
-        });
-      }
-
+        setGrowers(opts);
+        setFormData((prev) => ({
+          ...prev,
+          grower: opts,
+          systemTypeOther: otherValue,
+        }));
+    
     } catch (error) {
       console.error("Error fetching user:", error);
       alert("Failed to fetch user details!");
@@ -273,22 +205,39 @@ const systemTypeOptions = systemTypes.map(s => ({
 }, [id]);
 
 
+
   useEffect(() => {
     const fetchConsumable = async () => {
       try {
         setLoadingConsumable(true);
-        const response = await fetch(`${import.meta.env.VITE_API_URL}api/consumable.php`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/consum-grower.php?amc_id=${id}`)
         const data = await response.json();
 
         console.log("✅ API Response:", data);
 
         if (data.status === "success" && data.data?.length > 0) {
-          const opts = Array.isArray(data.data)
+          // const grower_opts = Array.isArray(data.grower_data)
+          //   ? data.grower_data.map((c) => ({
+          //     value: c.grower_id,
+          //     label: `${c.system_type}`,
+          //   }))
+          //   : [];
+             const grower_opts = Array.isArray(data.grower_data)
+              ? data.grower_data.map((g) => ({
+                  value: g.id,
+                  label: g.system_type,
+                  other: g.system_type_other   // <-- VERY IMPORTANT
+                }))
+              : [];
+
+            const opts = Array.isArray(data.data)
             ? data.data.map((c) => ({
               value: c.id,
-              label: `${c.name}`,
+              label: formatName(c.name),
             }))
             : [];
+
+          setGrowers(grower_opts);
           setConsumable(opts);
         }
       } catch (error) {
@@ -402,8 +351,8 @@ const systemTypeOptions = systemTypes.map(s => ({
     }
 
     if (!formData.duration) newErrors.duration = 'Duration of AMC is required';
-    else if (formData.duration === 'other' && !formData.customDuration.trim()) {
-      newErrors.customDuration = 'Please specify the custom duration';
+    else if (formData.duration === 'other' && !formData.otherDuration.trim()) {
+      newErrors.otherDuration = 'Please specify the custom duration';
     }
 
     if (!formData.visitsPerMonth && formData.visitsPerMonth !== 0) newErrors.visitsPerMonth = 'Number of visits is required';
@@ -442,8 +391,8 @@ const systemTypeOptions = systemTypes.map(s => ({
     }
 
     if (!addonFormData.duration) newErrors.duration = 'Duration of AMC is required';
-    else if (addonFormData.duration === 'other' && !addonFormData.customDuration.trim()) {
-      newErrors.customDuration = 'Please specify the custom duration';
+    else if (addonFormData.duration === 'other' && !addonFormData.otherDuration.trim()) {
+      newErrors.otherDuration = 'Please specify the custom duration';
     }
 
     if (!addonFormData.visitsPerMonth && addonFormData.visitsPerMonth !== 0) newErrors.visitsPerMonth = 'Number of visits is required';
@@ -466,41 +415,94 @@ const systemTypeOptions = systemTypes.map(s => ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
-  if (!validateForm()) return;
+//   const handleSubmit = async () => {
+//   if (!validateForm()) return;
 
+//   try {
+//     const form = new FormData();
+
+//     // convert consumables to array of ids
+//     const consumableIds = formData.consumables.map((c) => c.value);
+//     form.append("consumables", JSON.stringify(consumableIds));
+
+//     // append remaining keys
+//     Object.entries(formData).forEach(([key, value]) => {
+//       if (key !== "consumables") {
+//         form.append(key, value);
+//       }
+//     });
+
+//     form.append("id", id);
+//     form.append("_method", "PUT");
+//     // form.append("system_type_other",growerData.systemTypeOther || "");
+
+//     console.log("Payload you are sending:");
+//     for (let p of form.entries()) console.log(p[0], p[1]);
+
+//     const response = await fetch(
+//       `${import.meta.env.VITE_API_URL}api/amc1.php?id=${id}`,
+//       { method: "POST", body: form }
+//     );
+
+//     const result = await response.json();
+//     console.log("API Response:", result);
+
+//   } catch (error) {
+//     console.error("Submit Error:", error);
+//   }
+// };
+
+const handleSubmit = async () => {
   try {
     const form = new FormData();
 
-    // convert consumables to array of ids
-    const consumableIds = formData.consumables.map((c) => c.value);
-    form.append("consumables", JSON.stringify(consumableIds));
+    // 1️⃣ Convert multi-select values into plain arrays
+    const consumableIds = formData.consumables?.map(c => c.value) || [];
+    // const systemTypeValues = formData.systemType?.map(s => s.value) || [];
 
-    // append remaining keys
+    // 2️⃣ Append converted arrays properly
+    form.append("consumables", JSON.stringify(consumableIds));
+    // form.append("systemType", JSON.stringify(systemTypeValues));
+
+    // 3️⃣ Append remaining fields except arrays
     Object.entries(formData).forEach(([key, value]) => {
-      if (key !== "consumables") {
-        form.append(key, value);
+      if (!["consumables", "grower", "customer"].includes(key)) {
+        form.append(key, value ?? "");
       }
     });
 
+    // 4️⃣ Additional fields
     form.append("id", id);
     form.append("_method", "PUT");
 
-    console.log("Payload you are sending:");
+    // 🔍 DEBUG PRINT
+    console.log("PAYLOAD SENDING:");
     for (let p of form.entries()) console.log(p[0], p[1]);
 
+    // 5️⃣ Submit request
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`,
-      { method: "POST", body: form }
+      {
+        method: "POST",
+        body: form
+      }
     );
 
     const result = await response.json();
-    console.log("API Response:", result);
+    if (result.status === "success") {
+        toast.success(result.message);
+        setErrors({});
+    } else {
+      toast.error(result.error);
+      // alert("Something went wrong. Please try again.");
+    }
+    console.log("API RESPONSE:", result);
 
   } catch (error) {
     console.error("Submit Error:", error);
   }
 };
+
 
 
   const handleAddOn = () => {
@@ -514,10 +516,10 @@ const systemTypeOptions = systemTypes.map(s => ({
       validityFrom: '',
       validityUpto: '',
       duration: '',
-      customDuration: '',
+      otherDuration: '',
       visitsPerMonth: '',
       consumables: [],
-      customConsumable: '',
+      otherConsumable: '',
       pricing: '',
       transport: '',
       gst: '',
@@ -543,33 +545,44 @@ const systemTypeOptions = systemTypes.map(s => ({
           </div>
 
           <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700">
-              System Type <span className="text-red-500">*</span>
-            </label>
+        <label className="mb-1 font-medium text-gray-700">
+          System Type <span className="text-red-500">*</span>
+        </label>
+
+        {isNoGrowers ? (
+          <div className="px-3 py-4 border rounded-lg bg-gray-100 text-gray-700">
+            AMC created for all the growers
+          </div>
+        ) : (
+          <>
             <Select
               isMulti
-              name="systemType"
-              options={systemTypeOptions}
-              value={growerData.systemType}   // <-- Array of values
-              onChange={(selected) =>
-                setGrowerData(prev => ({ ...prev, systemType: selected }))
-              }
-              placeholder="Select grower..."
+              options={growers}
+              value={formData.grower}
+              isDisabled={true}
               classNamePrefix="react-select"
+              styles={{
+                menu: (provided) => ({ ...provided, zIndex: 9999 }),
+              }}
             />
+
             {growerHasOther && (
               <input
                 type="text"
                 name="systemTypeOther"
-                value={growerData.systemTypeOther}
-                onChange={handleInputChange}
-                placeholder="Specify other consumable"
-                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.systemTypeOther ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                value={formData.systemTypeOther}
+                readOnly
+                className="mt-2 px-3 py-2 border rounded-lg"
               />
             )}
-            {errors.grower && <span className="text-red-500 text-sm mt-1">{errors.grower}</span>}
-            {errors.customDuration && <span className="text-red-500 text-sm mt-1">{errors.customDuration}</span>}
-          </div>
+          </>
+        )}
+
+        {errors.grower && (
+          <span className="text-red-500 text-sm mt-1">{errors.grower}</span>
+        )}
+      </div>
+
 
           {/* Validity From */}
           <div className="flex flex-col">
@@ -613,15 +626,15 @@ const systemTypeOptions = systemTypes.map(s => ({
             {formData.duration === 'other' && (
               <input
                 type="text"
-                name="customDuration"
-                value={formData.customDuration}
+                name="otherDuration"
+                value={formData.otherDuration}
                 onChange={handleInputChange}
-                placeholder="Enter custom duration (e.g., 18 months)"
-                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.customDuration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                placeholder="Duration in days (e.g. for monthly type 30)"
+                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.otherDuration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
               />
             )}
             {errors.duration && <span className="text-red-500 text-sm mt-1">{errors.duration}</span>}
-            {errors.customDuration && <span className="text-red-500 text-sm mt-1">{errors.customDuration}</span>}
+            {errors.otherDuration && <span className="text-red-500 text-sm mt-1">{errors.otherDuration}</span>}
           </div>
 
           {/* Visits per Month */}
@@ -657,10 +670,10 @@ const systemTypeOptions = systemTypes.map(s => ({
               <input
                 type="text"
                 name="otherConsumable"
-                value={formData.customConsumable}
+                value={formData.otherConsumable}
                 onChange={handleInputChange}
                 placeholder="Specify other consumable"
-                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.customConsumable ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.otherConsumable ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
               />
             )}
             {errors.consumables && <span className="text-red-500 text-sm mt-1">{errors.consumables}</span>}
@@ -808,15 +821,15 @@ const systemTypeOptions = systemTypes.map(s => ({
                 {addonFormData.duration === 'other' && (
                   <input
                     type="text"
-                    name="customDuration"
-                    value={addonFormData.customDuration}
+                    name="otherDuration"
+                    value={addonFormData.otherDuration}
                     onChange={handleAddonInputChange}
                     placeholder="Enter custom duration (e.g., 18 months)"
-                    className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.customDuration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.otherDuration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                   />
                 )}
                 {addonErrors.duration && <span className="text-red-500 text-sm mt-1">{addonErrors.duration}</span>}
-                {addonErrors.customDuration && <span className="text-red-500 text-sm mt-1">{addonErrors.customDuration}</span>}
+                {addonErrors.otherDuration && <span className="text-red-500 text-sm mt-1">{addonErrors.otherDuration}</span>}
               </div>
 
               {/* Visits per Month */}
