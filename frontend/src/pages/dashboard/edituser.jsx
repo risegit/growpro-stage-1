@@ -15,8 +15,6 @@ export default function EditUserForm() {
         accountNumber: '',
         ifscNo: '',
         profilePic: null,
-        locality: '',
-        landmark: '',
         state: '',
         city: '',
         locality: '',
