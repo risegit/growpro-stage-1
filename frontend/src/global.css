@@ -12,3 +12,13 @@
          
          focus:ring-[#e17a00] focus:ring-offset-2 transition-colors;
 }
+.small-text{
+    font-size: 13px;
+    /* color: #1e8b23; */
+}
+.cust-status-label{
+    width: 100%;
+    padding: 6px 20px;
+    float: left;
+    text-align: center; 
+}

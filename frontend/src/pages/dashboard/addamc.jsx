@@ -30,6 +30,8 @@ export default function AMCForm() {
   const [consumableoptions, setConsumable] = useState([]);
   const [loadingGrowers, setLoadingGrowers] = useState(false);
   const [loadingConsumable, setLoadingConsumable] = useState(false);
+  const [isNoGrowers, setIsNoGrowers] = useState(false);
+
 
 
   // Consumable options including "Other"
@@ -65,13 +67,13 @@ export default function AMCForm() {
     const loadCustomers = async () => {
       setLoadingCustomers(true);
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?status=active`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?status=active`);
         if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
         const data = await res.json();
         console.log("Fetched customers:", data);
         const opts = Array.isArray(data.data)
           ? data.data.map((c) => ({ 
-            value: c.id,
+            value: c.customer_id,
             label: `${c.name} - ${c.phone}`,
             }))
           : [];
@@ -94,7 +96,7 @@ useEffect(() => {
   const fetchConsumable = async () => {
     try {
       setLoadingConsumable(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL}api/consumable.php`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}api/consum-grower.php`);
       const data = await response.json();
 
       console.log("✅ API Response:", data);
@@ -153,12 +155,15 @@ useEffect(() => {
     }
   };
 
+  const growerHasOther = Array.isArray(formData.grower) && formData.grower.some((g) => g.label === "Other");
+  
   // react-select customer change (single select)
  const handleCustomerChange = async (selected) => {
   // If customer cleared → reset grower and growers list
   if (!selected) {
     setFormData((prev) => ({ ...prev, customer: null, grower: null }));
     setGrowers([]);
+    setIsNoGrowers(false);
     return;
   }
 
@@ -175,24 +180,44 @@ useEffect(() => {
   // Now fetch growers for the selected customer
   setLoadingGrowers(true);
   try {
+    console.log('customerId=', selected.value);
     const res = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?customer_id=${selected.value}`);
     if (!res.ok) throw new Error('Failed to fetch growers');
 
     const data = await res.json();
+    
     const opts = Array.isArray(data.data)
-      ? data.data.map((g) => ({
-          value: g.id,
-          label: g.system_type,
-        }))
-      : [];
+  ? data.data.map((g) => ({
+      value: g.id,
+      label: g.system_type,
+      other: g.system_type_other   // <-- VERY IMPORTANT
+    }))
+  : [];
 
-    // ✅ Update growers
+  const isEmptyGrowers = opts.length === 0;
+  setIsNoGrowers(isEmptyGrowers);
+  if (isEmptyGrowers) {
+      // No growers available for customer → AMC for all growers
+      setGrowers([]);
+      setFormData((prev) => ({
+        ...prev,
+        grower: [],
+        systemTypeOther: "",
+      }));
+      return;
+  }
+
+    const hasOther = opts.some((g) => g.other && g.other.trim() !== "");
+    const otherValue = hasOther
+      ? opts.find((g) => g.other && g.other.trim() !== "")?.other
+      : "";
+
     setGrowers(opts);
 
-    // ✅ Clear grower selection only *after* new growers are loaded
     setFormData((prev) => ({
       ...prev,
-      grower: null,
+      grower: opts,
+      systemTypeOther: otherValue,
     }));
   } catch (err) {
     console.error('Error fetching growers:', err);
@@ -206,12 +231,22 @@ useEffect(() => {
 
 
 const handleGrowerChange = (selected) => {
-  setFormData((prev) => ({ ...prev, grower: selected }));
+
+  console.log("Selected Grower:", selected);   // <-- ADD HERE
+
+  setFormData(prev => ({
+    ...prev,
+    grower: selected,
+    systemTypeOther: selected && selected.some(s => s.label === "Other")
+      ? selected.find(s => s.label === "Other")?.other || ""
+      : ""
+  }));
 
   if (errors.grower) {
     setErrors((prev) => ({ ...prev, grower: '' }));
   }
 };
+
 
 
   // react-select consumables (multi)
@@ -406,31 +441,44 @@ const handleGrowerChange = (selected) => {
           </div>
 
           <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700">
-              Select Grower <span className="text-red-500">*</span>
-            </label>
+        <label className="mb-1 font-medium text-gray-700">
+          System Type <span className="text-red-500">*</span>
+        </label>
+
+        {isNoGrowers ? (
+          <div className="px-3 py-4 border rounded-lg bg-gray-100 text-gray-700">
+            AMC created for all the growers
+          </div>
+        ) : (
+          <>
             <Select
               isMulti
               options={growers}
               value={formData.grower}
-              onChange={(selected) => setFormData((prev) => ({ ...prev, grower: selected }))}
-              isClearable
-              isLoading={loadingGrowers}
-              placeholder={
-                !formData.customer
-                  ? 'Select customer first...'
-                  : loadingGrowers
-                  ? 'Loading growers...'
-                  : 'Select grower...'
-              }
+              isDisabled={true}
               classNamePrefix="react-select"
               styles={{
                 menu: (provided) => ({ ...provided, zIndex: 9999 }),
               }}
-              isDisabled={!formData.customer}
             />
-            {errors.grower && <span className="text-red-500 text-sm mt-1">{errors.grower}</span>}
-          </div>
+
+            {growerHasOther && (
+              <input
+                type="text"
+                name="systemTypeOther"
+                value={formData.systemTypeOther}
+                readOnly
+                className="mt-2 px-3 py-2 border rounded-lg"
+              />
+            )}
+          </>
+        )}
+
+        {errors.grower && (
+          <span className="text-red-500 text-sm mt-1">{errors.grower}</span>
+        )}
+      </div>
+
 
           {/* Duration */}
           <div className="flex flex-col">
