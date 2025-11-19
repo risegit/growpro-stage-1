@@ -9,6 +9,10 @@ export default function UserTable() {
   const usersPerPage = 10;
   const navigate = useNavigate();
 
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userRole = user?.role;
+  console.log("user",user)
+
   // 🔹 Fetch data from backend API
   useEffect(() => {
     const fetchUsers = async () => {
@@ -73,7 +77,7 @@ export default function UserTable() {
   return (
     <div className="w-full min-h-screen bg-gray-100 mt-10">
       <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
-        {/* Header with Search */}
+     
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 sm:px-6 py-5 sm:py-4 border-b">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
@@ -114,62 +118,61 @@ export default function UserTable() {
                       <th className="py-4 px-4 font-medium text-gray-700">Phone</th>
                       <th className="py-4 px-4 font-medium text-gray-700">Email</th>
                       <th className="py-4 px-4 font-medium text-gray-700">Status</th>
-                      <th className="py-4 px-4 font-medium text-gray-700 text-right">
-                        Action
-                      </th>
+                      {userRole !== "manager" && (
+                        <th className="py-4 px-4 font-medium text-gray-700 text-right">Action</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
                     {currentUsers.map((user) => (
-                      <tr
-                        key={user._id}
-                        className="border-b border-gray-200 hover:bg-gray-50 transition"
-                      >
+                      <tr key={user._id} className="border-b border-gray-200 hover:bg-gray-50 transition">
                         <td className="py-4 px-1">
                           <div className="flex items-center gap-2">
                             <img
                               src={
                                 user.profile_pic
                                   ? `${import.meta.env.VITE_API_URL}uploads/customers/${user.profile_pic}`
-                                  : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                    user.name
-                                  )}&background=3b82f6&color=fff`
+                                  : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=fff`
                               }
                               alt={user.name}
                               className="w-10 h-10 rounded-full object-cover"
                             />
-                            <span className="font-medium text-gray-800">
-                              {user.name}
-                            </span>
+                            <span className="font-medium text-gray-800">{user.name}</span>
                           </div>
                         </td>
-                        <td className="py-4 px-4 text-gray-700"> <a href={`tel:${user.phone}`}>{user.phone}</a></td>
-                        <td className="py-4 px-4 text-gray-700"> <a href={`mailto:${user.email}`}>{user.email}</a></td>  
+                        <td className="py-4 px-4 text-gray-700">
+                          <a href={`tel:${user.phone}`}>{user.phone}</a>
+                        </td>
+                        <td className="py-4 px-4 text-gray-700">
+                          <a href={`mailto:${user.email}`}>{user.email}</a>
+                        </td>
                         <td className="py-4 px-4">
                           <span
                             className={`px-3 py-1 rounded-lg text-sm font-medium ${user.status === "active"
                                 ? "bg-green-600 text-white border-green-600"
-                                  : "bg-red-600 text-white border-red-600"
+                                : "bg-red-600 text-white border-red-600"
                               }`}
                           >
                             {user.status}
                           </span>
-                        </td>                      
-                        <td className="py-4 px-4 text-right">
-                          <button
-                            onClick={() => handleEdit(user.id)}
-                            className="px-4 py-2 btn-primary"
-                          >
-                            Edit
-                          </button>
                         </td>
+                        {userRole !== "manager" && (
+                          <td className="py-4 px-4 text-right">
+                            <button
+                              onClick={() => handleEdit(user.id)}
+                              className="px-4 py-2 btn-primary"
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              {/* Mobile View */}
+              
               <div className="block lg:hidden space-y-5">
                 {currentUsers.map((user) => (
                   <div
@@ -193,10 +196,10 @@ export default function UserTable() {
                         </h3>
                         <span
                           className={`inline-block px-3 py-1 rounded-lg text-xs font-medium ${user.role === "Admin"
-                              ? "bg-blue-100 text-blue-700"
-                              : user.role === "Manager"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-gray-100 text-gray-700"
+                            ? "bg-blue-100 text-blue-700"
+                            : user.role === "Manager"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-700"
                             }`}
                         >
                           {user.role}
@@ -237,7 +240,7 @@ export default function UserTable() {
             </>
           )}
         </div>
-        {/* Pagination */}
+        
         {filteredUsers.length > 0 && (
           <div className="px-5 sm:px-6 py-4 border-t bg-gray-50">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -251,8 +254,8 @@ export default function UserTable() {
                   onClick={goToPrevious}
                   disabled={currentPage === 1}
                   className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === 1
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                     }`}
                 >
                   Previous
@@ -262,8 +265,8 @@ export default function UserTable() {
                     key={index + 1}
                     onClick={() => goToPage(index + 1)}
                     className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === index + 1
-                        ? "bg-blue-500 text-white"
-                        : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                      ? "bg-blue-500 text-white"
+                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                       }`}
                   >
                     {index + 1}
@@ -273,8 +276,8 @@ export default function UserTable() {
                   onClick={goToNext}
                   disabled={currentPage === totalPages}
                   className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === totalPages
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                     }`}
                 >
                   Next
