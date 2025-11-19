@@ -722,7 +722,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     return (
         <div className="w-full min-h-screen bg-gray-100 mt-10">
             <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
-                <h2 className="text-2xl font-bold mb-6 text-gray-800">Observation Form</h2>
+                <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit Observation Form</h2>
                 <StepperHeader />
 
                 <div className="mt-6 space-y-6">
