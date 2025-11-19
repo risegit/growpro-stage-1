@@ -139,29 +139,26 @@ switch ($method) {
         
         $jsonConsumables = isset($_POST['consumables']) ? $_POST['consumables'] : '';
         $consumables = json_decode($jsonConsumables, true);
-        // echo json_encode(["status" => "error", "grower_data" => $growers, "consumable" => $consumables]);
         $subtotal = $pricing+$transport;
         $gstAmount = ($subtotal * $gst) / 100;
         $total = round($subtotal + $gstAmount);
         $sql = "UPDATE `amc_details` SET `duration`='$duration',`other_duration`='$other_duration',`visits_per_month`='$visitsPerMonth',`validity_from`='$validityFrom',`validity_upto`='$validityUpto',`pricing`='$pricing',`transport`='$transport',`gst`='$gst',`total`='$total',`updated_by`='1',`updated_date`='$date',`updated_time`='$time' WHERE id='$amcId'";
         if ($conn->query($sql)) {
-            // foreach ($growers as $index => $grower) {
-            //     $sql1 = "INSERT INTO `amc_growers`(`amc_id`, `grower_id`) VALUES ('$amc_id','$grower')";
-            //     $conn->query($sql1);
-            // }
+            if (!empty($consumables)) {
+                $conn->query("DELETE FROM amc_consumables WHERE amc_id='$amcId'");
+            }
             foreach ($consumables as $index => $consumable) {
-                $sql1 = "SELECT * FROM amc_consumables where consumable_id='$consumable' and amc_id='$amcId'";
-                $result1 = $conn->query($sql1); 
-                if ($result1 && $result1->num_rows > 0) {
-                    $row1 = $result1->fetch_assoc();
-                    $consumableId = $row1['consumable_id'];
-                    $sql2 = "UPDATE `amc_consumables` SET `consumable_id`='$consumable' WHERE amc_id='$amcId' and consumable_id='$consumableId'";
-                    // $conn->query($sql1);
+                if ($consumable === "9") {
+                    $sql1 = "INSERT INTO amc_consumables (amc_id, consumable_id, other_consumable) 
+                            VALUES ('$amcId', $consumable, '$other_consumable')";
+                }else{
+                    $sql1 = "INSERT INTO `amc_consumables`(`amc_id`, `consumable_id`, `other_consumable`) VALUES ('$amcId','$consumable','')";
                 }
+                $conn->query($sql1);
             }
             
         }
-        echo json_encode(["status" => "success", "message" => "AMC updated successfully.".$sql1]);
+        echo json_encode(["status" => "success", "message" => "AMC updated successfully."]);
 
         break;
 
