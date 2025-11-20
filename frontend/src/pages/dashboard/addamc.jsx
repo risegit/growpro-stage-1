@@ -72,10 +72,10 @@ export default function AMCForm() {
         const data = await res.json();
         console.log("Fetched customers:", data);
         const opts = Array.isArray(data.data)
-          ? data.data.map((c) => ({ 
+          ? data.data.map((c) => ({
             value: c.customer_id,
             label: `${c.name} - ${c.phone}`,
-            }))
+          }))
           : [];
         if (mounted) setCustomers(opts);
       } catch (err) {
@@ -92,43 +92,43 @@ export default function AMCForm() {
     };
   }, []);
 
-useEffect(() => {
-  const fetchConsumable = async () => {
-    try {
-      setLoadingConsumable(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL}api/consum-grower.php`);
-      const data = await response.json();
+  useEffect(() => {
+    const fetchConsumable = async () => {
+      try {
+        setLoadingConsumable(true);
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/consum-grower.php`);
+        const data = await response.json();
 
-      console.log("✅ API Response:", data);
+        console.log("✅ API Response:", data);
 
-      if (data.status === "success" && data.data?.length > 0) {
-        const opts = Array.isArray(data.data)
-          ? [ ...data.data.map((c) => ({ 
-            value: c.id,
-            label: formatName(c.name),
+        if (data.status === "success" && data.data?.length > 0) {
+          const opts = Array.isArray(data.data)
+            ? [...data.data.map((c) => ({
+              value: c.id,
+              label: formatName(c.name),
             }))
-          ]
-          : [];
-        setConsumable(opts);
-      } else {
-        
+            ]
+            : [];
+          setConsumable(opts);
+        } else {
+
+        }
+      } catch (error) {
+        console.error("Error fetching consumables:", error);
+
+      } finally {
+        setLoadingConsumable(false);
       }
-    } catch (error) {
-      console.error("Error fetching consumables:", error);
-      
-    } finally {
-      setLoadingConsumable(false);
-    }
-  };
+    };
 
-  fetchConsumable();
+    fetchConsumable();
 
-  return () => {
-    // if (toastTimerRef?.current) clearTimeout(toastTimerRef.current);
-  };
-}, []);
+    return () => {
+      // if (toastTimerRef?.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
-  
+
 
   const showToast = (message, type = 'success', duration = 3000) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -156,96 +156,96 @@ useEffect(() => {
   };
 
   const growerHasOther = Array.isArray(formData.grower) && formData.grower.some((g) => g.label === "Other");
-  
+
   // react-select customer change (single select)
- const handleCustomerChange = async (selected) => {
-  // If customer cleared → reset grower and growers list
-  if (!selected) {
-    setFormData((prev) => ({ ...prev, customer: null, grower: null }));
-    setGrowers([]);
-    setIsNoGrowers(false);
-    return;
-  }
-
-  // If same customer is re-selected, do nothing
-  if (formData.customer && formData.customer.value === selected.value) return;
-
-  // Set only the customer (don’t clear grower yet)
-  setFormData((prev) => ({ ...prev, customer: selected }));
-
-  if (errors.customer) {
-    setErrors((prev) => ({ ...prev, customer: '' }));
-  }
-
-  // Now fetch growers for the selected customer
-  setLoadingGrowers(true);
-  try {
-    console.log('customerId=', selected.value);
-    const res = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?customer_id=${selected.value}`);
-    if (!res.ok) throw new Error('Failed to fetch growers');
-
-    const data = await res.json();
-    
-    const opts = Array.isArray(data.data)
-  ? data.data.map((g) => ({
-      value: g.id,
-      label: g.system_type,
-      other: g.system_type_other   // <-- VERY IMPORTANT
-    }))
-  : [];
-
-  const isEmptyGrowers = opts.length === 0;
-  setIsNoGrowers(isEmptyGrowers);
-  if (isEmptyGrowers) {
-      // No growers available for customer → AMC for all growers
+  const handleCustomerChange = async (selected) => {
+    // If customer cleared → reset grower and growers list
+    if (!selected) {
+      setFormData((prev) => ({ ...prev, customer: null, grower: null }));
       setGrowers([]);
+      setIsNoGrowers(false);
+      return;
+    }
+
+    // If same customer is re-selected, do nothing
+    if (formData.customer && formData.customer.value === selected.value) return;
+
+    // Set only the customer (don’t clear grower yet)
+    setFormData((prev) => ({ ...prev, customer: selected }));
+
+    if (errors.customer) {
+      setErrors((prev) => ({ ...prev, customer: '' }));
+    }
+
+    // Now fetch growers for the selected customer
+    setLoadingGrowers(true);
+    try {
+      console.log('customerId=', selected.value);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?customer_id=${selected.value}`);
+      if (!res.ok) throw new Error('Failed to fetch growers');
+
+      const data = await res.json();
+
+      const opts = Array.isArray(data.data)
+        ? data.data.map((g) => ({
+          value: g.id,
+          label: g.system_type,
+          other: g.system_type_other   // <-- VERY IMPORTANT
+        }))
+        : [];
+
+      const isEmptyGrowers = opts.length === 0;
+      setIsNoGrowers(isEmptyGrowers);
+      if (isEmptyGrowers) {
+        // No growers available for customer → AMC for all growers
+        setGrowers([]);
+        setFormData((prev) => ({
+          ...prev,
+          grower: [],
+          systemTypeOther: "",
+        }));
+        return;
+      }
+
+      const hasOther = opts.some((g) => g.other && g.other.trim() !== "");
+      const otherValue = hasOther
+        ? opts.find((g) => g.other && g.other.trim() !== "")?.other
+        : "";
+
+      setGrowers(opts);
+
       setFormData((prev) => ({
         ...prev,
-        grower: [],
-        systemTypeOther: "",
+        grower: opts,
+        systemTypeOther: otherValue,
       }));
-      return;
-  }
+    } catch (err) {
+      console.error('Error fetching growers:', err);
+      setGrowers([]);
+      setFormData((prev) => ({ ...prev, grower: null }));
+    } finally {
+      setLoadingGrowers(false);
+    }
+  };
 
-    const hasOther = opts.some((g) => g.other && g.other.trim() !== "");
-    const otherValue = hasOther
-      ? opts.find((g) => g.other && g.other.trim() !== "")?.other
-      : "";
 
-    setGrowers(opts);
 
-    setFormData((prev) => ({
+  const handleGrowerChange = (selected) => {
+
+    console.log("Selected Grower:", selected);   // <-- ADD HERE
+
+    setFormData(prev => ({
       ...prev,
-      grower: opts,
-      systemTypeOther: otherValue,
+      grower: selected,
+      systemTypeOther: selected && selected.some(s => s.label === "Other")
+        ? selected.find(s => s.label === "Other")?.other || ""
+        : ""
     }));
-  } catch (err) {
-    console.error('Error fetching growers:', err);
-    setGrowers([]);
-    setFormData((prev) => ({ ...prev, grower: null }));
-  } finally {
-    setLoadingGrowers(false);
-  }
-};
 
-
-
-const handleGrowerChange = (selected) => {
-
-  console.log("Selected Grower:", selected);   // <-- ADD HERE
-
-  setFormData(prev => ({
-    ...prev,
-    grower: selected,
-    systemTypeOther: selected && selected.some(s => s.label === "Other")
-      ? selected.find(s => s.label === "Other")?.other || ""
-      : ""
-  }));
-
-  if (errors.grower) {
-    setErrors((prev) => ({ ...prev, grower: '' }));
-  }
-};
+    if (errors.grower) {
+      setErrors((prev) => ({ ...prev, grower: '' }));
+    }
+  };
 
 
 
@@ -362,8 +362,8 @@ const handleGrowerChange = (selected) => {
       });
       const result = await res.json();
       if (result.status === "success") {
-          toast.success(result.message);
-          setErrors({});
+        toast.success(result.message);
+        setErrors({});
       } else {
         toast.error(result.error);
         // alert("Something went wrong. Please try again.");
@@ -405,6 +405,8 @@ const handleGrowerChange = (selected) => {
     }
   };
 
+const today = new Date().toISOString().split("T")[0];
+
   // Small helper to derive whether consumables include 'other'
   const consumablesHasOther = formData.consumables.some((c) => c.value === '9');
 
@@ -441,43 +443,43 @@ const handleGrowerChange = (selected) => {
           </div>
 
           <div className="flex flex-col">
-        <label className="mb-1 font-medium text-gray-700">
-          System Type <span className="text-red-500">*</span>
-        </label>
+            <label className="mb-1 font-medium text-gray-700">
+              System Type <span className="text-red-500">*</span>
+            </label>
 
-        {isNoGrowers ? (
-          <div className="px-3 py-4 border rounded-lg bg-gray-100 text-gray-700">
-            AMC created for all the growers
-          </div>
-        ) : (
-          <>
-            <Select
-              isMulti
-              options={growers}
-              value={formData.grower}
-              isDisabled={true}
-              classNamePrefix="react-select"
-              styles={{
-                menu: (provided) => ({ ...provided, zIndex: 9999 }),
-              }}
-            />
+            {isNoGrowers ? (
+              <div className="px-3 py-4 border rounded-lg bg-gray-100 text-gray-700">
+                AMC created for all the growers
+              </div>
+            ) : (
+              <>
+                <Select
+                  isMulti
+                  options={growers}
+                  value={formData.grower}
+                  isDisabled={true}
+                  classNamePrefix="react-select"
+                  styles={{
+                    menu: (provided) => ({ ...provided, zIndex: 9999 }),
+                  }}
+                />
 
-            {growerHasOther && (
-              <input
-                type="text"
-                name="systemTypeOther"
-                value={formData.systemTypeOther}
-                readOnly
-                className="mt-2 px-3 py-2 border rounded-lg"
-              />
+                {growerHasOther && (
+                  <input
+                    type="text"
+                    name="systemTypeOther"
+                    value={formData.systemTypeOther}
+                    readOnly
+                    className="mt-2 px-3 py-2 border rounded-lg"
+                  />
+                )}
+              </>
             )}
-          </>
-        )}
 
-        {errors.grower && (
-          <span className="text-red-500 text-sm mt-1">{errors.grower}</span>
-        )}
-      </div>
+            {errors.grower && (
+              <span className="text-red-500 text-sm mt-1">{errors.grower}</span>
+            )}
+          </div>
 
 
           {/* Duration */}
@@ -522,31 +524,51 @@ const handleGrowerChange = (selected) => {
           </div>
 
           {/* Validity From */}
-          <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700">Validity From <span className="text-red-500">*</span></label>
-            <input
-              type="date"
-              name="validityFrom"
-              value={formData.validityFrom}
-              onChange={handleInputChange}
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityFrom ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-            />
-            {errors.validityFrom && <span className="text-red-500 text-sm mt-1">{errors.validityFrom}</span>}
-          </div>
+         <div className="flex flex-col">
+  <label className="mb-1 font-medium text-gray-700">
+    Validity From <span className="text-red-500">*</span>
+  </label>
+
+  <input
+    type="date"
+    name="validityFrom"
+    value={formData.validityFrom}
+    onChange={handleInputChange}
+    min={today}   // <-- PREVENT PAST DATES
+    className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+      errors.validityFrom
+        ? "border-red-500 focus:ring-red-400"
+        : "border-gray-300 focus:ring-blue-400"
+    }`}
+  />
+
+  {errors.validityFrom && (
+    <span className="text-red-500 text-sm mt-1">{errors.validityFrom}</span>
+  )}
+</div>
+
 
           {/* Validity Upto */}
           <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700">Validity Upto <span className="text-red-500">*</span></label>
+            <label className="mb-1 font-medium text-gray-700">
+              Validity Upto <span className="text-red-500">*</span>
+            </label>
             <input
               type="date"
               name="validityUpto"
               value={formData.validityUpto}
               onChange={handleInputChange}
               min={formData.validityFrom || undefined}
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityUpto ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityUpto
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-400"
+                }`}
             />
-            {errors.validityUpto && <span className="text-red-500 text-sm mt-1">{errors.validityUpto}</span>}
+            {errors.validityUpto && (
+              <span className="text-red-500 text-sm mt-1">{errors.validityUpto}</span>
+            )}
           </div>
+
 
           {/* Consumables - multi select with Other */}
           <div className="flex flex-col md:col-span-2">
@@ -642,7 +664,7 @@ const handleGrowerChange = (selected) => {
 
         {/* Submit */}
         <div className="flex items-center justify-end px-4 py-4 border-t">
-      
+
           <button
             onClick={handleSubmit}
             disabled={submitting}

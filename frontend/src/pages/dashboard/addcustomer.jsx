@@ -351,6 +351,7 @@ const StepperCustomerForm = () => {
       }
     } catch (error) {
       console.error("Fetch Error:", error);
+      console.log('data',formData)
       alert("Server error. Contact admin.");
     }
   };
