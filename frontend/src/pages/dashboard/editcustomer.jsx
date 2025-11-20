@@ -490,11 +490,12 @@ const StepperCustomerForm = () => {
                 Phone Number (फ़ोन नंबर) <span className="text-red-500">*</span>
               </label>
               <input
-                type="tel"
+                type="number"
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
                 placeholder="Enter phone number"
+                maxLength={13}
                 className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.phoneNumber
                   ? "border-red-500 focus:ring-red-400"
                   : "border-gray-300 focus:ring-blue-400"
@@ -721,7 +722,7 @@ const StepperCustomerForm = () => {
                       onChange={(e) => handleGrowerChange(index, e)}
                       className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`systemType_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                     >
-                      <option value="">Select system type</option>
+                      <option value="" disabled>Select system type</option>
                       {systemTypes.map((s, i) => <option key={i} value={s}>{s}</option>)}
                     </select>
                     {errors[`systemType_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`systemType_${index}`]}</span>}
@@ -801,7 +802,7 @@ const StepperCustomerForm = () => {
                       onChange={(e) => handleGrowerChange(index, e)}
                       className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`motorType_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                     >
-                      <option value="">Select motor</option>
+                      <option value="" disabled>Select motor</option>
                       {motorTypes.map((m, i) => <option key={i} value={m}>{m}</option>)}
                     </select>
                     {errors[`motorType_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`motorType_${index}`]}</span>}
@@ -828,7 +829,7 @@ const StepperCustomerForm = () => {
                       onChange={(e) => handleGrowerChange(index, e)}
                       className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`timerUsed_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                     >
-                      <option value="">Select timer</option>
+                      <option value="" disabled>Select timer</option>
                       {timerOptions.map((t, i) => <option key={i} value={t}>{t}</option>)}
                     </select>
                     {errors[`timerUsed_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`timerUsed_${index}`]}</span>}
@@ -870,7 +871,7 @@ const StepperCustomerForm = () => {
                       onChange={(e) => handleGrowerChange(index, e)}
                       className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`modelOfLight_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                     >
-                      <option value="">Select Model of Light</option>
+                      <option value="" disabled>Select Model of Light</option>
                       {modelOfLight.map((t, i) => <option key={i} value={t}>{t}</option>)}
                     </select>
                     {errors[`modelOfLight_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`modelOfLight_${index}`]}</span>}
@@ -897,7 +898,7 @@ const StepperCustomerForm = () => {
                       onChange={(e) => handleGrowerChange(index, e)}
                       className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`lengthOfLight_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                     >
-                      <option value="">Select Length of Lights</option>
+                      <option value="" disabled>Select Length of Lights</option>
                       {lengthOfLight.map((t, i) => <option key={i} value={t}>{t}</option>)}
                     </select>
                     {errors[`lengthOfLight_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`lengthOfLight_${index}`]}</span>}
@@ -924,7 +925,7 @@ const StepperCustomerForm = () => {
                       onChange={(e) => handleGrowerChange(index, e)}
                       className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`tankCapacity_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                     >
-                      <option value="">Select Tank Capacity</option>
+                      <option value="" disabled>Select Tank Capacity</option>
                       {tankCapacity.map((t, i) => <option key={i} value={t}>{t}</option>)}
                     </select>
                     {errors[`tankCapacity_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`tankCapacity_${index}`]}</span>}

@@ -14,14 +14,13 @@ import {
 import { useState, useEffect, useMemo } from "react";
 import { useMaterialTailwindController, setOpenSidenav } from "@/context";
 
-
 export function Sidenav({ brandImg, brandName, routes }) {
   const [controller, dispatch] = useMaterialTailwindController();
   const { openSidenav, sidenavType } = controller;
   const [openDropdown, setOpenDropdown] = useState(null);
   const location = useLocation();
 
-  // ---- Read role from multiple possible storage shapes ----
+  // ---- Read role ----
   const rawRole = localStorage.getItem("role");
   const rawUser = localStorage.getItem("user");
   let role = rawRole ?? null;
@@ -31,13 +30,8 @@ export function Sidenav({ brandImg, brandName, routes }) {
       role = parsed?.role ?? null;
     }
   } catch (e) {
-
-    console.warn("Sidenav: failed to parse localStorage.user", e);
+    console.warn("Sidenav: failed to parse user", e);
   }
-
-
-  console.debug("Sidenav: detected role ->", role);
-  console.debug("Sidenav: localStorage.role:", rawRole, " localStorage.user:", rawUser);
 
   const sidenavTypes = {
     dark: "bg-gradient-to-br from-green-800 to-green-900",
@@ -49,7 +43,7 @@ export function Sidenav({ brandImg, brandName, routes }) {
     setOpenDropdown(openDropdown === name ? null : name);
   };
 
-
+  // Auto-open dropdown if inside child route
   useEffect(() => {
     routes.forEach(({ layout, pages }) => {
       pages.forEach(({ name, collapse }) => {
@@ -65,9 +59,8 @@ export function Sidenav({ brandImg, brandName, routes }) {
     });
   }, [location.pathname, routes]);
 
-
+  // Role-based filtering
   const isPageAllowed = (page) => {
-
     if (page.allowedRoles && Array.isArray(page.allowedRoles)) {
       return page.allowedRoles.includes(role);
     }
@@ -83,50 +76,42 @@ export function Sidenav({ brandImg, brandName, routes }) {
       }
     }
 
-    // Default: no allowedRoles specified at all → show to everyone
     return true;
   };
 
-  // Compute filtered routes (memoized for stability)
   const filteredRoutes = useMemo(() => {
-    // debug: show incoming structure
-    console.debug("Sidenav: original routes:", routes);
-
     return routes.map((routeGroup) => {
-      const filteredPages = (routeGroup.pages || []).filter((page) => {
-        // hide pages that are explicitly hidden
-        if (page.hidden) return false;
-        // use helper
-        const allowed = isPageAllowed(page);
-        console.debug(`Sidenav: page "${page.name}" allowed ->`, allowed);
-        return allowed;
-      }).map((page) => {
-        // for pages with collapse, filter their children too
-        if (Array.isArray(page.collapse)) {
-          const filteredCollapse = page.collapse
-            .filter((sub) => !sub.hidden)
-            .filter((sub) => {
-              // if sub.allowedRoles exists, use it
-              if (sub.allowedRoles && Array.isArray(sub.allowedRoles)) {
-                return sub.allowedRoles.includes(role);
-              }
-              // otherwise, fallback to parent allowedRoles (if any) or allow
-              if (page.allowedRoles && Array.isArray(page.allowedRoles)) {
-                return page.allowedRoles.includes(role);
-              }
-              return true;
-            });
-          return { ...page, collapse: filteredCollapse };
-        }
-        return page;
-      });
+      const filteredPages = (routeGroup.pages || [])
+        .filter((page) => !page.hidden && isPageAllowed(page))
+        .map((page) => {
+          if (Array.isArray(page.collapse)) {
+            const filteredCollapse = page.collapse
+              .filter((sub) => !sub.hidden)
+              .filter((sub) => {
+                if (sub.allowedRoles && Array.isArray(sub.allowedRoles)) {
+                  return sub.allowedRoles.includes(role);
+                }
+                if (page.allowedRoles && Array.isArray(page.allowedRoles)) {
+                  return page.allowedRoles.includes(role);
+                }
+                return true;
+              });
+            return { ...page, collapse: filteredCollapse };
+          }
+          return page;
+        });
 
       return { ...routeGroup, pages: filteredPages };
     });
   }, [routes, role]);
 
-  // debug: final filtered structure
-  console.debug("Sidenav: filteredRoutes ->", filteredRoutes);
+  // ----------- MOBILE AUTO-CLOSE HANDLER ------------
+  const handleMobileClose = () => {
+    if (window.innerWidth < 1280) {
+      setOpenSidenav(dispatch, false);
+    }
+  };
+  // ---------------------------------------------------
 
   return (
     <aside
@@ -137,8 +122,9 @@ export function Sidenav({ brandImg, brandName, routes }) {
       {/* Logo */}
       <div>
         <NavLink
-          to="/"
+          to="/dashboard/home"
           className="py-6 px-8 flex flex-col items-center justify-center gap-2"
+          onClick={handleMobileClose}
         >
           <img
             src={`${import.meta.env.BASE_URL}${brandImg.replace(/^\/+/, "")}`}
@@ -152,7 +138,6 @@ export function Sidenav({ brandImg, brandName, routes }) {
             {brandName}
           </Typography>
 
-          {/* show role visibly for quick verification */}
           {role ? (
             <p className="text-sm text-green-300 mt-1 capitalize">
               Role: {role}
@@ -225,7 +210,10 @@ export function Sidenav({ brandImg, brandName, routes }) {
                       <ul className="ml-10 mt-1 flex flex-col gap-1 border-l border-green-400 pl-3">
                         {collapse.map(({ name: subName, path: subPath }) => (
                           <li key={subName}>
-                            <NavLink to={`/${layout}${subPath}`}>
+                            <NavLink
+                              to={`/${layout}${subPath}`}
+                              onClick={handleMobileClose}
+                            >
                               {({ isActive }) => (
                                 <Button
                                   variant={isActive ? "gradient" : "text"}
@@ -247,7 +235,10 @@ export function Sidenav({ brandImg, brandName, routes }) {
                     </Collapse>
                   </>
                 ) : (
-                  <NavLink to={`/${layout}${path}`}>
+                  <NavLink
+                    to={`/${layout}${path}`}
+                    onClick={handleMobileClose}
+                  >
                     {({ isActive }) => (
                       <Button
                         variant={isActive ? "gradient" : "text"}

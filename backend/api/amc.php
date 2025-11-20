@@ -62,7 +62,7 @@ switch ($method) {
             }
             echo json_encode(["status" => "success", "data" => $data]);
         }else{
-            $result = $conn->query("SELECT g.id AS grower_id, g.customer_id, g.system_type, u.name, u.phone FROM growers g LEFT JOIN amc_growers ag ON ag.grower_id = g.id INNER JOIN users u ON g.customer_id = u.id WHERE ag.id IS NULL GROUP BY u.name");
+            $result = $conn->query("SELECT g.id AS grower_id, g.customer_id, g.system_type, u.name, u.phone FROM growers g LEFT JOIN amc_growers ag ON ag.grower_id = g.id INNER JOIN users u ON g.customer_id = u.id WHERE u.status='active' and ag.id IS NULL GROUP BY u.name");
             $data = [];
 
             while ($row = $result->fetch_assoc()) {

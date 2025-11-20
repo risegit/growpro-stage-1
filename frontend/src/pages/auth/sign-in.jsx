@@ -1,5 +1,5 @@
 // src/pages/auth/SignIn.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input, Button, Typography } from "@material-tailwind/react";
 import { useNavigate } from "react-router-dom";
 
@@ -9,6 +9,12 @@ export function SignIn() {
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
+
+  // 🧹 Always clean leftover login data when Sign-In page loads
+  useEffect(() => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("loggedIn");
+  }, []);
 
   const fixedUsers = [
     { username: "admin", password: "admin123", role: "admin" },
@@ -39,7 +45,7 @@ export function SignIn() {
     localStorage.setItem("user", JSON.stringify(foundUser));
     localStorage.setItem("loggedIn", "true");
 
-    navigate("/dashboard/home");
+    navigate("/dashboard/home", { replace: true });
   };
 
   return (

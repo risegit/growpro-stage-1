@@ -1,8 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Select from "react-select";
 
 export default function ObservationForm({ onSubmit = (data) => console.log(data) }) {
     const [step, setStep] = useState(1);
+    const [loadingCustomers, setLoadingCustomers] = useState(false);
+    const [customers, setCustomers] = useState([]); // options for react-select
+    const [submitting, setSubmitting] = useState(false);
 
     const addDynamicRow = () => {
         setFormData((prevFormData) => ({
@@ -46,7 +49,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
     const [formData, setFormData] = useState({
         /* STEP 1 */
-        clientName: "",
+        customers: null,
         plantsWater: "",
         waterAbovePump: "",
         timerWorking: "",
@@ -95,24 +98,23 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         chargeableItemsSupplied: [],
         changebleItemsOptionsother: "",
         setupPhotos: [],
-        plantOthersInput: "",
         materialsOtherInput: "",
-
-
         materialNeedsDelivery: false,
 
         // Dynamic fields for multiple rows of nutrients, tank capacity, and top-ups
         nutrientsData: [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
 
-        /* STEP 5 - Delivery Details (same as Step 4 but without setup photos) */
-        step5Plants: [], // <-- separate state for Step 5
+        /* STEP 5 - Delivery Details */
+        step5Plants: [],
         step5MaterialsOtherInput: "",
         step5ChargeableItemsSupplied: [],
         step5ChangebleItemsOptionsother: "",
         step5DynamicFields: [
             { nutrients: "", tankCapacity: "", numberOfTopups: "" }
         ],
-        step5NeemOil: ""
+        step5NeemOil: "",
+        step5PlantQuantities: {},
+        step5OtherPlantName: ""
     });
 
     const [errors, setErrors] = useState({});
@@ -198,12 +200,215 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     ];
 
     const tankCapacityOptions = [
-        { label: "20L", value: "20L" },
-        { label: "40L", value: "40L" },
-        { label: "100L", value: "100L" },
-        { label: "150L", value: "150L" },
-        { label: "200L", value: "200L" }
+        { label: "20", value: "20" },
+        { label: "40", value: "40" },
+        { label: "100", value: "100" },
+        { label: "150", value: "150" },
+        { label: "200", value: "200" }
     ];
+
+    /* ----------------------- Start Retrieve Customer ----------------------- */
+    useEffect(() => {
+        let mounted = true;
+        const loadCustomers = async () => {
+            setLoadingCustomers(true);
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?status=active`);
+                if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+                const data = await res.json();
+                console.log("Fetched customers:", data);
+                const opts = Array.isArray(data.data)
+                    ? data.data.map((c) => ({
+                        value: c.customer_id,
+                        label: `${c.name} - ${c.phone}`,
+                    }))
+                    : [];
+                if (mounted) setCustomers(opts);
+            } catch (err) {
+                console.error('Error loading customers:', err);
+            } finally {
+                if (mounted) setLoadingCustomers(false);
+            }
+        };
+
+        loadCustomers();
+        return () => {
+            mounted = false;
+        };
+    }, []);
+    /* ----------------------- End Retrieve Customer ----------------------- */
+
+const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+        // Build payload
+        const formPayload = new FormData();
+
+        // Helper function to safely append values
+        const appendFormData = (key, value) => {
+            if (value === null || value === undefined) {
+                formPayload.append(key, '');
+            } else if (typeof value === 'object') {
+                // Handle arrays and React Select values
+                if (Array.isArray(value)) {
+                    // For React Select multi-select values
+                    formPayload.append(key, JSON.stringify(value.map(item => item.value || item)));
+                } else if (value instanceof File) {
+                    // Handle file objects
+                    formPayload.append(key, value);
+                } else if (value.hasOwnProperty('value')) {
+                    // For React Select single values
+                    formPayload.append(key, value.value);
+                } else {
+                    // For other objects, stringify them
+                    formPayload.append(key, JSON.stringify(value));
+                }
+            } else {
+                // For primitive values
+                formPayload.append(key, value.toString());
+            }
+        };
+
+        // Append all form fields properly
+        Object.keys(formData).forEach((key) => {
+            const value = formData[key];
+            
+            // Special handling for specific fields
+            switch (key) {
+                case 'customers':
+                    if (value) {
+                        formPayload.append("customer_id", value.value || "");
+                    }
+                    break;
+                    
+                case 'pestTypes':
+                case 'plantProblems':
+                case 'plants':
+                case 'chargeableItemsSupplied':
+                case 'step5Plants':
+                case 'step5ChargeableItemsSupplied':
+                    // These are multi-select arrays - handle separately
+                    if (value && Array.isArray(value)) {
+                        formPayload.append(key, JSON.stringify(value.map(item => item.value || item)));
+                    } else {
+                        formPayload.append(key, '[]');
+                    }
+                    break;
+                    
+                case 'setupPhotos':
+                    // Handle file uploads
+                    if (value && Array.isArray(value)) {
+                        value.forEach((photo, index) => {
+                            if (photo.file) {
+                                formPayload.append(`setupPhotos_${index}`, photo.file);
+                            }
+                        });
+                    }
+                    break;
+                    
+                case 'nutrientsData':
+                case 'step5DynamicFields':
+                case 'plantQuantities':
+                case 'step5PlantQuantities':
+                    // Stringify complex objects
+                    formPayload.append(key, JSON.stringify(value || {}));
+                    break;
+                    
+                default:
+                    appendFormData(key, value);
+                    break;
+            }
+        });
+
+        // ✅ Debug: log form data before sending
+        console.log("Form Data to be submitted:");
+        console.log("Raw formData:", formData);
+        
+        console.log("FormData entries:");
+        for (let [key, value] of formPayload.entries()) {
+            console.log(`${key}:`, value);
+        }
+
+        // ✅ Send the request
+        const res = await fetch(`${import.meta.env.VITE_API_URL}api/amc1.php`, {
+            method: "POST",
+            body: formPayload,
+        });
+        
+        const result = await res.json();
+        if (result.status === "success") {
+            toast.success(result.message);
+            setErrors({});
+        } else {
+            toast.error(result.error);
+        }
+    } catch (err) {
+        console.error('Submit failed:', err);
+        toast.error('Submission failed. See console for details.');
+    } finally {
+        setSubmitting(false);
+    }
+};
+
+    // const handleSubmit = async () => {
+    //     // if (!validateForm()) {
+    //     //   return;
+    //     // }
+    //     setSubmitting(true);
+    //     try {
+    //         // Build payload
+    //         const formPayload = new FormData();
+
+    //         // Append main form fields
+    //         Object.keys(formData).forEach((key) => {
+    //             // if (!["consumables", "grower", "customer"].includes(key)) {
+    //             formPayload.append(key, formData[key]);
+    //             // }
+    //         });
+
+    //         if (formData.customers) {
+    //             formPayload.append("customer_id", formData.customers.value || "");
+    //         }
+
+    //         // Properly append multi-select arrays
+    //         formPayload.append(
+    //             "plant_problems",
+    //             JSON.stringify(formData.consumables?.map((c) => c.value) || [])
+    //         );
+    //         formPayload.append(
+    //             "plants",
+    //             JSON.stringify(formData.plants?.map((g) => g.value) || [])
+    //         );
+    //         formPayload.append(
+    //             "chargeableItemsSupplied",
+    //             JSON.stringify(formData.chargeableItemsSupplied?.map((g) => g.value) || [])
+    //         );
+
+    //         // ✅ Optional: log for debugging
+    //         console.log("Form Payload Data:");
+    //         for (let [key, value] of formPayload.entries()) {
+    //             console.log(`${key}: ${value}`);
+    //         }
+
+    //         // ✅ Send the request
+    //         const res = await fetch(`${import.meta.env.VITE_API_URL}api/amc1.php`, {
+    //             method: "POST",
+    //             body: formPayload,
+    //         });
+    //         const result = await res.json();
+    //         if (result.status === "success") {
+    //             toast.success(result.message);
+    //             setErrors({});
+    //         } else {
+    //             toast.error(result.error);
+    //         }
+    //     } catch (err) {
+    //         console.error('Submit failed:', err);
+    //         toast.error('Submission failed. See console for details.');
+    //     } finally {
+    //         setSubmitting(false);
+    //     }
+    // };
 
     /* ----------------------- HANDLE INPUT CHANGE ----------------------- */
     const handleChange = (e) => {
@@ -266,20 +471,18 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         });
 
         // Check if "Other" is selected
-        if (selectedValues.includes("Other")) {
+        if (selectedValues.includes("Others")) {
             // If "Other" is selected, set empty plant name and quantity for it
-            newQuantities["Other"] = formData.plantQuantities["Other"] || ""; // Preserve quantity if already exists
+            newQuantities["Others"] = formData.plantQuantities["Others"] || ""; // Preserve quantity if already exists
         } else {
             // If "Other" is not selected, clear the custom plant name and quantity
-            newQuantities["Other"] = "";  // Clear quantity for "Other"
-            formData.otherPlantName = ""; // Clear the custom plant name
+            newQuantities["Others"] = "";  // Clear quantity for "Other"
         }
 
         setFormData({
             ...formData,
             plants: newPlants,
             plantQuantities: newQuantities,
-            otherPlantName: formData.otherPlantName // Retain the custom plant name
         });
 
         setErrors({ ...errors, plants: "", plantQuantities: "" });
@@ -297,53 +500,94 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             }
         });
 
-        // Check if "Other" is selected
-        if (selectedValues.includes("Other")) {
-            // If "Other" is selected, set empty plant name and quantity for it
-            newQuantities["Other"] = formData.plantQuantities["Other"] || ""; // Preserve quantity if already exists
+        // Check if "Others" is selected
+        if (selectedValues.includes("Others")) {
+            // If "Others" is selected, preserve quantity if exists
+            newQuantities["Others"] = formData.step5PlantQuantities["Others"] || "";
         } else {
-            // If "Other" is not selected, clear the custom plant name and quantity
-            newQuantities["Other"] = "";  // Clear quantity for "Other"
-            formData.otherPlantName = ""; // Clear the custom plant name
+            // If "Others" is not selected, clear the quantity
+            newQuantities["Others"] = "";
         }
 
         setFormData({
             ...formData,
             step5Plants: newPlants,
             step5PlantQuantities: newQuantities,
-            step5OtherPlantName: formData.otherPlantName // Retain the custom plant name
         });
 
         setErrors({ ...errors, step5Plants: "", step5PlantQuantities: "" });
     };
 
-    // const handlePlantQuantity = (plantValue, quantity) => {
-    //     setFormData({
-    //         ...formData,
-    //         plantQuantities: {
-    //             ...formData.plantQuantities,
-    //             [plantValue]: quantity
-    //         }
-    //     });
-    //     setErrors({ ...errors, plantQuantities: "" });
-    // };
+    const handleCustomerChange = (selected) => {
+        setFormData(prev => ({
+            ...prev,
+            customers: selected,   // MUST store full object
+        }));
+    };
 
-    // const handleStep5PlantQuantity = (plantValue, quantity) => {
-    //     setFormData({
-    //         ...formData,
-    //         step5PlantQuantities: {
-    //             ...formData.step5PlantQuantities,
-    //             [plantValue]: quantity
-    //         }
-    //     });
-    //     setErrors({ ...errors, step5PlantQuantities: "" });
-    // };
+    // FIXED: Proper handler for Step 4 Materials Supplied
+    const handleStep4MaterialsSelection = (selected) => {
+        const newMaterials = selected || [];
+        const newQuantities = { ...formData.plantQuantities };
+
+        // Remove quantities for deselected materials
+        const selectedValues = newMaterials.map(m => m.value);
+        Object.keys(newQuantities).forEach(material => {
+            if (!selectedValues.includes(material)) {
+                delete newQuantities[material];
+            }
+        });
+
+        // Check if "Others" is selected
+        if (selectedValues.includes("Others")) {
+            newQuantities["Others"] = formData.plantQuantities["Others"] || "";
+        } else {
+            newQuantities["Others"] = "";
+        }
+
+        setFormData({
+            ...formData,
+            plants: newMaterials,
+            plantQuantities: newQuantities,
+        });
+
+        setErrors({ ...errors, plants: "", plantQuantities: "" });
+    };
+
+    // FIXED: Proper handler for Step 5 Materials Supplied
+    const handleStep5MaterialsSelection = (selected) => {
+        const newMaterials = selected || [];
+        const newQuantities = { ...formData.step5PlantQuantities };
+
+        // Remove quantities for deselected materials
+        const selectedValues = newMaterials.map(m => m.value);
+        Object.keys(newQuantities).forEach(material => {
+            if (!selectedValues.includes(material)) {
+                delete newQuantities[material];
+            }
+        });
+
+        // Check if "Others" is selected
+        if (selectedValues.includes("Others")) {
+            newQuantities["Others"] = formData.step5PlantQuantities["Others"] || "";
+        } else {
+            newQuantities["Others"] = "";
+        }
+
+        setFormData({
+            ...formData,
+            step5Plants: newMaterials,
+            step5PlantQuantities: newQuantities,
+        });
+
+        setErrors({ ...errors, step5Plants: "", step5PlantQuantities: "" });
+    };
 
     /* ----------------------- VALIDATION ----------------------- */
     const validateStep1 = () => {
         let newErrors = {};
 
-        if (!formData.clientName) newErrors.clientName = "Required";
+        if (!formData.customers) newErrors.customers = "Required";
         if (!formData.plantsWater) newErrors.plantsWater = "Required";
         if (!formData.waterAbovePump) newErrors.waterAbovePump = "Required";
 
@@ -433,6 +677,14 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             newErrors.plants = "Select at least one plant";
         }
 
+        // Check if "Others" is selected and materialsOtherInput is empty
+        if (
+            formData.plants.some((i) => i.value === "Others") &&
+            !formData.materialsOtherInput
+        ) {
+            newErrors.materialsOtherInput = "Please specify the other material";
+        }
+
         formData.nutrientsData.forEach((field, index) => {
             if (!field.nutrients) {
                 if (!newErrors.nutrientsData) newErrors.nutrientsData = [];
@@ -440,13 +692,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                     ...newErrors.nutrientsData[index],
                     nutrients: "Required",
                 };
-            }
-
-            if (
-                formData.plants.some((i) => i.value === "Others") &&
-                !formData.plantOthersInput
-            ) {
-                errors.plantOthersInput = "Please specify the other material";
             }
 
             if (!field.tankCapacity) {
@@ -496,6 +741,14 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             newErrors.step5Plants = "Select at least one plant";
         }
 
+        // Check if "Others" is selected in step5Plants
+        if (
+            formData.step5Plants.some((i) => i.value === "Others") &&
+            !formData.step5MaterialsOtherInput
+        ) {
+            newErrors.step5MaterialsOtherInput = "Please specify the other material";
+        }
+
         // Dynamic Fields
         formData.step5DynamicFields.forEach((field, index) => {
             if (!field.nutrients) {
@@ -504,13 +757,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                     ...newErrors.step5DynamicFields[index],
                     nutrients: "Required",
                 };
-            }
-
-            if (
-                formData.plants.some((i) => i.value === "Others") &&
-                !formData.plantOthersInput
-            ) {
-                errors.plantOthersInput = "Please specify the other material";
             }
 
             if (!field.tankCapacity) {
@@ -589,6 +835,12 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         }
     };
 
+    const prevStep = () => {
+        if (step > 1) {
+            setStep(step - 1);
+        }
+    };
+
     const addStep5DynamicRow = () => {
         setFormData((prevFormData) => ({
             ...prevFormData,
@@ -623,7 +875,48 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         setErrors({ ...errors, [name]: "" });
     };
 
-    
+    // FIXED: Handler for Step 4 Other Input
+    const handleStep4OtherInput = (e) => {
+        const { value } = e.target;
+        setFormData({
+            ...formData,
+            materialsOtherInput: value,
+        });
+        setErrors({ ...errors, materialsOtherInput: "" });
+    };
+
+    // FIXED: Handler for Step 5 Other Input
+    const handleStep5OtherInput = (e) => {
+        const { value } = e.target;
+        setFormData({
+            ...formData,
+            step5MaterialsOtherInput: value,
+        });
+        setErrors({ ...errors, step5MaterialsOtherInput: "" });
+    };
+
+    // FIXED: Handler for Step 4 Plant Quantity Change
+    const handleStep4QuantityChange = (plantValue, quantity) => {
+        setFormData({
+            ...formData,
+            plantQuantities: {
+                ...formData.plantQuantities,
+                [plantValue]: quantity,
+            },
+        });
+    };
+
+    // FIXED: Handler for Step 5 Plant Quantity Change
+    const handleStep5QuantityChange = (plantValue, quantity) => {
+        setFormData({
+            ...formData,
+            step5PlantQuantities: {
+                ...formData.step5PlantQuantities,
+                [plantValue]: quantity,
+            },
+        });
+    };
+
     /* ----------------------- UI COMPONENTS ----------------------- */
     const SmallInput = ({ name, placeholder }) => (
         <input
@@ -711,7 +1004,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             stepNum === 2 ? 'Technical Observations' :
                                 stepNum === 3 ? 'Client Training' :
                                     stepNum === 4 ? 'Material Supply' :
-                                        stepNum === 5 ? 'Delivery Details' : ''}
+                                        stepNum === 5 ? 'Material Need To Deliver' : ''}
                     </div>
 
                 </div>
@@ -731,21 +1024,27 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-6 py-6">
                             <div className="flex flex-col md:col-span-3">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    Client Name (ग्राहक नाम) <span className="text-red-500">*</span>
+                                    Select Customer (ग्राहक नाम) <span className="text-red-500">*</span>
                                 </label>
-                                <input
-                                    type="text"
-                                    name="clientName"
-                                    value={formData.clientName}
-                                    onChange={handleChange}
-                                    placeholder="Enter client name"
-                                    className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.clientName ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                        }`}
+
+                                <Select
+                                    options={customers}
+                                    value={formData.customers}
+                                    onChange={handleCustomerChange}
+                                    isClearable
+                                    isLoading={loadingCustomers}
+                                    placeholder={loadingCustomers ? 'Loading customers...' : 'Select customer...'}
+                                    classNamePrefix="react-select"
+                                    styles={{
+                                        menu: (provided) => ({ ...provided, zIndex: 9999 }),
+                                    }}
                                 />
-                                {errors.clientName && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.clientName}</span>
+
+                                {errors.customers && (
+                                    <span className="text-red-500 text-sm mt-1">{errors.customers}</span>
                                 )}
                             </div>
+
 
                             <YesNoSimple name="plantsWater" label="Are the Plants Getting Water (क्या पौधों को पानी मिल रहा है?)" />
                             <YesNoSimple name="waterAbovePump" label="Water above the pump (पंप के ऊपर पानी)" />
@@ -1183,19 +1482,14 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             {/* Materials Supplied */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    Materials Supplied (आपूर्ति की गई सामग्री) <span className="text-red-500">*</span>
+                                    Materials Supplied (सप्लाई किए जाने वाले सामान) <span className="text-red-500">*</span>
                                 </label>
 
                                 <Select
                                     isMulti
                                     options={plantOptions}
                                     value={formData.plants}
-                                    onChange={(selected) => {
-                                        setFormData({
-                                            ...formData,
-                                            plants: selected || [],
-                                        });
-                                    }}
+                                    onChange={handleStep4MaterialsSelection}
                                     classNamePrefix="react-select"
                                     placeholder="Select materials..."
                                     styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
@@ -1205,19 +1499,14 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     <span className="text-red-500 text-sm mt-1">{errors.plants}</span>
                                 )}
 
-                                {/* Show input if Others selected */}
+                                {/* ❗ If "Others" selected show input */}
                                 {formData.plants?.some((item) => item.value === "Others") && (
                                     <div className="mt-3">
                                         <input
                                             type="text"
                                             name="materialsOtherInput"
                                             value={formData.materialsOtherInput || ""}
-                                            onChange={(e) =>
-                                                setFormData({
-                                                    ...formData,
-                                                    materialsOtherInput: e.target.value,
-                                                })
-                                            }
+                                            onChange={handleStep4OtherInput}
                                             placeholder="Specify other material"
                                             className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialsOtherInput
                                                 ? "border-red-500 focus:ring-red-400"
@@ -1232,67 +1521,65 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         )}
                                     </div>
                                 )}
+
+                                {/* ✅ MATERIAL QUANTITY INPUTS */}
+                                {formData.plants && formData.plants.length > 0 && (
+                                    <div className="flex flex-col mt-4">
+                                        <label className="mb-2 font-medium text-gray-700">
+                                            Quantity of Materials <span className="text-red-500">*</span>
+                                        </label>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {/* Normal selected materials */}
+                                            {formData.plants
+                                                .filter((item) => item.value !== "Others")
+                                                .map((material) => (
+                                                    <div key={material.value} className="flex items-center gap-3">
+                                                        <label className="font-medium text-gray-600 min-w-[150px]">
+                                                            {material.label}:
+                                                        </label>
+
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={formData.plantQuantities?.[material.value] || ""}
+                                                            onChange={(e) => handleStep4QuantityChange(material.value, e.target.value)}
+                                                            placeholder="Qty"
+                                                            className="px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition border-gray-300 focus:ring-blue-400 flex-1"
+                                                        />
+                                                    </div>
+                                                ))}
+
+                                            {/* Quantity for OTHER typed value */}
+                                            {formData.plants?.some((item) => item.value === "Others") &&
+                                                formData.materialsOtherInput?.trim() !== "" && (
+                                                    <div className="flex items-center gap-3">
+                                                        <label className="font-medium text-gray-600 min-w-[150px]">
+                                                            {formData.materialsOtherInput}:
+                                                        </label>
+
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={formData.plantQuantities?.["Others"] || ""}
+                                                            onChange={(e) => handleStep4QuantityChange("Others", e.target.value)}
+                                                            placeholder="Qty"
+                                                            className="px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition border-gray-300 focus:ring-blue-400 flex-1"
+                                                        />
+                                                    </div>
+                                                )}
+                                        </div>
+
+                                        {errors.plantQuantities && (
+                                            <span className="text-red-500 text-sm mt-1">{errors.plantQuantities}</span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
-
-                            {/* Initial Row for Nutrients, Tank Capacity, and Number of Top-ups */}
-                            <div key="initial-row" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                {/* Nutrients */}
-                                <div className="flex flex-col">
-                                    <label className="mb-1 font-medium text-gray-700">
-                                        Nutrients (पोषक तत्व) <span className="text-red-500">*</span>
-                                    </label>
-                                    <Select
-                                        options={nutrientOptions}
-                                        value={nutrientOptions.find(opt => opt.value === formData.nutrientsData[0]?.nutrients)}
-                                        onChange={(selected) => handleDynamicFieldChange(0, 'nutrients', selected?.value || '')}
-                                        classNamePrefix="react-select"
-                                        placeholder="Select nutrient type..."
-                                    />
-                                    {errors.nutrientsData && errors.nutrientsData[0]?.nutrients && (
-                                        <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[0]?.nutrients}</span>
-                                    )}
-                                </div>
-
-                                {/* Tank Capacity */}
-                                <div className="flex flex-col">
-                                    <label className="mb-1 font-medium text-gray-700">
-                                        Tank Capacity (टैंक क्षमता) <span className="text-red-500">*</span>
-                                    </label>
-                                    <Select
-                                        options={tankCapacityOptions}
-                                        value={tankCapacityOptions.find(opt => opt.value === formData.nutrientsData[0]?.tankCapacity)}
-                                        onChange={(selected) => handleDynamicFieldChange(0, 'tankCapacity', selected?.value || '')}
-                                        classNamePrefix="react-select"
-                                        placeholder="Select tank capacity..."
-                                    />
-                                    {errors.nutrientsData && errors.nutrientsData[0]?.tankCapacity && (
-                                        <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[0]?.tankCapacity}</span>
-                                    )}
-                                </div>
-
-                                {/* Number of Top-ups */}
-                                <div className="flex flex-col">
-                                    <label className="mb-1 font-medium text-gray-700">
-                                        Number of Top-ups (टॉप-अप की संख्या) <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={formData.nutrientsData[0]?.numberOfTopups}
-                                        onChange={(e) => handleDynamicFieldChange(0, 'numberOfTopups', e.target.value)}
-                                        placeholder="Enter number of top-ups"
-                                        className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.nutrientsData && errors.nutrientsData[0]?.numberOfTopups ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'} w-full`}
-                                    />
-                                    {errors.nutrientsData && errors.nutrientsData[0]?.numberOfTopups && (
-                                        <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[0]?.numberOfTopups}</span>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Dynamic Fields for Additional Rows */}
-                            {formData.nutrientsData.slice(1).map((field, index) => (
-                                <div key={index + 1} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            {/* Dynamic Fields for Nutrients Data */}
+                            {formData.nutrientsData.map((field, index) => (
+                                <div key={index} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                     {/* Nutrients */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
@@ -1301,29 +1588,29 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         <Select
                                             options={nutrientOptions}
                                             value={nutrientOptions.find(opt => opt.value === field.nutrients)}
-                                            onChange={(selected) => handleDynamicFieldChange(index + 1, 'nutrients', selected?.value || '')}
+                                            onChange={(selected) => handleDynamicFieldChange(index, 'nutrients', selected?.value || '')}
                                             classNamePrefix="react-select"
                                             placeholder="Select nutrient type..."
                                         />
-                                        {errors.nutrientsData && errors.nutrientsData[index + 1]?.nutrients && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index + 1]?.nutrients}</span>
+                                        {errors.nutrientsData && errors.nutrientsData[index]?.nutrients && (
+                                            <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index]?.nutrients}</span>
                                         )}
                                     </div>
 
                                     {/* Tank Capacity */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Tank Capacity (टैंक क्षमता) <span className="text-red-500">*</span>
+                                            Tank Capacity in Litre (टैंक क्षमता लीटर में) <span className="text-red-500">*</span>
                                         </label>
                                         <Select
                                             options={tankCapacityOptions}
                                             value={tankCapacityOptions.find(opt => opt.value === field.tankCapacity)}
-                                            onChange={(selected) => handleDynamicFieldChange(index + 1, 'tankCapacity', selected?.value || '')}
+                                            onChange={(selected) => handleDynamicFieldChange(index, 'tankCapacity', selected?.value || '')}
                                             classNamePrefix="react-select"
                                             placeholder="Select tank capacity..."
                                         />
-                                        {errors.nutrientsData && errors.nutrientsData[index + 1]?.tankCapacity && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index + 1]?.tankCapacity}</span>
+                                        {errors.nutrientsData && errors.nutrientsData[index]?.tankCapacity && (
+                                            <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index]?.tankCapacity}</span>
                                         )}
                                     </div>
 
@@ -1336,12 +1623,12 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                             type="number"
                                             min="0"
                                             value={field.numberOfTopups}
-                                            onChange={(e) => handleDynamicFieldChange(index + 1, 'numberOfTopups', e.target.value)}
+                                            onChange={(e) => handleDynamicFieldChange(index, 'numberOfTopups', e.target.value)}
                                             placeholder="Enter number of top-ups"
-                                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.nutrientsData && errors.nutrientsData[index + 1]?.numberOfTopups ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'} w-full`}
+                                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.nutrientsData && errors.nutrientsData[index]?.numberOfTopups ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'} w-full`}
                                         />
-                                        {errors.nutrientsData && errors.nutrientsData[index + 1]?.numberOfTopups && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index + 1]?.numberOfTopups}</span>
+                                        {errors.nutrientsData && errors.nutrientsData[index]?.numberOfTopups && (
+                                            <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index]?.numberOfTopups}</span>
                                         )}
                                     </div>
                                 </div>
@@ -1444,7 +1731,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         </div>
                                     )}
 
-
                                     {/* Checkbox for "Material Needs to be delivered?" */}
                                     <div className="flex items-center mt-4">
                                         <input
@@ -1496,7 +1782,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     )}
                                 </div>
                             </div>
-
                         </div>
                     )}
 
@@ -1504,112 +1789,109 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                     {step === 5 && (
                         <div className="space-y-6 px-6 py-6 max-w-full overflow-x-hidden">
                             {/* Title */}
-                            <h3 className="font-semibold text-lg text-gray-800">Delivery Details</h3>
+                            <h3 className="font-semibold text-lg text-gray-800">Material Need To Deliver</h3>
 
                             {/* Materials Supplied */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    Materials Supplied (दी गई सामग्री) <span className="text-red-500">*</span>
+                                    Materials Delivered (डिलीवर किए जाने वाले सामान) <span className="text-red-500">*</span>
                                 </label>
 
                                 <Select
                                     isMulti
                                     options={plantOptions}
-                                    value={formData.step5Plants}   // <-- step5 state
-                                    onChange={(selected) => {
-                                        setFormData({
-                                            ...formData,
-                                            step5Plants: selected || [],
-                                        });
-                                    }}
+                                    value={formData.step5Plants}
+                                    onChange={handleStep5MaterialsSelection}
                                     classNamePrefix="react-select"
                                     placeholder="Select materials..."
                                     styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
                                 />
 
-                                {errors.plants && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.plants}</span>
-                                )}          
+                                {errors.step5Plants && (
+                                    <span className="text-red-500 text-sm mt-1">{errors.step5Plants}</span>
+                                )}
 
-                                {/* Show input if Others selected */}
+                                {/* ❗ If "Others" selected show input */}
                                 {formData.step5Plants?.some((item) => item.value === "Others") && (
                                     <div className="mt-3">
                                         <input
                                             type="text"
                                             name="step5MaterialsOtherInput"
                                             value={formData.step5MaterialsOtherInput || ""}
-                                            onChange={(e) =>
-                                                setFormData({
-                                                    ...formData,
-                                                    step5MaterialsOtherInput: e.target.value,
-                                                })
-                                            }
+                                            onChange={handleStep5OtherInput}
                                             placeholder="Specify other material"
-                                            className="px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition"
+                                            className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.step5MaterialsOtherInput
+                                                ? "border-red-500 focus:ring-red-400"
+                                                : "border-gray-300 focus:ring-blue-400"
+                                                }`}
                                         />
+
+                                        {errors.step5MaterialsOtherInput && (
+                                            <span className="text-red-500 text-sm mt-1">
+                                                {errors.step5MaterialsOtherInput}
+                                            </span>
+                                        )}
                                     </div>
                                 )}
 
+                                {/* ✅ MATERIAL QUANTITY INPUTS */}
+                                {formData.step5Plants && formData.step5Plants.length > 0 && (
+                                    <div className="flex flex-col mt-4">
+                                        <label className="mb-2 font-medium text-gray-700">
+                                            Quantity of Materials <span className="text-red-500">*</span>
+                                        </label>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {/* Normal selected materials */}
+                                            {formData.step5Plants
+                                                .filter((item) => item.value !== "Others")
+                                                .map((material) => (
+                                                    <div key={material.value} className="flex items-center gap-3">
+                                                        <label className="font-medium text-gray-600 min-w-[150px]">
+                                                            {material.label}:
+                                                        </label>
+
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={formData.step5PlantQuantities?.[material.value] || ""}
+                                                            onChange={(e) => handleStep5QuantityChange(material.value, e.target.value)}
+                                                            placeholder="Qty"
+                                                            className="px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition border-gray-300 focus:ring-blue-400 flex-1"
+                                                        />
+                                                    </div>
+                                                ))}
+
+                                            {/* Quantity for OTHER typed value */}
+                                            {formData.step5Plants?.some((item) => item.value === "Others") &&
+                                                formData.step5MaterialsOtherInput?.trim() !== "" && (
+                                                    <div className="flex items-center gap-3">
+                                                        <label className="font-medium text-gray-600 min-w-[150px]">
+                                                            {formData.step5MaterialsOtherInput}:
+                                                        </label>
+
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={formData.step5PlantQuantities?.["Others"] || ""}
+                                                            onChange={(e) => handleStep5QuantityChange("Others", e.target.value)}
+                                                            placeholder="Qty"
+                                                            className="px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition border-gray-300 focus:ring-blue-400 flex-1"
+                                                        />
+                                                    </div>
+                                                )}
+                                        </div>
+
+                                        {errors.step5PlantQuantities && (
+                                            <span className="text-red-500 text-sm mt-1">{errors.step5PlantQuantities}</span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Initial Row for Nutrients, Tank Capacity, and Number of Top-ups */}
-                            <div key="initial-row" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                {/* Nutrients */}
-                                <div className="flex flex-col">
-                                    <label className="mb-1 font-medium text-gray-700">
-                                        Nutrients (पोषक तत्व) <span className="text-red-500">*</span>
-                                    </label>
-                                    <Select
-                                        options={nutrientOptions}
-                                        value={nutrientOptions.find(opt => opt.value === formData.step5DynamicFields[0]?.nutrients)}
-                                        onChange={(selected) => handleStep5DynamicFieldChange(0, 'nutrients', selected?.value || '')}
-                                        classNamePrefix="react-select"
-                                        placeholder="Select nutrient type..."
-                                    />
-                                    {errors.step5DynamicFields && errors.step5DynamicFields[0]?.nutrients && (
-                                        <span className="text-red-500 text-sm mt-1">{errors.step5DynamicFields[0]?.nutrients}</span>
-                                    )}
-                                </div>
-
-                                {/* Tank Capacity */}
-                                <div className="flex flex-col">
-                                    <label className="mb-1 font-medium text-gray-700">
-                                        Tank Capacity (टैंक क्षमता) <span className="text-red-500">*</span>
-                                    </label>
-                                    <Select
-                                        options={tankCapacityOptions}
-                                        value={tankCapacityOptions.find(opt => opt.value === formData.step5DynamicFields[0]?.tankCapacity)}
-                                        onChange={(selected) => handleStep5DynamicFieldChange(0, 'tankCapacity', selected?.value || '')}
-                                        classNamePrefix="react-select"
-                                        placeholder="Select tank capacity..."
-                                    />
-                                    {errors.step5DynamicFields && errors.step5DynamicFields[0]?.tankCapacity && (
-                                        <span className="text-red-500 text-sm mt-1">{errors.step5DynamicFields[0]?.tankCapacity}</span>
-                                    )}
-                                </div>
-
-                                {/* Number of Top-ups */}
-                                <div className="flex flex-col">
-                                    <label className="mb-1 font-medium text-gray-700">
-                                        Number of Top-ups (टॉप-अप की संख्या) <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={formData.step5DynamicFields[0]?.numberOfTopups}
-                                        onChange={(e) => handleStep5DynamicFieldChange(0, 'numberOfTopups', e.target.value)}
-                                        placeholder="Enter number of top-ups"
-                                        className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.step5DynamicFields && errors.step5DynamicFields[0]?.numberOfTopups ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'} w-full`}
-                                    />
-                                    {errors.step5DynamicFields && errors.step5DynamicFields[0]?.numberOfTopups && (
-                                        <span className="text-red-500 text-sm mt-1">{errors.step5DynamicFields[0]?.numberOfTopups}</span>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Dynamic Fields for Additional Rows */}
-                            {formData.step5DynamicFields.slice(1).map((field, index) => (
-                                <div key={index + 1} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            {/* Dynamic Fields for Step 5 Nutrients Data */}
+                            {formData.step5DynamicFields.map((field, index) => (
+                                <div key={index} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                     {/* Nutrients */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
@@ -1618,47 +1900,47 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         <Select
                                             options={nutrientOptions}
                                             value={nutrientOptions.find(opt => opt.value === field.nutrients)}
-                                            onChange={(selected) => handleStep5DynamicFieldChange(index + 1, 'nutrients', selected?.value || '')}
+                                            onChange={(selected) => handleStep5DynamicFieldChange(index, 'nutrients', selected?.value || '')}
                                             classNamePrefix="react-select"
                                             placeholder="Select nutrient type..."
                                         />
-                                        {errors.step5DynamicFields && errors.step5DynamicFields[index + 1]?.nutrients && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.step5DynamicFields[index + 1]?.nutrients}</span>
+                                        {errors.step5DynamicFields && errors.step5DynamicFields[index]?.nutrients && (
+                                            <span className="text-red-500 text-sm mt-1">{errors.step5DynamicFields[index]?.nutrients}</span>
                                         )}
                                     </div>
 
                                     {/* Tank Capacity */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Tank Capacity (टैंक क्षमता) <span className="text-red-500">*</span>
+                                            Tank Capacity in Litre (टैंक क्षमता लीटर में) <span className="text-red-500">*</span>
                                         </label>
                                         <Select
                                             options={tankCapacityOptions}
                                             value={tankCapacityOptions.find(opt => opt.value === field.tankCapacity)}
-                                            onChange={(selected) => handleStep5DynamicFieldChange(index + 1, 'tankCapacity', selected?.value || '')}
+                                            onChange={(selected) => handleStep5DynamicFieldChange(index, 'tankCapacity', selected?.value || '')}
                                             classNamePrefix="react-select"
                                             placeholder="Select tank capacity..."
                                         />
-                                        {errors.step5DynamicFields && errors.step5DynamicFields[index + 1]?.tankCapacity && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.step5DynamicFields[index + 1]?.tankCapacity}</span>
+                                        {errors.step5DynamicFields && errors.step5DynamicFields[index]?.tankCapacity && (
+                                            <span className="text-red-500 text-sm mt-1">{errors.step5DynamicFields[index]?.tankCapacity}</span>
                                         )}
                                     </div>
 
                                     {/* Number of Top-ups */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Number of Top-ups <span className="text-red-500">*</span>
+                                            Number of Top-ups (टॉप-अप की संख्या) <span className="text-red-500">*</span>
                                         </label>
                                         <input
                                             type="number"
                                             min="0"
                                             value={field.numberOfTopups}
-                                            onChange={(e) => handleStep5DynamicFieldChange(index + 1, 'numberOfTopups', e.target.value)}
+                                            onChange={(e) => handleStep5DynamicFieldChange(index, 'numberOfTopups', e.target.value)}
                                             placeholder="Enter number of top-ups"
-                                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.step5DynamicFields && errors.step5DynamicFields[index + 1]?.numberOfTopups ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'} w-full`}
+                                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.step5DynamicFields && errors.step5DynamicFields[index]?.numberOfTopups ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'} w-full`}
                                         />
-                                        {errors.step5DynamicFields && errors.step5DynamicFields[index + 1]?.numberOfTopups && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.step5DynamicFields[index + 1]?.numberOfTopups}</span>
+                                        {errors.step5DynamicFields && errors.step5DynamicFields[index]?.numberOfTopups && (
+                                            <span className="text-red-500 text-sm mt-1">{errors.step5DynamicFields[index]?.numberOfTopups}</span>
                                         )}
                                     </div>
                                 </div>
@@ -1687,8 +1969,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             {/* Neem Oil */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    <Neem></Neem> Oil (
-                                        नीम का तेल) <span className="text-red-500">*</span>
+                                    Neem Oil (नीम का तेल) <span className="text-red-500">*</span>
                                 </label>
                                 <div className="flex gap-6 mt-2">
                                     <label className="flex items-center gap-2">
@@ -1716,6 +1997,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     <span className="text-red-500 text-sm mt-1">{errors.step5NeemOil}</span>
                                 )}
                             </div>
+
                             {/* Chargeable Items */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
@@ -1779,19 +2061,17 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             {/* Conditional Next/Submit Button */}
                             <button
                                 type="button"
-                                onClick={handleNext}
-                                className="btn-primary  px-6 py-2"
+                                onClick={(step === 5 || (step === 4 && !formData.materialNeedsDelivery))
+                                    ? handleSubmit
+                                    : handleNext}
+                                className="bg-[#9FC762] hover:bg-[#8DB350] text-white font-medium px-6 py-2 rounded-lg w-full md:w-auto transition"
                             >
-                                {step === 4 && formData.materialNeedsDelivery ? "Next"
-                                    : step === 5 ? "Submit"
-                                        : step < 4 ? "Next"
-                                            : "Submit"
-                                }
+                                {(step === 5 || (step === 4 && !formData.materialNeedsDelivery))
+                                    ? "Submit"
+                                    : "Next"}
                             </button>
-
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>

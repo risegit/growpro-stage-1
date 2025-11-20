@@ -32,6 +32,7 @@ export function DashboardNavbar() {
   const { pathname } = useLocation();
   const [layout, page] = pathname.split("/").filter((el) => el !== "");
 
+
   return (
     <Navbar
       color={fixedNavbar ? "white" : "transparent"}
@@ -88,7 +89,7 @@ export function DashboardNavbar() {
               className="hidden items-center gap-1 px-4 xl:flex normal-case"
             >
               <UserCircleIcon className="h-5 w-5 text-blue-gray-500" />
-              Sign In
+              Sign Out
             </Button>
             <IconButton
               variant="text"
