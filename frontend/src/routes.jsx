@@ -7,7 +7,8 @@ import {
   IdentificationIcon,
   MapPinIcon,
   ServerStackIcon,
-  
+  ArrowRightOnRectangleIcon,
+
 } from "@heroicons/react/24/solid";
 
 import {
@@ -36,6 +37,7 @@ import Viewvisits from "@/pages/dashboard/viewvisits";
 import Revisit from "@/pages/dashboard/revisit";
 
 import { SignIn } from "@/pages/auth";
+import LogoutButton from "./Components/LogoutButton";
 
 import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 
@@ -235,6 +237,12 @@ const routes = [
         name: "Sign In",
         path: "/sign-in",
         element: <SignIn />,
+      },
+      {
+        icon: <ArrowRightOnRectangleIcon {...icon} />,
+        name: "Sign Out",
+        path: "auth/sign-in",
+        element: <LogoutButton />,
       },
     ],
   },
