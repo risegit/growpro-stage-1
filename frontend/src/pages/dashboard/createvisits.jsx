@@ -1004,7 +1004,7 @@ const handleSubmit = async () => {
                             stepNum === 2 ? 'Technical Observations' :
                                 stepNum === 3 ? 'Client Training' :
                                     stepNum === 4 ? 'Material Supply' :
-                                        stepNum === 5 ? 'Delivery Details' : ''}
+                                        stepNum === 5 ? 'Material Need To Deliver' : ''}
                     </div>
 
                 </div>
@@ -1482,7 +1482,7 @@ const handleSubmit = async () => {
                             {/* Materials Supplied */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    Materials Supplied (आपूर्ति की गई सामग्री) <span className="text-red-500">*</span>
+                                    Materials Supplied (सप्लाई किए जाने वाले सामान) <span className="text-red-500">*</span>
                                 </label>
 
                                 <Select
@@ -1600,7 +1600,7 @@ const handleSubmit = async () => {
                                     {/* Tank Capacity */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Tank Capacity in Liter (टैंक क्षमता लीटर में) <span className="text-red-500">*</span>
+                                            Tank Capacity in Litre (टैंक क्षमता लीटर में) <span className="text-red-500">*</span>
                                         </label>
                                         <Select
                                             options={tankCapacityOptions}
@@ -1789,12 +1789,12 @@ const handleSubmit = async () => {
                     {step === 5 && (
                         <div className="space-y-6 px-6 py-6 max-w-full overflow-x-hidden">
                             {/* Title */}
-                            <h3 className="font-semibold text-lg text-gray-800">Delivery Details</h3>
+                            <h3 className="font-semibold text-lg text-gray-800">Material Need To Deliver</h3>
 
                             {/* Materials Supplied */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    Materials Supplied (आपूर्ति की गई सामग्री) <span className="text-red-500">*</span>
+                                    Materials Delivered (डिलीवर किए जाने वाले सामान) <span className="text-red-500">*</span>
                                 </label>
 
                                 <Select
@@ -1912,7 +1912,7 @@ const handleSubmit = async () => {
                                     {/* Tank Capacity */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Tank Capacity in Liter (टैंक क्षमता लीटर में) <span className="text-red-500">*</span>
+                                            Tank Capacity in Litre (टैंक क्षमता लीटर में) <span className="text-red-500">*</span>
                                         </label>
                                         <Select
                                             options={tankCapacityOptions}

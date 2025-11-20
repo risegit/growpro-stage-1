@@ -22,3 +22,9 @@
     float: left;
     text-align: center; 
 }
+/* @media(max-width:1700px){
+    .mobileResponsive{
+        height: 400px;
+        overflow: scroll; 
+    }
+} */

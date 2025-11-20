@@ -48,7 +48,7 @@ switch ($method) {
             }
             
         }else{
-            $result = $conn->query("SELECT * FROM users where role='customer' $whereAddition ORDER BY id DESC");
+            $result = $conn->query("SELECT * FROM users INNER JOIN customers_details ON users.id=customers_details.user_id where users.role='customer' $whereAddition ORDER BY id DESC");
             $data = [];
             while ($row = $result->fetch_assoc()) {
                 $data[] = $row;

@@ -137,23 +137,107 @@ export default function AMCForm() {
       setToast({ show: false, message: '', type: 'success' });
     }, duration);
   };
+  // const handleInputChange = (e) => {
+  //   const { name, value } = e.target;
+
+  //   // If user types into numeric fields, keep them as string until parse
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     [name]: value,
+  //   }));
+
+  //   if (errors[name]) {
+  //     setErrors((prev) => ({ ...prev, [name]: '' }));
+  //   }
+
+    
+  //   if (name === 'pricing' || name === 'transport' || name === 'gst') {
+  //     calculateTotal(name, value);
+  //   }
+  // };
+
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+  const { name, value } = e.target;
 
-    // If user types into numeric fields, keep them as string until parse
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  setFormData((prev) => ({
+    ...prev,
+    [name]: value,
+  }));
 
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+  // Clear error for this field
+  if (errors[name]) {
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+  }
+
+  // ==============================
+  // CASE 1: DURATION DROPDOWN CHANGED
+  // ==============================
+  if (name === "duration") {
+    // If user chooses OTHER
+    if (value === "other") {
+      setFormData((prev) => ({
+        ...prev,
+        duration: value,
+        validityFrom: "",
+        validityUpto: "",
+        otherDuration: "" // Allow user to type
+      }));
+      return;
     }
 
-    if (name === 'pricing' || name === 'transport' || name === 'gst') {
-      calculateTotal(name, value);
+    // If user selects predefined values (30, 60, 90…)
+    if (value !== "") {
+      const days = parseInt(value, 10);
+      const today = new Date();
+
+      const validityFrom = today.toISOString().split("T")[0];
+
+      const validityUptoDate = new Date();
+      validityUptoDate.setDate(validityUptoDate.getDate() + days);
+      const validityUpto = validityUptoDate.toISOString().split("T")[0];
+
+      setFormData((prev) => ({
+        ...prev,
+        duration: value,
+        validityFrom: validityFrom,
+        validityUpto: validityUpto,
+        otherDuration: "" // clear text field
+      }));
     }
-  };
+  }
+
+  // ==============================
+  // CASE 2: USER TYPING IN "OTHER DURATION"
+  // ==============================
+  if (name === "otherDuration") {
+    if (!isNaN(value) && value !== "") {
+      const days = parseInt(value, 10);
+      const today = new Date();
+
+      const validityFrom = today.toISOString().split("T")[0];
+
+      const validityUptoDate = new Date();
+      validityUptoDate.setDate(validityUptoDate.getDate() + days);
+      const validityUpto = validityUptoDate.toISOString().split("T")[0];
+
+      setFormData((prev) => ({
+        ...prev,
+        otherDuration: value,
+        validityFrom: validityFrom,
+        validityUpto: validityUpto,
+      }));
+    }
+  }
+
+  // ==============================
+  // PRICE RELATED FIELDS
+  // ==============================
+  if (name === "pricing" || name === "transport" || name === "gst") {
+    calculateTotal(name, value);
+  }
+};
+
+
 
   const growerHasOther = Array.isArray(formData.grower) && formData.grower.some((g) => g.label === "Other");
 

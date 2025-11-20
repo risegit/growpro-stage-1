@@ -201,17 +201,17 @@ const routes = [
               />
             ),
           },
-          {
-            name: "Revisit",
-            path: "/sitevisits/revisit",
-            allowedRoles: ["admin", "manager", "technician"],
-            element: (
-              <RoleProtectedRoute
-                element={<Revisit />}
-                allowedRoles={["admin", "manager", "technician"]}
-              />
-            ),
-          },
+          // {
+          //   name: "Revisit",
+          //   path: "/sitevisits/revisit",
+          //   allowedRoles: ["admin", "manager", "technician"],
+          //   element: (
+          //     <RoleProtectedRoute
+          //       element={<Revisit />}
+          //       allowedRoles={["admin", "manager", "technician"]}
+          //     />
+          //   ),
+          // },
         ],
       },
       {
@@ -234,6 +234,7 @@ const routes = [
     pages: [
       {
         icon: <ServerStackIcon {...icon} />,
+        hidden: true,
         name: "Sign In",
         path: "/sign-in",
         element: <SignIn />,

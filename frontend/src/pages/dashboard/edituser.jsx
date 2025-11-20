@@ -231,7 +231,7 @@ export default function EditUserForm() {
               onChange={handleInputChange}
               className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.role ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
             >
-              <option value="">Select role</option>
+              <option value="" disabled>Select role</option>
               <option value="admin">Admin</option>
               <option value="manager">Manager</option>
               <option value="technician">Technician</option>
@@ -331,11 +331,12 @@ export default function EditUserForm() {
               Phone Number(फ़ोन नंबर) <span className="text-red-500">*</span>
             </label>
             <input
-              type="tel"
+              type="number"
               name="phone"
               value={formData.phone}
               onChange={handleInputChange}
               placeholder="Enter phone number"
+              maxLength={13}
               className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.phone ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
             />
             {errors.phone && <span className="text-red-500 text-sm mt-1">{errors.phone}</span>}

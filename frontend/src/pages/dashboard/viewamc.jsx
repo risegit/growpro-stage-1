@@ -235,61 +235,97 @@ export default function UserTable() {
               {/* Mobile View */}
               <div className="block lg:hidden space-y-5">
                 {currentUsers.map((user) => {
-                  // Capitalize role for display
+                  
+                  const getAMCStatus = (validity_upto) => {
+                    const validityDate = new Date(validity_upto);
+                    const today = new Date();
+
+                    validityDate.setHours(0, 0, 0, 0);
+                    today.setHours(0, 0, 0, 0);
+
+                    const diffTime = validityDate - today;
+                    const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (daysLeft > 10) return "Active";
+                    if (daysLeft > 6) return "Renew Soon";
+                    return "Expired";
+                  };
+
+                  const daysLeft = Math.ceil(
+                    (new Date(user.validity_upto) - new Date()) / (1000 * 60 * 60 * 24)
+                  );
 
                   return (
                     <div
-                      key={user._id}
+                      key={user.id}
                       className="border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition bg-white"
                     >
-                      <div className="flex items-start gap-4 mb-5">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-800 text-lg mb-2">
-                            {user.name}
-                          </h3>
-
-                          {/* Role badge (same colors as desktop) */}
-                          
-                        </div>
-                      </div>
+                      <h3 className="font-semibold text-gray-800 text-lg mb-3">
+                        {user.name}
+                      </h3>
 
                       <div className="space-y-3 mb-5">
-                        {/* Email */}
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Email
-                          </span>
-                          <span className="text-sm text-gray-700 break-all">
-                            {user.email}
-                          </span>
-                        </div>
 
-                        {/* Mobile */}
+                        {/* Phone */}
                         <div className="flex flex-col">
                           <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Mobile
+                            Contact
                           </span>
                           <a
-                            href={`tel:${user.phone || user.mobile}`}
+                            href={`tel:${user.phone}`}
                             className="text-sm text-blue-600 hover:underline"
                           >
-                            {user.phone || user.mobile}
+                            {user.phone}
                           </a>
                         </div>
 
-                        {/* Status (same color logic as desktop) */}
+                        {/* Visits per Month */}
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                            Visits / Month
+                          </span>
+                          <span className="text-sm text-gray-700">
+                            {user.visits_per_month}
+                          </span>
+                        </div>
+
+                        {/* Days Left */}
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                            Days Left
+                          </span>
+                          <span className="text-sm text-gray-700">
+                            {daysLeft} days
+                          </span>
+                        </div>
+
+                        {/* Expiry date */}
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                            Expiry Date
+                          </span>
+                          <span className="text-sm text-gray-700">
+                            {formatDate(user.validity_upto)}
+                          </span>
+                        </div>
+
+                        {/* Status */}
                         <div className="flex flex-col">
                           <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
                             Status
                           </span>
                           <span
-                            className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide w-fit border-2
-                ${user.status === "active"
-                                ? "bg-green-600 text-white border-green-600"
-                                : "bg-red-600 text-white border-red-600"
-                              }`}
+                            className={`px-3 py-1 rounded-full text-xs font-bold w-fit
+                              ${
+                                getAMCStatus(user.validity_upto) === "Active"
+                                  ? "bg-green-600 text-white"
+                                  : getAMCStatus(user.validity_upto) === "Renew Soon"
+                                  ? "bg-orange-500 text-white"
+                                  : "bg-red-600 text-white"
+                              }
+                            `}
                           >
-                            {user.status === "active" ? "Active" : "Inactive"}
+                            {getAMCStatus(user.validity_upto)}
                           </span>
                         </div>
                       </div>
