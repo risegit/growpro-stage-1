@@ -120,6 +120,7 @@ export default function UserTable() {
                       <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Name</th>
                       <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">Contact</th>
                       <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">Visits per Month</th>
+                      {/* <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">Visit Pending</th> */}
                       <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Days Left</th>
                       <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Expire On</th>
                       <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">Action</th>
@@ -183,21 +184,25 @@ export default function UserTable() {
                               {user.visits_per_month}
                           </td>
 
-                          <td className="py-4 px-4 text-gray-700 truncate">
-  <p>
-    {Math.ceil((new Date(user.validity_upto) - new Date()) / (1000 * 60 * 60 * 24))} Days
-  </p>
+                          {/* <td className="py-4 px-4 text-gray-700 text-left truncate">
+                              {user.pending_visits}
+                          </td> */}
 
-  <em
-    className={`small-text py-1 rounded 
-      ${getAMCStatus(user.validity_upto) === "Active" ? " text-green-400" : ""}
-      ${getAMCStatus(user.validity_upto) === "Renew Soon" ? "text-red-300" : ""}
-      ${getAMCStatus(user.validity_upto) === "Expired" ? " text-red-600" : ""}
-    `}
-  >
-    ({formatDate(user.validity_upto)})
-  </em>
-</td>
+                          <td className="py-4 px-4 text-gray-700 truncate">
+                            <p>
+                              {Math.ceil((new Date(user.validity_upto) - new Date()) / (1000 * 60 * 60 * 24))} Days
+                            </p>
+
+                            <em
+                              className={`small-text py-1 rounded 
+                                ${getAMCStatus(user.validity_upto) === "Active" ? " text-green-400" : ""}
+                                ${getAMCStatus(user.validity_upto) === "Renew Soon" ? "text-red-300" : ""}
+                                ${getAMCStatus(user.validity_upto) === "Expired" ? " text-red-600" : ""}
+                              `}
+                            >
+                              ({formatDate(user.validity_upto)})
+                            </em>
+                          </td>
 
 
                           <td className="py-4 px-4 text-gray-700 truncate">
@@ -219,7 +224,7 @@ export default function UserTable() {
                           {/* Action */}
                           <td className="py-4 px-4 text-right">
                             <button
-                              onClick={() => handleEdit(user.id)}
+                              onClick={() => handleEdit(user.amc_id)}
                               className="px-4 py-2 btn-primary"
                             >
                               Edit
