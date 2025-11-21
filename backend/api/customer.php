@@ -74,7 +74,6 @@ switch ($method) {
         // $status = ($status === 'success' ? 'active' : 'inactive');
         // $growerdata=var_dump($_POST['growers']);
         $jsonGrowers = isset($_POST['growers']) ? $_POST['growers'] : '';
-
         $growers = json_decode($jsonGrowers, true);
 
         $profilePic = $_FILES['profilePic'] ?? null;
