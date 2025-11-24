@@ -533,17 +533,71 @@ useEffect(() => {
 //   }
 // };
 
+// const handleSubmit = async () => {
+//   try {
+//     const form = new FormData();
+
+//     // 1️⃣ Convert multi-select values into plain arrays
+//     const consumableIds = formData.consumables?.map(c => c.value) || [];
+//     // const systemTypeValues = formData.systemType?.map(s => s.value) || [];
+
+//     // 2️⃣ Append converted arrays properly
+//     form.append("consumables", JSON.stringify(consumableIds));
+//     // form.append("systemType", JSON.stringify(systemTypeValues));
+
+//     // 3️⃣ Append remaining fields except arrays
+//     Object.entries(formData).forEach(([key, value]) => {
+//       if (!["consumables", "grower", "customer"].includes(key)) {
+//         form.append(key, value ?? "");
+//       }
+//     });
+
+//     // 4️⃣ Additional fields
+//     form.append("id", id);
+//     form.append("_method", "PUT");
+
+//     // 🔍 DEBUG PRINT
+//     console.log("PAYLOAD SENDING:");
+//     for (let p of form.entries()) console.log(p[0], p[1]);
+
+//     // 5️⃣ Submit request
+//     const response = await fetch(
+//       `${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`,
+//       {
+//         method: "POST",
+//         body: form
+//       }
+//     );
+
+//     const result = await response.json();
+//     if (result.status === "success") {
+//         toast.success(result.message);
+//         setErrors({});
+//     } else {
+//       toast.error(result.error);
+//       // alert("Something went wrong. Please try again.");
+//     }
+//     console.log("API RESPONSE:", result);
+
+//   } catch (error) {
+//     console.error("Submit Error:", error);
+//   }
+// };
+
 const handleSubmit = async () => {
+  setLoading(true); // 🔥 Disable button + show “Please wait...”
+
   try {
+    // ⏳ Optional delay (1 second)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     const form = new FormData();
 
     // 1️⃣ Convert multi-select values into plain arrays
     const consumableIds = formData.consumables?.map(c => c.value) || [];
-    // const systemTypeValues = formData.systemType?.map(s => s.value) || [];
 
-    // 2️⃣ Append converted arrays properly
+    // 2️⃣ Append converted arrays
     form.append("consumables", JSON.stringify(consumableIds));
-    // form.append("systemType", JSON.stringify(systemTypeValues));
 
     // 3️⃣ Append remaining fields except arrays
     Object.entries(formData).forEach(([key, value]) => {
@@ -556,7 +610,6 @@ const handleSubmit = async () => {
     form.append("id", id);
     form.append("_method", "PUT");
 
-    // 🔍 DEBUG PRINT
     console.log("PAYLOAD SENDING:");
     for (let p of form.entries()) console.log(p[0], p[1]);
 
@@ -570,17 +623,20 @@ const handleSubmit = async () => {
     );
 
     const result = await response.json();
-    if (result.status === "success") {
-        toast.success(result.message);
-        setErrors({});
-    } else {
-      toast.error(result.error);
-      // alert("Something went wrong. Please try again.");
-    }
     console.log("API RESPONSE:", result);
+
+    if (result.status === "success") {
+      toast.success(result.message);
+      setErrors({});
+    } else {
+      toast.error(result.error || "Something went wrong!");
+    }
 
   } catch (error) {
     console.error("Submit Error:", error);
+    toast.error("Submission failed. Check console.");
+  } finally {
+    setLoading(false); // 🔥 Re-enable button
   }
 };
 
@@ -1024,11 +1080,11 @@ const handleSubmit = async () => {
           )}
           <button
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={loading}
             className={`btn-primary ${submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600'}`}
 
           >
-            {submitting ? 'Submitting...' : 'Submit'}
+            {loading ? "Please wait..." : "Submit (जमा करें)"}
           </button>
         </div>
       </div>

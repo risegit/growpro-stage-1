@@ -90,6 +90,7 @@ switch ($method) {
         $anyLeaks = $_POST['anyLeaks'] ?? '';
         $cleanEnvironment = $_POST['cleanEnvironment'] ?? '';
         $electricSecured = $_POST['electricSecured'] ?? '';
+        $userCode = $_POST['user_code'] ?? '';
 
         // Technical Observation
         $initialPh = $_POST['initialPh'] ?? '';
@@ -188,7 +189,7 @@ switch ($method) {
         // $destination = dirname(__DIR__) . '/' . $profilePicPath;
         // compressImage($profilePic['tmp_name'], $destination, 80);
 
-        $sql = "INSERT INTO `site_visit`(`customer_id`, `visited_by`, `are_plants_getting_water`, `water_above_pump`, `timer_working`,`timer_issue`, `motor_working`, `motor_issue`, `light_working`, `light_issue`, `equipment_damaged`, `damaged_items`, `any_leaks`, `clean_equipment`, `electric_connections_secured`, `initial_ph`, `corrected_ph`, `initial_tds`, `corrected_tds`, `presence_of_pests`, `nutrient_deficiency`, `deficiency_types`, `which_crop`, `client_training_harvest`, `pest_management`, `equipment_cleaning`, `plant_maintenance`, `scope_of_improvement`, `material_supplied_neemoil`, `created_date`, `created_time`) VALUES ('$customerId','technician','$plantsWater','$waterAbovePump','$timerWorking','$timerIssue','$motorWorking','$motorIssue','$lightsWorking','$lightsIssue','$equipmentDamaged','$equipmentDamageDetails','$anyLeaks','$cleanEnvironment','$electricSecured','$initialPh','$correctedPh','$initialTds','$correctedTds','$pestsPresent','$nutrientDeficiency','$deficiencyDetails','$cropNames','$harvestTraining','$pestManagement','$equipmentCleaning','$plantMaintenance','$scopesOfImprovement','$material_supplied_neemoil','$date','$time')";
+        $sql = "INSERT INTO `site_visit`(`customer_id`, `visited_by`, `are_plants_getting_water`, `water_above_pump`, `timer_working`,`timer_issue`, `motor_working`, `motor_issue`, `light_working`, `light_issue`, `equipment_damaged`, `damaged_items`, `any_leaks`, `clean_equipment`, `electric_connections_secured`, `initial_ph`, `corrected_ph`, `initial_tds`, `corrected_tds`, `presence_of_pests`, `nutrient_deficiency`, `deficiency_types`, `which_crop`, `client_training_harvest`, `pest_management`, `equipment_cleaning`, `plant_maintenance`, `scope_of_improvement`, `material_supplied_neemoil`, `created_date`, `created_time`) VALUES ('$customerId','$userCode','$plantsWater','$waterAbovePump','$timerWorking','$timerIssue','$motorWorking','$motorIssue','$lightsWorking','$lightsIssue','$equipmentDamaged','$equipmentDamageDetails','$anyLeaks','$cleanEnvironment','$electricSecured','$initialPh','$correctedPh','$initialTds','$correctedTds','$pestsPresent','$nutrientDeficiency','$deficiencyDetails','$cropNames','$harvestTraining','$pestManagement','$equipmentCleaning','$plantMaintenance','$scopesOfImprovement','$material_supplied_neemoil','$date','$time')";
         echo json_encode(["status" => "success", "message" => $sql]);
         if ($conn->query($sql)) {
             $visit_id = $conn->insert_id;

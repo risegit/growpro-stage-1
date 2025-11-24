@@ -146,9 +146,6 @@ export default function UserTable() {
                         <td className="py-4 px-4 text-gray-700">
                           <a href={`mailto:${user.email}`}>{user.email}</a>
                         </td>
-                        <td className="py-4 px-4 text-gray-700">
-                          <a href={`mailto:${user.email}`}>{user.email}</a>
-                        </td>
                         <td className="py-4 px-4">
                           <span
                             className={`px-3 py-1 rounded-lg text-sm font-medium ${user.status === "active"
@@ -162,7 +159,7 @@ export default function UserTable() {
                         {userRole !== "manager" && (
                           <td className="py-4 px-4 text-right">
                             <button
-                              onClick={() => handleEdit(user.id)}
+                              onClick={() => handleEdit(user.user_id)}
                               className="px-4 py-2 btn-primary"
                             >
                               Edit

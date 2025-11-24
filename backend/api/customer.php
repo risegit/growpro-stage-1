@@ -15,7 +15,7 @@ if ($method === 'POST' && isset($_POST['_method'])) {
     $method = strtoupper($_POST['_method']);
 }
 
-$whereAddition = ($userStatus === 'active') ? "and status='active'" : "";
+$whereAddition = ($userStatus === 'active') ? "and users.status='active'" : "";
 
 switch ($method) {
 
@@ -48,7 +48,7 @@ switch ($method) {
             }
             
         }else{
-            $result = $conn->query("SELECT * FROM users INNER JOIN customers_details ON users.id=customers_details.user_id where users.role='customer' $whereAddition ORDER BY id DESC");
+            $result = $conn->query("SELECT * FROM users INNER JOIN customers_details ON users.id=customers_details.user_id where users.role='customer' $whereAddition ORDER BY users.id DESC");
             $data = [];
             while ($row = $result->fetch_assoc()) {
                 $data[] = $row;

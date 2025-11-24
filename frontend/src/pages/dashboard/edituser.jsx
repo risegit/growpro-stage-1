@@ -3,218 +3,260 @@ import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 export default function EditUserForm() {
-    const { id } = useParams();
+  const { id } = useParams();
 
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        password: '',
-        phone: '',
-        aadhaarNo: '',
-        bankName: '',
-        accountNumber: '',
-        ifscNo: '',
-        profilePic: null,
-        state: '',
-        city: '',
-        locality: '',
-        landmark: '',
-        pincode: '',
-        streetAddress: '',
-        role: ''
-    });
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    aadhaarNo: '',
+    bankName: '',
+    accountNumber: '',
+    ifscNo: '',
+    profilePic: null,
+    state: '',
+    city: '',
+    locality: '',
+    landmark: '',
+    pincode: '',
+    streetAddress: '',
+    role: ''
+  });
 
-    const [showCopied, setShowCopied] = useState(false);
-    const [cities, setCities] = useState([]);
-    const [errors, setErrors] = useState({});
-    const [loading, setLoading] = useState(false);
+  const [showCopied, setShowCopied] = useState(false);
+  const [cities, setCities] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
-    const statesAndCities = {
-        Maharashtra: ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
-        Karnataka: ['Bengaluru', 'Mysore', 'Mangalore'],
-        Gujarat: ['Ahmedabad', 'Surat', 'Vadodara'],
-        Delhi: ['New Delhi', 'Central Delhi', 'South Delhi', 'North Delhi'],
-        'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem']
-    };
 
-    // 🟢 Fetch user details when component loads
-    useEffect(() => {
-        const fetchUser = async () => {
-            if (!id) return;
-            setLoading(true);
-            try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php?id=${id}`);
-                const data = await response.json();
 
-                console.log("Fetched user data:", data);
+  const statesAndCities = {
+    Maharashtra: ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
+    Karnataka: ['Bengaluru', 'Mysore', 'Mangalore'],
+    Gujarat: ['Ahmedabad', 'Surat', 'Vadodara'],
+    Delhi: ['New Delhi', 'Central Delhi', 'South Delhi', 'North Delhi'],
+    'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem']
+  };
 
-                if (data.status === "success" && data.data) {
-                    const user = data.data;
+  // 🟢 Fetch user details when component loads
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php?id=${id}`);
+        const data = await response.json();
 
-                    setFormData({
-                        name: user.name || '',
-                        email: user.email || '',
-                        password: '',
-                        phone: user.phone || '',
-                        aadhaarNo: user.aadhaar_no || '',
-                        bankName: user.bank_name || '',
-                        accountNumber: user.acc_no || '',
-                        ifscNo: user.IFSC_code || '',
-                        state: user.state || '',
-                        city: user.city || '',
-                        locality: user.locality || '',
-                        landmark: user.landmark || '',
-                        pincode: user.pincode || '',
-                        streetAddress: user.street_address || '',
-                        role: user.role || '',
-                        profilePic: user.profile_pic ? `${import.meta.env.VITE_API_URL}uploads/users/${user.profile_pic}` : ''
-                    });
+        console.log("Fetched user data:", data);
 
-                    if (user.state && statesAndCities[user.state]) {
-                        setCities(statesAndCities[user.state]);
-                    }
-                } else {
-                    alert('User not found!');
-                }
-            } catch (error) {
-                console.error('Error fetching user:', error);
-                alert('Failed to fetch user details!');
-            } finally {
-                setLoading(false);
-            }
-        };
+        if (data.status === "success" && data.data) {
+          const user = data.data;
 
-        fetchUser();
-    }, [id]);
+          setFormData({
+            name: user.name || '',
+            email: user.email || '',
+            password: '',
+            phone: user.phone || '',
+            aadhaarNo: user.aadhaar_no || '',
+            bankName: user.bank_name || '',
+            accountNumber: user.acc_no || '',
+            ifscNo: user.IFSC_code || '',
+            state: user.state || '',
+            city: user.city || '',
+            locality: user.locality || '',
+            landmark: user.landmark || '',
+            pincode: user.pincode || '',
+            streetAddress: user.street_address || '',
+            role: user.role || '',
+            profilePic: user.profile_pic ? `${import.meta.env.VITE_API_URL}uploads/users/${user.profile_pic}` : ''
+          });
 
-    // 🟡 Input handlers
-    const handleStateChange = (e) => {
-        const selectedState = e.target.value;
-        setFormData({ ...formData, state: selectedState, city: '' });
-        setCities(statesAndCities[selectedState] || []);
-        if (errors.state) setErrors({ ...errors, state: '' });
-    };
-
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-        if (errors[name]) setErrors({ ...errors, [name]: '' });
-    };
-
-    const handleAccountNumberChange = (e) => {
-        const value = e.target.value.replace(/\D/g, '');
-        if (value.length <= 18) {
-            setFormData(prev => ({ ...prev, accountNumber: value }));
-            if (errors.accountNumber) setErrors({ ...errors, accountNumber: '' });
+          if (user.state && statesAndCities[user.state]) {
+            setCities(statesAndCities[user.state]);
+          }
+        } else {
+          alert('User not found!');
         }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        alert('Failed to fetch user details!');
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const handleIFSCChange = (e) => {
-        const value = e.target.value.toUpperCase();
-        if (value.length <= 11) {
-            setFormData(prev => ({ ...prev, ifscNo: value }));
-            if (errors.ifscNo) setErrors({ ...errors, ifscNo: '' });
+    fetchUser();
+  }, [id]);
+
+  // 🟡 Input handlers
+  const handleStateChange = (e) => {
+    const selectedState = e.target.value;
+    setFormData({ ...formData, state: selectedState, city: '' });
+    setCities(statesAndCities[selectedState] || []);
+    if (errors.state) setErrors({ ...errors, state: '' });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors({ ...errors, [name]: '' });
+  };
+
+  const handleAccountNumberChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 18) {
+      setFormData(prev => ({ ...prev, accountNumber: value }));
+      if (errors.accountNumber) setErrors({ ...errors, accountNumber: '' });
+    }
+  };
+
+  const handleIFSCChange = (e) => {
+    const value = e.target.value.toUpperCase();
+    if (value.length <= 11) {
+      setFormData(prev => ({ ...prev, ifscNo: value }));
+      if (errors.ifscNo) setErrors({ ...errors, ifscNo: '' });
+    }
+  };
+
+  const handlePincodeChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 6) {
+      setFormData(prev => ({ ...prev, pincode: value }));
+      if (errors.pincode) setErrors({ ...errors, pincode: '' });
+    }
+  };
+
+  const handleFileChange = (e) => {
+    setFormData(prev => ({ ...prev, profilePic: e.target.files[0] }));
+  };
+
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$';
+    let password = '';
+    for (let i = 0; i < 10; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setFormData(prev => ({ ...prev, password }));
+    if (errors.password) setErrors({ ...errors, password: '' });
+  };
+
+  // 🔵 Validation
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email';
+    if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
+    else if (!/^\d{10}$/.test(formData.phone)) newErrors.phone = 'Phone must be 10 digits';
+    if (!formData.role) newErrors.role = 'Role is required';
+
+    if (['manager', 'technician'].includes(formData.role)) {
+      if (!formData.aadhaarNo.trim()) newErrors.aadhaarNo = 'Aadhaar required';
+      else if (!/^\d{12}$/.test(formData.aadhaarNo.trim())) newErrors.aadhaarNo = 'Must be 12 digits';
+      if (!formData.bankName.trim()) newErrors.bankName = 'Bank name required';
+      if (!formData.accountNumber) newErrors.accountNumber = 'Account number required';
+      else if (formData.accountNumber.length < 9 || formData.accountNumber.length > 18)
+        newErrors.accountNumber = 'Must be 9-18 digits';
+      if (!formData.ifscNo) newErrors.ifscNo = 'IFSC required';
+      else if (formData.ifscNo.length !== 11)
+        newErrors.ifscNo = 'Must be 11 characters';
+      else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscNo))
+        newErrors.ifscNo = 'Invalid IFSC format';
+    }
+
+    if (!formData.state) newErrors.state = "State required";
+    if (!formData.city) newErrors.city = "City required";
+    if (!formData.locality.trim()) newErrors.locality = "Locality required";
+    if (!formData.landmark.trim()) newErrors.landmark = "Landmark required";
+    if (!formData.pincode) newErrors.pincode = "Pincode required";
+    else if (formData.pincode.length !== 6)
+      newErrors.pincode = "Must be 6 digits";
+    if (!formData.streetAddress.trim()) newErrors.streetAddress = "Address required";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // 🟢 Submit handler
+  // const handleSubmit = async () => {
+  //     if (!validateForm()) return;
+  //     try {
+  //         const form = new FormData();
+  //         Object.entries(formData).forEach(([key, value]) => {
+  //             if (value !== null) form.append(key, value);
+  //         });
+  //         form.append('id', id);
+  //         form.append('_method', 'PUT');
+
+  //         //   console.log("Form data entries:");
+  //         //   for (let [key, value] of form.entries()) {
+  //         //     console.log(key, ":", value);
+  //         //   }
+
+
+  //         const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php?id=${id}`, {
+  //             method: 'POST',
+  //             body: form,
+  //         });
+
+  //         const result = await response.json();
+  //         //   console.log("Updated fields:", result.data);
+
+  //         if (result.status) {
+  //             toast.success(result.message);
+  //         } else {
+  //             toast.error(result.message);
+  //             // alert(result.message || 'Failed to update user');
+  //         }
+  //     } catch (error) {
+  //         console.error('Error submitting form:', error);
+  //         toast.error('Something went wrong!');
+  //     }
+  // };
+
+ const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true); // Disable button + change label
+
+    try {
+        // ⏳ Add delay before submitting (Adjust time in ms)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const form = new FormData();
+        Object.entries(formData).forEach(([key, value]) => {
+            if (value !== null) form.append(key, value);
+        });
+
+        form.append('id', id);
+        form.append('_method', 'PUT');
+
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php?id=${id}`, {
+            method: 'POST',
+            body: form,
+        });
+
+        const result = await response.json();
+
+        if (result.status) {
+            toast.success(result.message);
+        } else {
+            toast.error(result.message);
         }
-    };
 
-    const handlePincodeChange = (e) => {
-        const value = e.target.value.replace(/\D/g, '');
-        if (value.length <= 6) {
-            setFormData(prev => ({ ...prev, pincode: value }));
-            if (errors.pincode) setErrors({ ...errors, pincode: '' });
-        }
-    };
-
-    const handleFileChange = (e) => {
-        setFormData(prev => ({ ...prev, profilePic: e.target.files[0] }));
-    };
-
-    const generatePassword = () => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$';
-        let password = '';
-        for (let i = 0; i < 10; i++) {
-            password += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        setFormData(prev => ({ ...prev, password }));
-        if (errors.password) setErrors({ ...errors, password: '' });
-    };
-
-    // 🔵 Validation
-    const validateForm = () => {
-        const newErrors = {};
-        if (!formData.name.trim()) newErrors.name = 'Name is required';
-        if (!formData.email.trim()) newErrors.email = 'Email is required';
-        else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email';
-        if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
-        else if (!/^\d{10}$/.test(formData.phone)) newErrors.phone = 'Phone must be 10 digits';
-        if (!formData.role) newErrors.role = 'Role is required';
-
-        if (['manager', 'technician'].includes(formData.role)) {
-            if (!formData.aadhaarNo.trim()) newErrors.aadhaarNo = 'Aadhaar required';
-            else if (!/^\d{12}$/.test(formData.aadhaarNo.trim())) newErrors.aadhaarNo = 'Must be 12 digits';
-            if (!formData.bankName.trim()) newErrors.bankName = 'Bank name required';
-            if (!formData.accountNumber) newErrors.accountNumber = 'Account number required';
-            else if (formData.accountNumber.length < 9 || formData.accountNumber.length > 18)
-                newErrors.accountNumber = 'Must be 9-18 digits';
-            if (!formData.ifscNo) newErrors.ifscNo = 'IFSC required';
-            else if (formData.ifscNo.length !== 11)
-                newErrors.ifscNo = 'Must be 11 characters';
-            else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscNo))
-                newErrors.ifscNo = 'Invalid IFSC format';
-        }
-
-        if (!formData.state) newErrors.state = "State required";
-        if (!formData.city) newErrors.city = "City required";
-        if (!formData.locality.trim()) newErrors.locality = "Locality required";
-        if (!formData.landmark.trim()) newErrors.landmark = "Landmark required";
-        if (!formData.pincode) newErrors.pincode = "Pincode required";
-        else if (formData.pincode.length !== 6)
-            newErrors.pincode = "Must be 6 digits";
-        if (!formData.streetAddress.trim()) newErrors.streetAddress = "Address required";
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    // 🟢 Submit handler
-    const handleSubmit = async () => {
-        if (!validateForm()) return;
-        try {
-            const form = new FormData();
-            Object.entries(formData).forEach(([key, value]) => {
-                if (value !== null) form.append(key, value);
-            });
-            form.append('id', id);
-            form.append('_method', 'PUT');
-
-            //   console.log("Form data entries:");
-            //   for (let [key, value] of form.entries()) {
-            //     console.log(key, ":", value);
-            //   }
+    } catch (error) {
+        console.error('Error submitting form:', error);
+        toast.error('Something went wrong!');
+    } finally {
+        setLoading(false); // Re-enable button
+    }
+};
 
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php?id=${id}`, {
-                method: 'POST',
-                body: form,
-            });
 
-            const result = await response.json();
-            //   console.log("Updated fields:", result.data);
-
-            if (result.status) {
-                toast.success(result.message);
-            } else {
-                toast.error(result.message);
-                // alert(result.message || 'Failed to update user');
-            }
-        } catch (error) {
-            console.error('Error submitting form:', error);
-            toast.error('Something went wrong!');
-        }
-    };
-
-    // 🧩 UI Rendering
-    return (
-       <div className="w-full min-h-screen bg-gray-100 mt-10">
+  // 🧩 UI Rendering
+  return (
+    <div className="w-full min-h-screen bg-gray-100 mt-10">
       <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
         <div className="px-6 py-4 border-b">
           <h1 className="text-2xl font-bold mb-6 text-gray-800">Edit an User</h1>
@@ -542,12 +584,14 @@ export default function EditUserForm() {
         <div className="flex justify-end px-6 py-4">
           <button
             onClick={handleSubmit}
-            className="px-6 py-2 btn-primary"
+            disabled={loading}
+            className={`px-6 py-2 btn-primary ${loading ? "opacity-60 cursor-not-allowed" : ""}`}
           >
-            Submit(जमा करें)
+            {loading ? "Please wait..." : "Submit (जमा करें)"}
           </button>
+
         </div>
       </div>
     </div>
-    );
+  );
 }
