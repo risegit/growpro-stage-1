@@ -8,9 +8,10 @@
 }
 /* globals.css */
 .btn-primary {
-  @apply px-6 py-2 bg-[#e17a00] text-white font-medium rounded-lg 
-         
-         focus:ring-[#e17a00] focus:ring-offset-2 transition-colors;
+   @apply px-6 py-2 bg-[#e17a00] text-white font-medium rounded-lg 
+         hover:bg-[#9FC762]
+         focus:ring-[#e17a00] focus:ring-offset-2 
+         transition-colors;
 }
 .small-text{
     font-size: 13px;
