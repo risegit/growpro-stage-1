@@ -155,6 +155,19 @@ switch ($method) {
 
             if ($conn->query($sql)) {
                 $user_id = $conn->insert_id;
+                // 2. Generate prefix based on role
+                $roleLower = strtolower(trim($_POST['role']));
+                $prefix = '';
+
+                if ($roleLower === 'manager') $prefix = 'MN';
+                elseif ($roleLower === 'admin') $prefix = 'AD';
+                elseif ($roleLower === 'technician') $prefix = 'TC';
+                else $prefix = 'OT'; // default prefix
+                // 3. Generate user_code (example: MN0023)
+                $user_code = $prefix . str_pad($user_id, 4, '0', STR_PAD_LEFT);
+                // 4. Update user_code back into users table
+                $conn->query("UPDATE users SET user_code = '$user_code' WHERE id = '$user_id'");
+
                 $role = strtolower(trim($_POST['role'] ?? ''));
                 if (in_array($role, ['admin','manager', 'technician'])) {
                     $sql2 = "INSERT INTO employee_other_details
@@ -167,7 +180,7 @@ switch ($method) {
                 echo json_encode([
                     "status" => "success",
                     "message" => "User added successfully!",
-                    "data" => ['user_id' => $user_id]
+                    "data" => ['user_id' => $user_id,'user_code' => $user_code]
                 ]);
             } else {
                 unlink(dirname(__DIR__) . '/' . $profilePicPath);
@@ -296,38 +309,29 @@ switch ($method) {
                     $conn->query($sqlUpdateUser1);
                 }
             }
+            // Auto generate code if empty
+        $checkCode = $conn->query("SELECT user_code, role FROM users WHERE id='$user_id'");
+        if ($checkCode && $checkCode->num_rows > 0) {
+            $row = $checkCode->fetch_assoc();
+
+            if (empty($row['user_code'])) {
+                $roleLower = strtolower(trim($row['role']));
+                $prefix = ($roleLower === 'admin') ? 'AD' :
+                          (($roleLower === 'manager') ? 'MN' :
+                          (($roleLower === 'technician') ? 'TC' : 'US'));
+
+                $user_code = $prefix . str_pad($user_id, 4, '0', STR_PAD_LEFT);
+
+                $conn->query("UPDATE users SET user_code='$user_code' WHERE id='$user_id'");
+            }
         }
 
-        
+        }
 
         echo json_encode([
             "status" => "success",
             "message" => "User details updated successfully"            
         ]);
-
-        // Update employee details if applicable
-        // if (in_array($role, ['admin','manager', 'technician'])) {
-        //     $sqlCheck = $conn->query("SELECT id FROM employee_other_details WHERE user_id='$user_id'");
-        //     if ($sqlCheck->num_rows > 0) {
-        //         $sqlUpdateDetails = "UPDATE employee_other_details 
-        //             SET aadhaar_no='$aadharno', bank_name='$bankName', acc_no='$accountNumber', IFSC_code='$ifscNo',
-        //                 state='$state', city='$city', pincode='$pincode', street_address='$streetAddress', date='$date', time='$time'
-        //             WHERE user_id='$user_id'";
-        //         $conn->query($sqlUpdateDetails);
-        //     } else {
-        //         $sqlInsertDetails = "INSERT INTO employee_other_details 
-        //             (user_id, aadhaar_no, bank_name, acc_no, IFSC_code, state, city, pincode, street_address, date, time)
-        //             VALUES 
-        //             ('$user_id', '$aadharno', '$bankName', '$accountNumber', '$ifscNo', '$state', '$city', '$pincode', '$streetAddress', '$date', '$time')";
-        //         $conn->query($sqlInsertDetails);
-        //     }
-        // }
-
-        // echo json_encode([
-        //     "status" => "success",
-        //     "message" => "User updated successfully",
-        //     "data" => ["data" => $name]
-        // ]);
         break;
 
 

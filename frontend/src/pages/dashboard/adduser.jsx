@@ -27,6 +27,8 @@ export default function AddUserForm() {
     const fileInputRef = useRef(null);
 
     const [previewImage, setPreviewImage] = useState(null);
+    const [loading, setLoading] = useState(false);
+
 
 
 
@@ -212,10 +214,67 @@ export default function AddUserForm() {
 
     };
 
+    // const handleSubmit = async () => {
+    //     if (!validateForm()) return;
+
+    //     try {
+    //         const form = new FormData();
+    //         Object.entries(formData).forEach(([key, value]) => {
+    //             if (value !== null) form.append(key, value);
+    //         });
+
+    //         const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php`, {
+    //             method: 'POST',
+    //             body: form,
+    //         });
+
+    //         const result = await response.json();
+    //         // alert(`result1 = ${result.message}`);
+    //         if (result.status == 'success') {
+    //             toast.success(result.message);
+    //             setFormData({
+    //                 name: '',
+    //                 email: '',
+    //                 password: '',
+    //                 phone: '',
+    //                 bankName: '',
+    //                 accountNumber: '',
+    //                 ifscNo: '',
+    //                 profilePic: null,
+    //                 locality: '',
+    //                 landmark: '',
+    //                 state: '',
+    //                 city: '',
+    //                 pincode: '',
+    //                 streetAddress: '',
+    //                 role: '',
+    //                 aadhaarNo: ''
+    //             });
+    //             setCities([]);
+    //             setErrors({});
+    //             if (fileInputRef.current) {
+    //                 fileInputRef.current.value = "";
+    //             }
+
+    //         } else {
+    //             toast.error(result.message || 'Failed to add user');
+    //         }
+
+    //     } catch (error) {
+    //         // console.error('Error submitting form:', error);
+    //         toast.error('Something went wrong!');
+    //     }
+    // };
+
+
     const handleSubmit = async () => {
         if (!validateForm()) return;
 
+        setLoading(true); // 🔥 Start loading (disable button + change label)
+
         try {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+    
             const form = new FormData();
             Object.entries(formData).forEach(([key, value]) => {
                 if (value !== null) form.append(key, value);
@@ -227,9 +286,10 @@ export default function AddUserForm() {
             });
 
             const result = await response.json();
-            // alert(`result1 = ${result.message}`);
+
             if (result.status == 'success') {
                 toast.success(result.message);
+
                 setFormData({
                     name: '',
                     email: '',
@@ -248,8 +308,10 @@ export default function AddUserForm() {
                     role: '',
                     aadhaarNo: ''
                 });
+
                 setCities([]);
                 setErrors({});
+
                 if (fileInputRef.current) {
                     fileInputRef.current.value = "";
                 }
@@ -259,8 +321,9 @@ export default function AddUserForm() {
             }
 
         } catch (error) {
-            // console.error('Error submitting form:', error);
             toast.error('Something went wrong!');
+        } finally {
+            setLoading(false);  // 🔥 Stop loading
         }
     };
 
@@ -380,7 +443,7 @@ export default function AddUserForm() {
 
                     <div className="flex flex-col">
                         <label className="mb-1 font-medium text-gray-700">
-                           Profile Pic
+                            Profile Pic
                         </label>
 
                         <div className="flex items-center gap-3">
@@ -564,12 +627,16 @@ export default function AddUserForm() {
 
                 {/* Submit Button */}
                 <div className="flex justify-end px-6 py-4">
-                    <button
-                        onClick={handleSubmit}
-                        className="btn-primary "
-                    >
-                        Submit (जमा करें)
-                    </button>
+                    <div className="flex justify-end px-6 py-4">
+                        <button
+                            onClick={handleSubmit}
+                            disabled={loading}
+                            className={`btn-primary ${loading ? "opacity-60 cursor-not-allowed" : ""}`}
+                        >
+                            {loading ? "Please wait..." : "Submit (जमा करें)"}
+                        </button>
+                    </div>
+
                 </div>
             </div>
         </div>

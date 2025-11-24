@@ -150,92 +150,92 @@ export default function AMCForm() {
   //     setErrors((prev) => ({ ...prev, [name]: '' }));
   //   }
 
-    
+
   //   if (name === 'pricing' || name === 'transport' || name === 'gst') {
   //     calculateTotal(name, value);
   //   }
   // };
 
   const handleInputChange = (e) => {
-  const { name, value } = e.target;
+    const { name, value } = e.target;
 
-  setFormData((prev) => ({
-    ...prev,
-    [name]: value,
-  }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
 
-  // Clear error for this field
-  if (errors[name]) {
-    setErrors((prev) => ({ ...prev, [name]: "" }));
-  }
-
-  // ==============================
-  // CASE 1: DURATION DROPDOWN CHANGED
-  // ==============================
-  if (name === "duration") {
-    // If user chooses OTHER
-    if (value === "other") {
-      setFormData((prev) => ({
-        ...prev,
-        duration: value,
-        validityFrom: "",
-        validityUpto: "",
-        otherDuration: "" // Allow user to type
-      }));
-      return;
+    // Clear error for this field
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
 
-    // If user selects predefined values (30, 60, 90…)
-    if (value !== "") {
-      const days = parseInt(value, 10);
-      const today = new Date();
+    // ==============================
+    // CASE 1: DURATION DROPDOWN CHANGED
+    // ==============================
+    if (name === "duration") {
+      // If user chooses OTHER
+      if (value === "other") {
+        setFormData((prev) => ({
+          ...prev,
+          duration: value,
+          validityFrom: "",
+          validityUpto: "",
+          otherDuration: "" // Allow user to type
+        }));
+        return;
+      }
 
-      const validityFrom = today.toISOString().split("T")[0];
+      // If user selects predefined values (30, 60, 90…)
+      if (value !== "") {
+        const days = parseInt(value, 10);
+        const today = new Date();
 
-      const validityUptoDate = new Date();
-      validityUptoDate.setDate(validityUptoDate.getDate() + days);
-      const validityUpto = validityUptoDate.toISOString().split("T")[0];
+        const validityFrom = today.toISOString().split("T")[0];
 
-      setFormData((prev) => ({
-        ...prev,
-        duration: value,
-        validityFrom: validityFrom,
-        validityUpto: validityUpto,
-        otherDuration: "" // clear text field
-      }));
+        const validityUptoDate = new Date();
+        validityUptoDate.setDate(validityUptoDate.getDate() + days);
+        const validityUpto = validityUptoDate.toISOString().split("T")[0];
+
+        setFormData((prev) => ({
+          ...prev,
+          duration: value,
+          validityFrom: validityFrom,
+          validityUpto: validityUpto,
+          otherDuration: "" // clear text field
+        }));
+      }
     }
-  }
 
-  // ==============================
-  // CASE 2: USER TYPING IN "OTHER DURATION"
-  // ==============================
-  if (name === "otherDuration") {
-    if (!isNaN(value) && value !== "") {
-      const days = parseInt(value, 10);
-      const today = new Date();
+    // ==============================
+    // CASE 2: USER TYPING IN "OTHER DURATION"
+    // ==============================
+    if (name === "otherDuration") {
+      if (!isNaN(value) && value !== "") {
+        const days = parseInt(value, 10);
+        const today = new Date();
 
-      const validityFrom = today.toISOString().split("T")[0];
+        const validityFrom = today.toISOString().split("T")[0];
 
-      const validityUptoDate = new Date();
-      validityUptoDate.setDate(validityUptoDate.getDate() + days);
-      const validityUpto = validityUptoDate.toISOString().split("T")[0];
+        const validityUptoDate = new Date();
+        validityUptoDate.setDate(validityUptoDate.getDate() + days);
+        const validityUpto = validityUptoDate.toISOString().split("T")[0];
 
-      setFormData((prev) => ({
-        ...prev,
-        otherDuration: value,
-        validityFrom: validityFrom,
-        validityUpto: validityUpto,
-      }));
+        setFormData((prev) => ({
+          ...prev,
+          otherDuration: value,
+          validityFrom: validityFrom,
+          validityUpto: validityUpto,
+        }));
+      }
     }
-  }
 
-  // ==============================
-  // PRICE RELATED FIELDS
-  // ==============================
-  if (name === "pricing" || name === "transport" || name === "gst") {
-    calculateTotal(name, value);
-  }
-};
+    // ==============================
+    // PRICE RELATED FIELDS
+    // ==============================
+    if (name === "pricing" || name === "transport" || name === "gst") {
+      calculateTotal(name, value);
+    }
+  };
 
 
 
@@ -400,68 +400,152 @@ export default function AMCForm() {
   };
 
   // Submit handler - POSTs to /api/amc (replace with your real endpoint)
+  // const handleSubmit = async () => {
+  //   if (!validateForm()) {
+  //     // showToast('Please fix form errors before submitting', 'error');
+  //     // toast.error('Please fix form errors before submitting');
+  //     return;
+  //   }
+
+  //   setSubmitting(true);
+  //   try {
+  //     // Build payload
+  //     const formPayload = new FormData();
+
+  //     // Append main form fields
+  //     Object.keys(formData).forEach((key) => {
+  //       if (!["consumables", "grower", "customer"].includes(key)) {
+  //         formPayload.append(key, formData[key]);
+  //       }
+  //     });
+
+  //     if (formData.customer) {
+  //       formPayload.append("customer_id", formData.customer.value || "");
+  //     }
+
+  //     // Properly append multi-select arrays
+  //     formPayload.append(
+  //       "consumables",
+  //       JSON.stringify(formData.consumables?.map((c) => c.value) || [])
+  //     );
+  //     formPayload.append(
+  //       "growers",
+  //       JSON.stringify(formData.grower?.map((g) => g.value) || [])
+  //     );
+
+  //     // ✅ Optional: log for debugging
+  //     console.log("Form Payload Data:");
+  //     for (let [key, value] of formPayload.entries()) {
+  //       console.log(`${key}: ${value}`);
+  //     }
+
+  //     // ✅ Send the request
+  //     const res = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php`, {
+  //       method: "POST",
+  //       body: formPayload,
+  //     });
+  //     const result = await res.json();
+  //     if (result.status === "success") {
+  //       toast.success(result.message);
+  //       setErrors({});
+  //     } else {
+  //       toast.error(result.error);
+  //       // alert("Something went wrong. Please try again.");
+  //     }
+
+  //     // if (!res.ok) {
+  //     //   const text = await res.text().catch(() => null);
+  //     //   throw new Error(`Server error: ${res.status} ${text ?? ''}`);
+  //     // }
+
+  //     // const respJson = await res.json().catch(() => ({}));
+
+  //     // Success
+  //     // showToast('AMC submitted successfully', 'success');
+
+  //     // Reset form
+  //     setFormData({
+  //       customer: null,
+  //       validityFrom: '',
+  //       validityUpto: '',
+  //       duration: '',
+  //       otherDuration: '',
+  //       visitsPerMonth: '',
+  //       consumables: [],
+  //       otherConsumable: '',
+  //       pricing: '',
+  //       transport: '',
+  //       gst: '',
+  //       total: ''
+  //     });
+  //     // setErrors({});
+  //     // console.log('Submitted payload:', formPayload, 'server response:', respJson);
+  //   } catch (err) {
+  //     console.error('Submit failed:', err);
+  //     // showToast('Submission failed. See console for details.', 'error');
+  //     toast.error('Submission failed. See console for details.');
+  //   } finally {
+  //     setSubmitting(false);
+  //   }
+  // };
+
   const handleSubmit = async () => {
     if (!validateForm()) {
-      // showToast('Please fix form errors before submitting', 'error');
-      // toast.error('Please fix form errors before submitting');
       return;
     }
 
-    setSubmitting(true);
+    setSubmitting(true); // 🔥 Disable button + show "Submitting..."
+
     try {
+      // ⏳ Optional Delay (1 sec) — remove if not needed
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       // Build payload
       const formPayload = new FormData();
 
-      // Append main form fields
+      // Append main form fields except these
       Object.keys(formData).forEach((key) => {
         if (!["consumables", "grower", "customer"].includes(key)) {
           formPayload.append(key, formData[key]);
         }
       });
 
+      // Append customer
       if (formData.customer) {
         formPayload.append("customer_id", formData.customer.value || "");
       }
 
-      // Properly append multi-select arrays
+      // Append multi-select arrays as JSON
       formPayload.append(
         "consumables",
         JSON.stringify(formData.consumables?.map((c) => c.value) || [])
       );
+
       formPayload.append(
         "growers",
         JSON.stringify(formData.grower?.map((g) => g.value) || [])
       );
 
-      // ✅ Optional: log for debugging
       console.log("Form Payload Data:");
       for (let [key, value] of formPayload.entries()) {
         console.log(`${key}: ${value}`);
       }
 
-      // ✅ Send the request
+      // API Request
       const res = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php`, {
         method: "POST",
         body: formPayload,
       });
+
       const result = await res.json();
+      console.log("Server Response:", result);
+
       if (result.status === "success") {
         toast.success(result.message);
         setErrors({});
       } else {
-        toast.error(result.error);
-        // alert("Something went wrong. Please try again.");
+        toast.error(result.error || "Something went wrong");
       }
-
-      // if (!res.ok) {
-      //   const text = await res.text().catch(() => null);
-      //   throw new Error(`Server error: ${res.status} ${text ?? ''}`);
-      // }
-
-      // const respJson = await res.json().catch(() => ({}));
-
-      // Success
-      // showToast('AMC submitted successfully', 'success');
 
       // Reset form
       setFormData({
@@ -478,18 +562,17 @@ export default function AMCForm() {
         gst: '',
         total: ''
       });
-      // setErrors({});
-      // console.log('Submitted payload:', formPayload, 'server response:', respJson);
+
     } catch (err) {
-      console.error('Submit failed:', err);
-      // showToast('Submission failed. See console for details.', 'error');
-      toast.error('Submission failed. See console for details.');
+      console.error("Submit failed:", err);
+      toast.error("Submission failed. See console for details.");
     } finally {
-      setSubmitting(false);
+      setSubmitting(false); // 🔥 Re-enable button
     }
   };
 
-const today = new Date().toISOString().split("T")[0];
+
+  const today = new Date().toISOString().split("T")[0];
 
   // Small helper to derive whether consumables include 'other'
   const consumablesHasOther = formData.consumables.some((c) => c.value === '9');
@@ -608,28 +691,27 @@ const today = new Date().toISOString().split("T")[0];
           </div>
 
           {/* Validity From */}
-         <div className="flex flex-col">
-  <label className="mb-1 font-medium text-gray-700">
-    Validity From <span className="text-red-500">*</span>
-  </label>
+          <div className="flex flex-col">
+            <label className="mb-1 font-medium text-gray-700">
+              Validity From <span className="text-red-500">*</span>
+            </label>
 
-  <input
-    type="date"
-    name="validityFrom"
-    value={formData.validityFrom}
-    onChange={handleInputChange}
-    min={today}   // <-- PREVENT PAST DATES
-    className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
-      errors.validityFrom
-        ? "border-red-500 focus:ring-red-400"
-        : "border-gray-300 focus:ring-blue-400"
-    }`}
-  />
+            <input
+              type="date"
+              name="validityFrom"
+              value={formData.validityFrom}
+              onChange={handleInputChange}
+              min={today}   // <-- PREVENT PAST DATES
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityFrom
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-400"
+                }`}
+            />
 
-  {errors.validityFrom && (
-    <span className="text-red-500 text-sm mt-1">{errors.validityFrom}</span>
-  )}
-</div>
+            {errors.validityFrom && (
+              <span className="text-red-500 text-sm mt-1">{errors.validityFrom}</span>
+            )}
+          </div>
 
 
           {/* Validity Upto */}
@@ -644,8 +726,8 @@ const today = new Date().toISOString().split("T")[0];
               onChange={handleInputChange}
               min={formData.validityFrom || undefined}
               className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityUpto
-                  ? "border-red-500 focus:ring-red-400"
-                  : "border-gray-300 focus:ring-blue-400"
+                ? "border-red-500 focus:ring-red-400"
+                : "border-gray-300 focus:ring-blue-400"
                 }`}
             />
             {errors.validityUpto && (
@@ -752,10 +834,12 @@ const today = new Date().toISOString().split("T")[0];
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className={`btn-primary shadow ${submitting ? 'bg-gray-400 cursor-not-allowed' : ''}`}
+            className={`btn-primary shadow ${submitting ? 'bg-gray-400 cursor-not-allowed' : ''
+              }`}
           >
             {submitting ? 'Submitting...' : 'Submit'}
           </button>
+
 
         </div>
       </div>

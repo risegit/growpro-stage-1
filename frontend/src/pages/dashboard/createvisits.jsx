@@ -7,6 +7,9 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     const [customers, setCustomers] = useState([]); // options for react-select
     const [submitting, setSubmitting] = useState(false);
 
+    const user = JSON.parse(localStorage.getItem("user"));
+    const user_code = user?.user_code;
+    
     const addDynamicRow = () => {
         setFormData((prevFormData) => ({
             ...prevFormData,
@@ -16,6 +19,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             ],
         }));
     };
+const [isStep4Submitting, setIsStep4Submitting] = useState(false);
+
 
     const removeDynamicRow = (index) => {
         setFormData((prevFormData) => ({
@@ -238,117 +243,119 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     }, []);
     /* ----------------------- End Retrieve Customer ----------------------- */
 
-const handleSubmit = async () => {
-    setSubmitting(true);
-    try {
-        // Build payload
-        const formPayload = new FormData();
+    // const handleSubmit = async () => {
+    //     setSubmitting(true);
+    //     try {
+    //         // Build payload
+    //         const formPayload = new FormData();
 
-        // Helper function to safely append values
-        const appendFormData = (key, value) => {
-            if (value === null || value === undefined) {
-                formPayload.append(key, '');
-            } else if (typeof value === 'object') {
-                // Handle arrays and React Select values
-                if (Array.isArray(value)) {
-                    // For React Select multi-select values
-                    formPayload.append(key, JSON.stringify(value.map(item => item.value || item)));
-                } else if (value instanceof File) {
-                    // Handle file objects
-                    formPayload.append(key, value);
-                } else if (value.hasOwnProperty('value')) {
-                    // For React Select single values
-                    formPayload.append(key, value.value);
-                } else {
-                    // For other objects, stringify them
-                    formPayload.append(key, JSON.stringify(value));
-                }
-            } else {
-                // For primitive values
-                formPayload.append(key, value.toString());
-            }
-        };
+    //         // Helper function to safely append values
+    //         const appendFormData = (key, value) => {
+    //             if (value === null || value === undefined) {
+    //                 formPayload.append(key, '');
+    //             } else if (typeof value === 'object') {
+    //                 // Handle arrays and React Select values
+    //                 if (Array.isArray(value)) {
+    //                     // For React Select multi-select values
+    //                     formPayload.append(key, JSON.stringify(value.map(item => item.value || item)));
+    //                 } else if (value instanceof File) {
+    //                     // Handle file objects
+    //                     formPayload.append(key, value);
+    //                 } else if (value.hasOwnProperty('value')) {
+    //                     // For React Select single values
+    //                     formPayload.append(key, value.value);
+    //                 } else {
+    //                     // For other objects, stringify them
+    //                     formPayload.append(key, JSON.stringify(value));
+    //                 }
+    //             } else {
+    //                 // For primitive values
+    //                 formPayload.append(key, value.toString());
+    //             }
+    //         };
 
-        // Append all form fields properly
-        Object.keys(formData).forEach((key) => {
-            const value = formData[key];
-            
-            // Special handling for specific fields
-            switch (key) {
-                case 'customers':
-                    if (value) {
-                        formPayload.append("customer_id", value.value || "");
-                    }
-                    break;
-                    
-                case 'pestTypes':
-                case 'plantProblems':
-                case 'plants':
-                case 'material_supplied_chargeable_items':
-                case 'step5Plants':
-                case 'material_need_chargeable_items':
-                    // These are multi-select arrays - handle separately
-                    if (value && Array.isArray(value)) {
-                        formPayload.append(key, JSON.stringify(value.map(item => item.value || item)));
-                    } else {
-                        formPayload.append(key, '[]');
-                    }
-                    break;
-                    
-                case 'setupPhotos':
-                    // Handle file uploads
-                    if (value && Array.isArray(value)) {
-                        value.forEach((photo, index) => {
-                            if (photo.file) {
-                                formPayload.append(`setupPhotos_${index}`, photo.file);
-                            }
-                        });
-                    }
-                    break;
-                    
-                case 'nutrientsData':
-                case 'material_need_nutrientsData':
-                case 'plantQuantities':
-                case 'materialNeedPlantQuantities':
-                    // Stringify complex objects
-                    formPayload.append(key, JSON.stringify(value || {}));
-                    break;
-                    
-                default:
-                    appendFormData(key, value);
-                    break;
-            }
-        });
+    //         // Append all form fields properly
+    //         Object.keys(formData).forEach((key) => {
+    //             const value = formData[key];
 
-        // ✅ Debug: log form data before sending
-        console.log("Form Data to be submitted:");
-        console.log("Raw formData:", formData);
-        
-        console.log("FormData entries:");
-        for (let [key, value] of formPayload.entries()) {
-            console.log(`${key}:`, value);
-        }
+    //             // Special handling for specific fields
+    //             switch (key) {
+    //                 case 'customers':
+    //                     if (value) {
+    //                         formPayload.append("customer_id", value.value || "");
+    //                     }
+    //                     break;
 
-        // ✅ Send the request
-        const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php`, {
-            method: "POST",
-            body: formPayload,
-        });
-        
-        const result = await res.json();
-        if (result.status === "success") {
-            toast.success(result.message);
-            setErrors({});
-        } else {
-            toast.error(result.error);
-        }
-    } catch (err) {
-        console.error('Submit failed:', err);
-        toast.error('Submission failed. See console for details.');
-    } finally {
-        setSubmitting(false);
-    }
-};
+    //                 case 'pestTypes':
+    //                 case 'plantProblems':
+    //                 case 'plants':
+    //                 case 'material_supplied_chargeable_items':
+    //                 case 'step5Plants':
+    //                 case 'material_need_chargeable_items':
+    //                     // These are multi-select arrays - handle separately
+    //                     if (value && Array.isArray(value)) {
+    //                         formPayload.append(key, JSON.stringify(value.map(item => item.value || item)));
+    //                     } else {
+    //                         formPayload.append(key, '[]');
+    //                     }
+    //                     break;
+
+    //                 case 'setupPhotos':
+    //                     // Handle file uploads
+    //                     if (value && Array.isArray(value)) {
+    //                         value.forEach((photo, index) => {
+    //                             if (photo.file) {
+    //                                 formPayload.append(`setupPhotos_${index}`, photo.file);
+    //                             }
+    //                         });
+    //                     }
+    //                     break;
+
+    //                 case 'nutrientsData':
+    //                 case 'material_need_nutrientsData':
+    //                 case 'plantQuantities':
+    //                 case 'materialNeedPlantQuantities':
+    //                     // Stringify complex objects
+    //                     formPayload.append(key, JSON.stringify(value || {}));
+    //                     break;
+
+    //                 default:
+    //                     appendFormData(key, value);
+    //                     break;
+    //             }
+    //         });
+
+    //         // ✅ Debug: log form data before sending
+    //         console.log("Form Data to be submitted:");
+    //         console.log("Raw formData:", formData);
+
+    //         console.log("FormData entries:");
+    //         for (let [key, value] of formPayload.entries()) {
+    //             console.log(`${key}:`, value);
+    //         }
+
+    //         // ✅ Send the request
+    //         const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php`, {
+    //             method: "POST",
+    //             body: formPayload,
+    //         });
+
+    //         const result = await res.json();
+    //         if (result.status === "success") {
+    //             toast.success(result.message);
+    //             setErrors({});
+    //         } else {
+    //             toast.error(result.error);
+    //         }
+    //     } catch (err) {
+    //         console.error('Submit failed:', err);
+    //         toast.error('Submission failed. See console for details.');
+    //     } finally {
+    //         setSubmitting(false);
+    //     }
+    // };
+
+
 
     // const handleSubmit = async () => {
     //     // if (!validateForm()) {
@@ -409,6 +416,104 @@ const handleSubmit = async () => {
     //         setSubmitting(false);
     //     }
     // };
+    const handleSubmit = async () => {
+        setSubmitting(true); // disable button + show "Please wait..."
+
+        try {
+            // OPTIONAL DELAY (800ms)
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            const formPayload = new FormData();
+
+            // Helper function to safely append values
+            const appendFormData = (key, value) => {
+                if (value === null || value === undefined) {
+                    formPayload.append(key, '');
+                } else if (typeof value === 'object') {
+                    if (Array.isArray(value)) {
+                        formPayload.append(key, JSON.stringify(value.map(item => item.value || item)));
+                    } else if (value instanceof File) {
+                        formPayload.append(key, value);
+                    } else if (value.hasOwnProperty('value')) {
+                        formPayload.append(key, value.value);
+                    } else {
+                        formPayload.append(key, JSON.stringify(value));
+                    }
+                } else {
+                    formPayload.append(key, value.toString());
+                }
+            };
+
+            // Append all fields
+            Object.keys(formData).forEach((key) => {
+                const value = formData[key];
+
+                switch (key) {
+                    case 'customers':
+                        formPayload.append("customer_id", value?.value || "");
+                        break;
+
+                    case 'pestTypes':
+                    case 'plantProblems':
+                    case 'plants':
+                    case 'material_supplied_chargeable_items':
+                    case 'step5Plants':
+                    case 'material_need_chargeable_items':
+                        formPayload.append(key, JSON.stringify(value?.map(i => i.value) || []));
+                        break;
+
+                    case 'setupPhotos':
+                        if (value && Array.isArray(value)) {
+                            value.forEach((photo, index) => {
+                                if (photo.file) {
+                                    formPayload.append(`setupPhotos_${index}`, photo.file);
+                                }
+                            });
+                        }
+                        break;
+
+                    case 'nutrientsData':
+                    case 'material_need_nutrientsData':
+                    case 'plantQuantities':
+                    case 'materialNeedPlantQuantities':
+                        formPayload.append(key, JSON.stringify(value || {}));
+                        break;
+
+                    default:
+                        appendFormData(key, value);
+                }
+            });
+            formPayload.append("user_code", user_code || "");
+
+            // Debug logs
+            console.log("Final FormData:");
+            for (let [k, v] of formPayload.entries()) console.log(k, v);
+
+            // API Request
+            const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php`, {
+                method: "POST",
+                body: formPayload,
+                
+            });
+
+            const result = await res.json();
+
+            if (result.status === "success") {
+                toast.success(result.message);
+                setErrors({});
+            } else {
+                toast.error(result.error);
+            }
+
+        } catch (err) {
+            console.error('Submit failed:', err);
+            toast.error('Submission failed. Check console.');
+        } finally {
+            setSubmitting(false); // Enable button again
+        }
+    };
+
+
 
     /* ----------------------- HANDLE INPUT CHANGE ----------------------- */
     const handleChange = (e) => {
@@ -813,16 +918,20 @@ const handleSubmit = async () => {
                 isValid = validateStep3();
                 if (isValid) setStep(4);
                 break;
-            case 4:
-                isValid = validateStep4();
-                if (isValid) {
-                    if (formData.materialNeedsDelivery) {
-                        setStep(5);
-                    } else {
-                        onSubmit(formData);
-                    }
-                }
-                break;
+          case 4:
+    isValid = validateStep4();
+    if (isValid) {
+        if (formData.materialNeedsDelivery) {
+            setStep(5);
+        } else {
+            // Step 4 direct submission
+            setIsStep4Submitting(true);
+         
+            setIsStep4Submitting(false);
+        }
+    }
+    break;
+
             case 5:
                 isValid = validateStep5();
                 if (isValid) {
@@ -953,7 +1062,7 @@ const handleSubmit = async () => {
             </div>
 
             {formData[name] === showOn && (
-                <SmallInput name={issueName} placeholder="Describe" autoFocus/>
+                <SmallInput name={issueName} placeholder="Describe" autoFocus />
             )}
 
             {errors[name] && <span className="text-red-500 text-sm">{errors[name]}</span>}
@@ -1334,12 +1443,12 @@ const handleSubmit = async () => {
                                         />
                                         NO
                                     </label>
-                                    
+
                                 </div>
                                 {errors.nutrientDeficiency && (
                                     <span className="text-red-500 text-sm mt-1">{errors.nutrientDeficiency}</span>
                                 )}
-                                
+
 
                                 {formData.nutrientDeficiency === "yes" && (
                                     <div className="mt-3">
@@ -1443,7 +1552,7 @@ const handleSubmit = async () => {
                                 )}
                             </div>
 
-                            
+
                         </div>
                     )}
 
@@ -2184,15 +2293,22 @@ const handleSubmit = async () => {
                             {/* Conditional Next/Submit Button */}
                             <button
                                 type="button"
-                                onClick={(step === 5 || (step === 4 && !formData.materialNeedsDelivery))
-                                    ? handleSubmit
-                                    : handleNext}
-                                className="bg-[#9FC762] hover:bg-[#8DB350] text-white font-medium px-6 py-2 rounded-lg w-full md:w-auto transition"
+                                disabled={submitting}   // disable during API submit
+                                onClick={
+                                    (step === 5 || (step === 4 && !formData.materialNeedsDelivery))
+                                        ? handleSubmit
+                                        : handleNext
+                                }
+                                className={`bg-[#9FC762] hover:bg-[#8DB350] text-white font-medium px-6 py-2 rounded-lg w-full md:w-auto transition
+                ${submitting ? "opacity-60 cursor-not-allowed" : ""}`}
                             >
-                                {(step === 5 || (step === 4 && !formData.materialNeedsDelivery))
-                                    ? "Submit"
-                                    : "Next"}
+                                {submitting
+                                    ? "Please wait..."
+                                    : (step === 5 || (step === 4 && !formData.materialNeedsDelivery))
+                                        ? "Submit"
+                                        : "Next"}
                             </button>
+
                         </div>
                     </div>
                 </div>
