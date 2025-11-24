@@ -35,8 +35,6 @@ import Sitevists from "@/pages/dashboard/sitevists";
 import Createvisits from "@/pages/dashboard/createvisits";
 import Viewvisits from "@/pages/dashboard/viewvisits";
 import Revisit from "@/pages/dashboard/revisit";
-import Schedulevisit from "./pages/dashboard/schedulevisit";
-import Editmanagevisit from "./pages/dashboard/editmanagevisit";
 
 import { SignIn } from "@/pages/auth";
 import LogoutButton from "./Components/LogoutButton";
@@ -193,36 +191,12 @@ const routes = [
             ),
           },
           {
-            name: "Schedule Visits",
-            path: "/sitevisits/schedulevisit",
-            allowedRoles: ["admin", "manager", "technician"],
-            element: (
-              <RoleProtectedRoute
-                element={<Schedulevisit />}
-                allowedRoles={["admin", "manager", "technician"]}
-              />
-            ),
-          },
-
-          {
             name: "Manage Visits",
             path: "/sitevisits/viewvisits",
             allowedRoles: ["admin", "manager", "technician"],
             element: (
               <RoleProtectedRoute
                 element={<Viewvisits />}
-                allowedRoles={["admin", "manager", "technician"]}
-              />
-            ),
-          },
-             {
-            name: "Edit Visits",
-            path: "/sitevisits/editmanagevisit",
-            hidden: true,
-            allowedRoles: ["admin", "manager", "technician"],
-            element: (
-              <RoleProtectedRoute
-                element={<Editmanagevisit />}
                 allowedRoles={["admin", "manager", "technician"]}
               />
             ),

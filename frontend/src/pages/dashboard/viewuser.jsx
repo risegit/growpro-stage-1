@@ -160,8 +160,15 @@ export default function UserTable() {
                           {/* Role */}
                           <td className="py-4 px-4">
                             <span
-                              className={`px-3 py-1 rounded-full text-sm font-semibold text-gray-800 border-2
-    bg-gray-100 border-gray-400 inline-block text-center min-w-[110px]`}
+                              className={`px-3 py-1 rounded-full text-sm font-semibold text-white border-2
+              ${user.role === "admin"
+                                  ? "bg-green-700 border-green-700"
+                                  : user.role === "manager"
+                                    ? "bg-green-400 border-green-400"
+                                    : user.role === "technician"
+                                      ? "bg-[rgb(244,166,74)] border-[rgb(244,166,74)]"
+                                      : "bg-gray-400 border-gray-400"
+                                }`}
                             >
                               {role}
                             </span>

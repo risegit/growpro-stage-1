@@ -572,7 +572,7 @@ const StepperCustomerForm = () => {
             {/* Staff Phone Number */}
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
-                Alternate Phone Number (दुसरा फ़ोन नंबर)
+                Staff Phone Number (स्टाफ फ़ोन नंबर)
               </label>
               <input
                 type="tel"
