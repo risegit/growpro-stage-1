@@ -34,6 +34,7 @@ import Editamc from "@/pages/dashboard/editamc";
 import Sitevists from "@/pages/dashboard/sitevists";
 import Createvisits from "@/pages/dashboard/createvisits";
 import Viewvisits from "@/pages/dashboard/viewvisits";
+import Editvisit from "@/pages/dashboard/editvisit";
 import Revisit from "@/pages/dashboard/revisit";
 
 import { SignIn } from "@/pages/auth";
@@ -200,6 +201,18 @@ const routes = [
                 allowedRoles={["admin", "manager", "technician"]}
               />
             ),
+          },
+          {
+            name: "Edit Visit",
+            path: "/sitevisits/editvisit/:id",
+            allowedRoles: ["admin", "manager"],
+            element: (
+              <RoleProtectedRoute
+                element={<Editvisit />}
+                allowedRoles={["admin", "manager"]}
+              />
+            ),
+            hidden: true,
           },
           // {
           //   name: "Revisit",

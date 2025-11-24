@@ -837,7 +837,7 @@ export default function AMCForm() {
             className={`btn-primary shadow ${submitting ? 'bg-gray-400 cursor-not-allowed' : ''
               }`}
           >
-            {submitting ? 'Submitting...' : 'Submit'}
+            {submitting ? 'Please Wait...' : 'Submit'}
           </button>
 
 

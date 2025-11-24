@@ -123,9 +123,9 @@ export default function UserTable() {
                     <tr className="border-b border-gray-200">
                       <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Name</th>
                       <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">Contact</th>
-                      <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">Visits per Month</th>
+                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Visits per Month</th>
                       {<th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">Visit Pending</th>}
-                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Days Left</th>
+                      <th className="w-[16%] py-4 px-4 font-medium text-gray-700 text-left">Days Left</th>
                       <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Expire On</th>
                       {userRole !== "technician" && (
                         <th className="py-4 px-4 font-medium text-gray-700 text-right">Action</th>

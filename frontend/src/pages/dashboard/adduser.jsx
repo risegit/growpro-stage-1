@@ -273,7 +273,7 @@ export default function AddUserForm() {
         setLoading(true); // 🔥 Start loading (disable button + change label)
 
         try {
-              await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 1000));
     
             const form = new FormData();
             Object.entries(formData).forEach(([key, value]) => {

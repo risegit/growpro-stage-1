@@ -9,6 +9,8 @@ include('../inc/config.php');
 $method = $_SERVER['REQUEST_METHOD'];
 $userId = $_GET['id'] ?? null;
 $emailId = $_GET['email'] ?? null;
+$viewVisit = $_GET['view-visit'] ?? null;
+
 
 if ($method === 'POST' && isset($_POST['_method'])) {
     $method = strtoupper($_POST['_method']);
@@ -53,6 +55,18 @@ switch ($method) {
                 echo json_encode(["status" => "success", "message" => 'An account with this email not exists']);
             }
             
+        }elseif ($viewVisit) {
+            $sql1 = "SELECT sv.*, u.id AS customer_id, u.name AS customer_name, u.profile_pic, tech.id AS technician_id, tech.name AS technician_name FROM site_visit sv INNER JOIN users u ON sv.customer_id = u.id LEFT JOIN users tech ON sv.visited_by = tech.user_code  Order By sv.id DESC";
+            $result = $conn->query($sql1);
+            $data = [];
+            while ($row = $result->fetch_assoc()) {
+                $data[] = $row;
+            }
+
+            echo json_encode([
+                "status" => "success",
+                "data" => $data
+            ]);
         } else {
             // SELECT u.id AS customer_id, u.name, u.phone, a.visits_per_month, a.validity_from, a.validity_upto, COUNT(s.id) AS total_visits_done, (a.visits_per_month - COUNT(s.id)) AS pending_visits FROM users u INNER JOIN amc_details a ON u.id = a.customer_id LEFT JOIN site_visit s ON s.customer_id = u.id AND s.created_date BETWEEN a.validity_from AND a.validity_upto WHERE u.status = 'active' AND CURRENT_DATE <= a.validity_upto -- AMC still active GROUP BY u.id, u.name, u.phone, a.visits_per_month, a.validity_from, a.validity_upto HAVING pending_visits > 0; 
             // This query count Total_visit and pending_visit

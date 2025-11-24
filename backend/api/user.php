@@ -176,6 +176,22 @@ switch ($method) {
                             ('$user_id', '$aadharno', '$bankName', '$accountNumber', '$ifscNo', '$state', '$city', '$locality', '$landmark', '$pincode', '$streetAddress', '$date', '$time')";
                     $conn->query($sql2);
                 }
+                // Auto generate code if empty
+                $checkCode = $conn->query("SELECT user_code, role FROM users WHERE id='$user_id'");
+                if ($checkCode && $checkCode->num_rows > 0) {
+                    $row = $checkCode->fetch_assoc();
+
+                    if (empty($row['user_code'])) {
+                        $roleLower = strtolower(trim($row['role']));
+                        $prefix = ($roleLower === 'admin') ? 'AD' :
+                                (($roleLower === 'manager') ? 'MN' :
+                                (($roleLower === 'technician') ? 'TC' : 'US'));
+
+                        $user_code = $prefix . str_pad($user_id, 4, '0', STR_PAD_LEFT);
+
+                        $conn->query("UPDATE users SET user_code='$user_code' WHERE id='$user_id'");
+                    }
+                }
 
                 echo json_encode([
                     "status" => "success",
@@ -309,22 +325,7 @@ switch ($method) {
                     $conn->query($sqlUpdateUser1);
                 }
             }
-            // Auto generate code if empty
-        $checkCode = $conn->query("SELECT user_code, role FROM users WHERE id='$user_id'");
-        if ($checkCode && $checkCode->num_rows > 0) {
-            $row = $checkCode->fetch_assoc();
-
-            if (empty($row['user_code'])) {
-                $roleLower = strtolower(trim($row['role']));
-                $prefix = ($roleLower === 'admin') ? 'AD' :
-                          (($roleLower === 'manager') ? 'MN' :
-                          (($roleLower === 'technician') ? 'TC' : 'US'));
-
-                $user_code = $prefix . str_pad($user_id, 4, '0', STR_PAD_LEFT);
-
-                $conn->query("UPDATE users SET user_code='$user_code' WHERE id='$user_id'");
-            }
-        }
+            
 
         }
 

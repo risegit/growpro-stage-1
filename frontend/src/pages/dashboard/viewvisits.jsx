@@ -1,99 +1,83 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
-const ManageVisits = () => {
-  const [searchQuery, setSearchQuery] = useState('');
+export default function UserTable() {
+  const [allUsers, setAllUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [usersPerPage] = useState(10);
-  const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
-
+  const usersPerPage = 10;
   const navigate = useNavigate();
-  // Sample data - replace with your actual data
-  const sampleUsers = [
-    {
-      id: 1,
-      name: 'John Doe',
-      phone: '+1 (555) 123-4567',
-      visits_per_month: 12,
-      validity_upto: '2024-12-31'
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      phone: '+1 (555) 987-6543',
-      visits_per_month: 8,
-      validity_upto: '2024-11-15'
-    },
-    {
-      id: 3,
-      name: 'Mike Johnson',
-      phone: '+1 (555) 456-7890',
-      visits_per_month: 15,
-      validity_upto: '2024-10-20'
-    },
-    // Add more sample data as needed
-  ];
 
+   const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  // 🔹 Fetch data from backend API
   useEffect(() => {
-    // Initialize with sample data
-    setUsers(sampleUsers);
-    setFilteredUsers(sampleUsers);
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?view-visit='viewvisit'`, {
+          method: "GET",
+        });
+        const data = await response.json();
+        console.log("user data=", data);
+        setAllUsers(data.data);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
   }, []);
 
-
-  useEffect(() => {
-    // Filter users based on search query
-    if (searchQuery.trim() === '') {
-      setFilteredUsers(users);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = users.filter(user =>
-        user.name.toLowerCase().includes(query) ||
-        user.phone.toLowerCase().includes(query) ||
-        user.visits_per_month.toString().includes(query)
-      );
-      setFilteredUsers(filtered);
-    }
-    setCurrentPage(1); // Reset to first page when searching
-  }, [searchQuery, users]);
-
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-  };
-
-
-  const handleEdit = () => {
-    navigate("/dashboard/sitevisits/editmanagevisit");
-  };
-
-
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
+  // 🔹 Filter users based on search
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return allUsers;
+    const query = searchQuery.toLowerCase();
+    return allUsers.filter(
+      (user) =>
+        user.customer_name.toLowerCase().includes(query) ||
+        user.email.toLowerCase().includes(query) ||
+        // user.role.toLowerCase().includes(query) ||
+        user.phone.includes(query)
+    );
+  }, [allUsers, searchQuery]);
 
   // Pagination logic
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
   const indexOfLastUser = currentPage * usersPerPage;
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
   const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
-  const goToPrevious = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
   };
 
-  const goToNext = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
+  const handleEdit = (userId) => {
+    navigate(`/dashboard/sitevisits/editvisit/${userId}`);
   };
 
-  const goToPage = (pageNumber) => {
-    setCurrentPage(pageNumber);
-  };
+  const goToPage = (page) => setCurrentPage(page);
+  const goToPrevious = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const goToNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-500 text-lg">Loading users...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full min-h-screen bg-gray-100 mt-10">
@@ -112,7 +96,7 @@ const ManageVisits = () => {
           <div className="mt-3 sm:mt-0 w-full sm:w-1/3">
             <input
               type="text"
-              placeholder="Search by name, phone, or visits..."
+              placeholder="Search by name, email, role, or mobile..."
               value={searchQuery}
               onChange={handleSearchChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
@@ -133,123 +117,175 @@ const ManageVisits = () => {
                 <table className="w-full table-fixed text-left border-collapse">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="w-[20%] py-4 px-4 font-medium text-gray-700 text-left">Client Name</th>
-                      <th className="w-[20%] py-4 px-4 font-medium text-gray-700 text-left">Technician Name</th>
-                      <th className="w-[20%] py-4 px-4 font-medium text-gray-700 text-left">Visit Date</th>
-                      <th className="w-[20%] py-4 px-4 font-medium text-gray-700 text-left">Visits per Month</th>
-                      <th className="w-[20%] py-4 px-4 font-medium text-gray-700 text-right">Action</th>
+                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Customer Name</th>
+                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Visited By</th>
+                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Visit Date</th>
+                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {currentUsers.map((user) => (
-                      <tr
-                        key={user.id}
-                        className="border-b border-gray-200 hover:bg-gray-50 transition"
-                      >
-                        {/* Name */}
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3">
-                            <span className="font-medium text-gray-800 truncate">
-                              {user.name}
-                            </span>
-                          </div>
-                        </td>
+                    {currentUsers.map((user) => {
 
-                        {/* Phone */}
-                        <td className="py-4 px-4 text-gray-700 truncate">
-                          <a
-                            href={`tel:${user.phone}`}
-                            className="text-blue-600 hover:underline"
-                          >
-                            {user.phone}
-                          </a>
-                        </td>
+                      return (
+                        <tr
+                          key={user._id}
+                          className="border-b border-gray-200 hover:bg-gray-50 transition"
+                        >
+                          {/* Name */}
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-3">
+                              
+                              <img
+                                src={
+                                  user.profile_pic
+                                    ? `${import.meta.env.VITE_API_URL}uploads/customers/${user.profile_pic}`
+                                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                      user.customer_name
+                                    )}&background=3b82f6&color=fff`
+                                }
+                                alt={user.customer_name}
+                                className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                              />
+                              <a
+                              href={`/dashboard/users/edituser/${user.customer_id}`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              <span className="font-medium text-gray-800 truncate">
+                                {user.customer_name}
+                              </span>
+                              </a>
+                            </div>
+                          </td>
 
-                        {/* Visits per Month */}
-                        <td className="py-4 px-4 text-gray-700 text-left truncate">
-                          {user.visits_per_month}
-                        </td>
+                          {/* Phone */}
+                          <td className="py-4 px-4 text-gray-700 truncate">
+                            <a
+                              href={`/dashboard/users/edituser/${user.technician_id}`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              {user.technician_name} ({user.visited_by})
+                            </a>
+                          </td>
 
-                        {/* Expire On */}
-                        <td className="py-4 px-4 text-gray-700 truncate">
-                          {formatDate(user.validity_upto)}
-                        </td>
+                          {/* Email — moved up before Status */}
+                          <td className="py-4 px-4 text-gray-700 truncate">
+                              {formatDate(user.created_date)}
+                          </td>
 
-                        {/* Action */}
-                        <td className="py-4 px-4 text-right">
-                          <button
-                            onClick={handleEdit}
-                            className="px-4 py-2 btn-primary"
-                          >
-                            Edit
-                          </button>
-
-                        </td>
-                      </tr>
-                    ))}
+                          {/* Action */}
+                          <td className="py-4 px-4 text-right">
+                            <button
+                              onClick={() => handleEdit(user.id)}
+                              className="px-4 py-2 btn-primary"
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
               {/* Mobile View */}
               <div className="block lg:hidden space-y-5">
-                {currentUsers.map((user) => (
-                  <div
-                    key={user.id}
-                    className="border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition bg-white"
-                  >
-                    <div className="flex items-start gap-4 mb-5">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-800 text-lg mb-2">
-                          {user.name}
-                        </h3>
-                      </div>
-                    </div>
+                {currentUsers.map((user) => {
+                  // Capitalize role for display
+                  // const role =
+                  //   user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase();
 
-                    <div className="space-y-3 mb-5">
-                      {/* Phone */}
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                          Contact
-                        </span>
-                        <a
-                          href={`tel:${user.phone}`}
-                          className="text-sm text-blue-600 hover:underline"
-                        >
-                          {user.phone}
-                        </a>
-                      </div>
-
-                      {/* Visits per Month */}
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                          Visits per Month
-                        </span>
-                        <span className="text-sm text-gray-700">
-                          {user.visits_per_month}
-                        </span>
-                      </div>
-
-                      {/* Expire On */}
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                          Expire On
-                        </span>
-                        <span className="text-sm text-gray-700">
-                          {formatDate(user.validity_upto)}
-                        </span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => handleEdit(user.id)}
-                      className="w-full px-4 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+                  return (
+                    <div
+                      key={user._id}
+                      className="border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition bg-white"
                     >
-                      Edit
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex items-start gap-4 mb-5">
+                        <img
+                          src={
+                            user.profile_pic
+                              ? `${import.meta.env.VITE_API_URL}uploads/users/${user.profile_pic}`
+                              : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                user.customer_name
+                              )}&background=3b82f6&color=fff`
+                          }
+                          alt={user.customer_name}
+                          className="w-14 h-14 rounded-full object-cover"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-800 text-lg mb-2">
+                            {user.customer_name}
+                          </h3>
+
+                          {/* Role badge (same colors as desktop) */}
+                          {/* <span
+                            className={`inline-block px-3 py-1 rounded-lg text-xs font-semibold text-white border-2
+                ${user.role === "admin"
+                                ? "bg-green-700 border-green-700" // dark green
+                                : user.role === "manager"
+                                  ? "bg-green-400 border-green-400" // light green
+                                  : user.role === "technician"
+                                    ? "bg-[rgb(244,166,74)] border-[rgb(244,166,74)]" // orange
+                                    : "bg-gray-400 border-gray-400"
+                              }`}
+                          >
+                            {role}
+                          </span> */}
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 mb-5">
+                        {/* Email */}
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                            Email
+                          </span>
+                          <span className="text-sm text-gray-700 break-all">
+                            {user.email}
+                          </span>
+                        </div>
+
+                        {/* Mobile */}
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                            Mobile
+                          </span>
+                          <a
+                            href={`tel:${user.phone || user.mobile}`}
+                            className="text-sm text-blue-600 hover:underline"
+                          >
+                            {user.phone || user.mobile}
+                          </a>
+                        </div>
+
+                        {/* Status (same color logic as desktop) */}
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                            Status
+                          </span>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide w-fit border-2
+                ${user.status === "active"
+                                ? "bg-green-600 text-white border-green-600"
+                                : "bg-red-600 text-white border-red-600"
+                              }`}
+                          >
+                            {user.status === "active" ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleEdit(user.id)}
+                        className="w-full px-4 py-2.5 btn-primary"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
+
             </>
           )}
         </div>
@@ -303,6 +339,4 @@ const ManageVisits = () => {
       </div>
     </div>
   );
-};
-
-export default ManageVisits;
+}

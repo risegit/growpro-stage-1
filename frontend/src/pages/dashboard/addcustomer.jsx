@@ -60,7 +60,7 @@ const StepperCustomerForm = () => {
     { value: 'other', label: 'Other (Specify Below)' },
   ];
 
-
+    const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [previews, setPreviews] = useState([]);
   const [profilePreview, setProfilePreview] = useState(null);
@@ -297,23 +297,28 @@ const StepperCustomerForm = () => {
   };
 
 
-  const handleSubmit = async () => {
+   const handleSubmit = async () => {
     if (!validateStep()) return;
 
-    setSubmitting(true); // disable button
+    setSubmitting(true);
 
-    // ⏳ ADD DELAY (1 second)
-    await wait(1000);
+    try {
+      // ⏳ ADD DELAY (1 second)
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const formPayload = new FormData();
+      const formPayload = new FormData();
 
-    // Append main form fields
-    Object.keys(formData).forEach((key) => {
-      formPayload.append(key, formData[key]);
-    });
+      // Append main form fields
+      Object.keys(formData).forEach((key) => {
+        if (key === 'profilePic' && formData[key]) {
+          formPayload.append(key, formData[key]);
+        } else if (key !== 'profilePic') {
+          formPayload.append(key, formData[key]);
+        }
+      });
 
-    // Loop through growers
-    growers.forEach((grower, index) => {
+      // Append growers data
+      growers.forEach((grower, index) => {
       const growerData = { ...grower };
       const imageFile = growerData.photoAtInstallation;
       delete growerData.photoAtInstallation;
@@ -325,7 +330,12 @@ const StepperCustomerForm = () => {
       }
     });
 
-    try {
+      // Log form data for debugging
+      console.log("Submitting form data...");
+      for (let pair of formPayload.entries()) {
+        console.log(pair[0] + ": ", pair[1]);
+      }
+
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}api/customer.php`,
         {
@@ -334,21 +344,78 @@ const StepperCustomerForm = () => {
         }
       );
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const text = await response.text();
-      const result = JSON.parse(text);
+      console.log("Raw Response:", text);
+
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (parseError) {
+        console.error("JSON Parse Error:", parseError);
+        throw new Error("Invalid JSON response from server");
+      }
+
+      console.log("Server Response:", result);
 
       if (result.status === "success") {
         toast.success("Customer added successfully");
         setErrors({});
+        
+        // Reset form after successful submission
+        setFormData({
+          name: '',
+          email: '',
+          phoneNumber: '',
+          staffPhoneNumber: '',
+          profilePic: null,
+          address: '',
+          state: '',
+          city: '',
+          locality: '',
+          landmark: '',
+          pincode: '',
+          isActive: true
+        });
+        setGrowers([{
+          systemType: '',
+          systemTypeOther: '',
+          numPlants: '',
+          numLevels: '',
+          setupDimension: '',
+          motorType: '',
+          motorTypeOther: '',
+          timerUsed: '',
+          timerUsedOther: '',
+          numLights: "",
+          modelOfLight: "",
+          modelOfLightOther: "",
+          lengthOfLight: "",
+          lengthOfLightOther: "",
+          tankCapacity: "",
+          tankCapacityOther: "",
+          nutritionGiven: "",
+          otherSpecifications: "",
+          photoAtInstallation: null,
+          selectedPlants: [],
+          selectedPlantsOther: '',
+        }]);
+        setCurrentStep(1);
+        setProfilePreview(null);
+        setPreviews([]);
+        
       } else {
         toast.error(result.message || "Something went wrong");
       }
 
     } catch (error) {
-      console.error("Fetch Error:", error);
-      alert("Server error. Contact admin.");
+      console.error("Submission Error:", error);
+      toast.error("Failed to submit form. Please try again.");
     } finally {
-      setSubmitting(false); // enable button again
+      setSubmitting(false);
     }
   };
 
@@ -1355,26 +1422,3 @@ export default StepperCustomerForm;
 
 
 
-// case 3:
-//   return (
-//     <div className="px-6 py-6">
-//       <h3 className="text-2xl font-bold mb-6 text-gray-800">Review Your Information (JSON)</h3>
-//       <pre className="bg-gray-100 p-4 rounded-lg overflow-auto text-sm text-gray-800">
-//         {JSON.stringify(
-//           {
-//             ...formData,
-//             growers: growers.map(g => ({
-//               ...g,
-//               // selectedPlants: only keep values/labels if needed
-//               selectedPlants: g.selectedPlants.map(p => p.label)
-//             }))
-//           },
-//           null,
-//           2
-//         )}
-//       </pre>
-//     </div>
-//   );
-
-
-// for json
