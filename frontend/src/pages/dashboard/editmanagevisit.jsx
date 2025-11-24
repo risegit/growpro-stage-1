@@ -317,28 +317,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         setErrors({ ...errors, step5Plants: "", step5PlantQuantities: "" });
     };
 
-    // const handlePlantQuantity = (plantValue, quantity) => {
-    //     setFormData({
-    //         ...formData,
-    //         plantQuantities: {
-    //             ...formData.plantQuantities,
-    //             [plantValue]: quantity
-    //         }
-    //     });
-    //     setErrors({ ...errors, plantQuantities: "" });
-    // };
-
-    // const handleStep5PlantQuantity = (plantValue, quantity) => {
-    //     setFormData({
-    //         ...formData,
-    //         step5PlantQuantities: {
-    //             ...formData.step5PlantQuantities,
-    //             [plantValue]: quantity
-    //         }
-    //     });
-    //     setErrors({ ...errors, step5PlantQuantities: "" });
-    // };
-
     /* ----------------------- VALIDATION ----------------------- */
     const validateStep1 = () => {
         let newErrors = {};
@@ -623,7 +601,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         setErrors({ ...errors, [name]: "" });
     };
 
-    
+
     /* ----------------------- UI COMPONENTS ----------------------- */
     const SmallInput = ({ name, placeholder }) => (
         <input
@@ -1529,7 +1507,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
                                 {errors.plants && (
                                     <span className="text-red-500 text-sm mt-1">{errors.plants}</span>
-                                )}          
+                                )}
 
                                 {/* Show input if Others selected */}
                                 {formData.step5Plants?.some((item) => item.value === "Others") && (
@@ -1688,7 +1666,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     <Neem></Neem> Oil (
-                                        नीम का तेल) <span className="text-red-500">*</span>
+                                    नीम का तेल) <span className="text-red-500">*</span>
                                 </label>
                                 <div className="flex gap-6 mt-2">
                                     <label className="flex items-center gap-2">
@@ -1770,7 +1748,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                 <button
                                     type="button"
                                     onClick={prevStep}
-                                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium px-6 py-2 rounded-lg w-full md:w-auto transition"
+                                    className="btn-primary"
                                 >
                                     Previous
                                 </button>
@@ -1780,7 +1758,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             <button
                                 type="button"
                                 onClick={handleNext}
-                                className="btn-primary  px-6 py-2"
+                                className="btn-primary"
                             >
                                 {step === 4 && formData.materialNeedsDelivery ? "Next"
                                     : step === 5 ? "Submit"

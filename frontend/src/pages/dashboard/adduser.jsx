@@ -18,20 +18,18 @@ export default function AddUserForm() {
         pincode: '',
         streetAddress: '',
         role: '',
-        aadhaarNo: ''
+        aadhaarCard: null,
+        joiningDate: ''
     });
     const [showCopied, setShowCopied] = useState(false);
     const [cities, setCities] = useState([]);
     const [errors, setErrors] = useState({});
     const [checking, setChecking] = useState(false);
     const fileInputRef = useRef(null);
+    const aadhaarInputRef = useRef(null);
 
     const [previewImage, setPreviewImage] = useState(null);
-    const [loading, setLoading] = useState(false);
-
-
-
-
+    const [aadhaarPreview, setAadhaarPreview] = useState(null);
 
     const statesAndCities = {
         Maharashtra: ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
@@ -46,12 +44,11 @@ export default function AddUserForm() {
             if (formData.email && formData.email.includes("@")) {
                 checkEmailExists(formData.email);
             }
-        }, 600); // Wait 600ms after typing stops
+        }, 600);
 
         return () => clearTimeout(delayDebounce);
     }, [formData.email]);
 
-    // 👇 Function to check email existence in backend
     const checkEmailExists = async (email) => {
         setChecking(true);
         try {
@@ -59,7 +56,6 @@ export default function AddUserForm() {
             const data = await res.json();
 
             if (data.status === "error") {
-                // toast.error(data.message);
                 setErrors((prev) => ({
                     ...prev,
                     email: "An account with this email already exists. Please use a different email.",
@@ -72,7 +68,6 @@ export default function AddUserForm() {
         }
     };
 
-    // Generate random alphanumeric password
     const generatePassword = () => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$';
         let password = '';
@@ -133,36 +128,57 @@ export default function AddUserForm() {
         }
     };
 
-    // const handleFileChange = (e) => {
-    //     setFormData(prev => ({
-    //         ...prev,
-    //         profilePic: e.target.files[0]
-    //     }));
-    // };
-
-
     const handleFileChange = (e) => {
         const file = e.target.files[0];
 
-        // Keep your existing logic
         setFormData(prev => ({
             ...prev,
             profilePic: file,
         }));
 
-        // Add image preview logic
         if (file) {
             const imageUrl = URL.createObjectURL(file);
             setPreviewImage(imageUrl);
         }
     };
 
+    const handleAadhaarChange = (e) => {
+        const file = e.target.files[0];
+
+        if (file) {
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                setErrors(prev => ({ ...prev, aadhaarCard: 'Please upload a valid image file (JPG, PNG, GIF)' }));
+                return;
+            }
+
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                setErrors(prev => ({ ...prev, aadhaarCard: 'File size must be less than 5MB' }));
+                return;
+            }
+
+            setFormData(prev => ({
+                ...prev,
+                aadhaarCard: file,
+            }));
+
+            const imageUrl = URL.createObjectURL(file);
+            setAadhaarPreview(imageUrl);
+
+            if (errors.aadhaarCard) {
+                setErrors(prev => ({ ...prev, aadhaarCard: '' }));
+            }
+        }
+    };
+
     useEffect(() => {
         return () => {
             if (previewImage) URL.revokeObjectURL(previewImage);
+            if (aadhaarPreview) URL.revokeObjectURL(aadhaarPreview);
         };
-    }, [previewImage]);
-
+    }, [previewImage, aadhaarPreview]);
 
     const validateForm = () => {
         const newErrors = {};
@@ -179,13 +195,14 @@ export default function AddUserForm() {
 
         if (!formData.role) newErrors.role = 'Role is required';
 
-        // bank details only for manager or technician
+        // Bank details and Aadhaar card for manager or technician
         if (['manager', 'technician'].includes(formData.role)) {
-            if (!formData.aadhaarNo.trim()) newErrors.aadhaarNo = 'Aadhaar number is required';
-            else if (!/^\d{12}$/.test(formData.aadhaarNo.trim()))
-                newErrors.aadhaarNo = 'Aadhaar number must be 12 digits';
+            if (!formData.aadhaarCard) newErrors.aadhaarCard = 'Aadhaar card photo is required';
+
+            if (!formData.joiningDate) newErrors.joiningDate = 'Joining date is required';
 
             if (!formData.bankName.trim()) newErrors.bankName = 'Bank name is required';
+
             if (!formData.accountNumber) newErrors.accountNumber = 'Account number is required';
             else if (formData.accountNumber.length < 9 || formData.accountNumber.length > 18)
                 newErrors.accountNumber = 'Account number must be between 9 and 18 digits';
@@ -197,7 +214,6 @@ export default function AddUserForm() {
                 newErrors.ifscNo = 'Invalid IFSC code format';
         }
 
-        // ✅ Locality and Landmark required for ALL ROLES
         if (!formData.locality.trim()) newErrors.locality = 'Locality is required';
         if (!formData.landmark.trim()) newErrors.landmark = 'Landmark is required';
 
@@ -211,7 +227,6 @@ export default function AddUserForm() {
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
-
     };
 
     // const handleSubmit = async () => {
@@ -306,20 +321,23 @@ export default function AddUserForm() {
                     pincode: '',
                     streetAddress: '',
                     role: '',
-                    aadhaarNo: ''
+                    aadhaarCard: null,
+                    joiningDate: ''
                 });
 
                 setCities([]);
                 setErrors({});
-
+                setPreviewImage(null);
+                setAadhaarPreview(null);
                 if (fileInputRef.current) {
                     fileInputRef.current.value = "";
                 }
-
+                if (aadhaarInputRef.current) {
+                    aadhaarInputRef.current.value = "";
+                }
             } else {
                 toast.error(result.message || 'Failed to add user');
             }
-
         } catch (error) {
             toast.error('Something went wrong!');
         } finally {
@@ -418,7 +436,7 @@ export default function AddUserForm() {
                             <button
                                 type="button"
                                 onClick={generatePassword}
-                                className="btn-primary "
+                                className="btn-primary"
                             >
                                 Generate
                             </button>
@@ -447,7 +465,6 @@ export default function AddUserForm() {
                         </label>
 
                         <div className="flex items-center gap-3">
-                            {/* ✅ Image Preview on the left */}
                             {previewImage && (
                                 <img
                                     src={previewImage}
@@ -456,7 +473,6 @@ export default function AddUserForm() {
                                 />
                             )}
 
-                            {/* File Input */}
                             <input
                                 type="file"
                                 name="profilePic"
@@ -476,8 +492,7 @@ export default function AddUserForm() {
                                 name="state"
                                 value={formData.state}
                                 onChange={handleStateChange}
-                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.state ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                    }`}
+                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.state ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                             >
                                 <option value="" disabled>Select state</option>
                                 {Object.keys(statesAndCities).map((state) => (
@@ -494,8 +509,7 @@ export default function AddUserForm() {
                                 value={formData.city}
                                 onChange={handleInputChange}
                                 disabled={!cities.length}
-                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.city ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                    }`}
+                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.city ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                             >
                                 <option value="" disabled>Select city</option>
                                 {cities.map((city) => (
@@ -513,8 +527,7 @@ export default function AddUserForm() {
                                 value={formData.locality}
                                 onChange={handleInputChange}
                                 placeholder="Ex- Andheri"
-                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.locality ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                    }`}
+                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.locality ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                             />
                             {errors.locality && <span className="text-red-500 text-sm mt-1">{errors.locality}</span>}
                         </div>
@@ -527,8 +540,7 @@ export default function AddUserForm() {
                                 value={formData.landmark}
                                 onChange={handleInputChange}
                                 placeholder="Ex - Near City Mall"
-                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.landmark ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                    }`}
+                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.landmark ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                             />
                             {errors.landmark && <span className="text-red-500 text-sm mt-1">{errors.landmark}</span>}
                         </div>
@@ -542,13 +554,11 @@ export default function AddUserForm() {
                                 onChange={handlePincodeChange}
                                 placeholder="Enter pincode"
                                 maxLength="6"
-                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.pincode ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                    }`}
+                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.pincode ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                             />
                             {errors.pincode && <span className="text-red-500 text-sm mt-1">{errors.pincode}</span>}
                         </div>
                     </div>
-
 
                     {/* Address */}
                     <div className="flex flex-col md:col-span-2">
@@ -568,58 +578,87 @@ export default function AddUserForm() {
                     {['manager', 'technician'].includes(formData.role) && (
                         <>
                             <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">Aadhaar No <span className="text-red-500">*</span></label>
+                                <label className="mb-1 font-medium text-gray-700">Joining Date <span className="text-red-500">*</span></label>
                                 <input
-                                    type="text"
-                                    name="aadhaarNo"
-                                    value={formData.aadhaarNo}
+                                    type="date"
+                                    name="joiningDate"
+                                    value={formData.joiningDate}
                                     onChange={handleInputChange}
-                                    maxLength="12"
-                                    placeholder="Enter Aadhaar number"
-                                    className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.aadhaarNo ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                    max={new Date().toISOString().split('T')[0]}
+                                    className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.joiningDate ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                                 />
-                                {errors.aadhaarNo && <span className="text-red-500 text-sm mt-1">{errors.aadhaarNo}</span>}
+                                {errors.joiningDate && <span className="text-red-500 text-sm mt-1">{errors.joiningDate}</span>}
                             </div>
 
+                            {/* Row: Aadhaar Card Photo & Joining Date */}
                             <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">Bank Name <span className="text-red-500">*</span></label>
-                                <input
-                                    type="text"
-                                    name="bankName"
-                                    value={formData.bankName}
-                                    onChange={handleInputChange}
-                                    placeholder="Enter bank name"
-                                    className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.bankName ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                                />
-                                {errors.bankName && <span className="text-red-500 text-sm mt-1">{errors.bankName}</span>}
+                                <label className="mb-1 font-medium text-gray-700">
+                                    Upload Aadhaar Card Photo <span className="text-red-500">*</span>
+                                </label>
+
+                                <div className="flex items-center gap-3">
+                                    {aadhaarPreview && (
+                                        <img
+                                            src={aadhaarPreview}
+                                            alt="Aadhaar preview"
+                                            className="w-10 h-10 object-cover rounded border"
+                                        />
+                                    )}
+
+                                    <input
+                                        type="file"
+                                        name="aadhaarCard"
+                                        accept="image/*"
+                                        onChange={handleAadhaarChange}
+                                        ref={aadhaarInputRef}
+                                        className={`flex-1 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.aadhaarCard ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                    />
+                                </div>
+                                {errors.aadhaarCard && <span className="text-red-500 text-sm mt-1">{errors.aadhaarCard}</span>}
                             </div>
 
-                            <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">Account Number <span className="text-red-500">*</span></label>
-                                <input
-                                    type="text"
-                                    name="accountNumber"
-                                    value={formData.accountNumber}
-                                    onChange={handleAccountNumberChange}
-                                    placeholder="Enter account number"
-                                    maxLength="18"
-                                    className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.accountNumber ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                                />
-                                {errors.accountNumber && <span className="text-red-500 text-sm mt-1">{errors.accountNumber}</span>}
-                            </div>
+                            {/* Row: Bank Details in one row */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:col-span-2">
+                                <div className="flex flex-col">
+                                    <label className="mb-1 font-medium text-gray-700">Bank Name <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="text"
+                                        name="bankName"
+                                        value={formData.bankName}
+                                        onChange={handleInputChange}
+                                        placeholder="Enter bank name"
+                                        className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.bankName ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                    />
+                                    {errors.bankName && <span className="text-red-500 text-sm mt-1">{errors.bankName}</span>}
+                                </div>
 
-                            <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">IFSC No <span className="text-red-500">*</span></label>
-                                <input
-                                    type="text"
-                                    name="ifscNo"
-                                    value={formData.ifscNo}
-                                    onChange={handleIFSCChange}
-                                    placeholder="Enter IFSC code"
-                                    maxLength="11"
-                                    className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.ifscNo ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                                />
-                                {errors.ifscNo && <span className="text-red-500 text-sm mt-1">{errors.ifscNo}</span>}
+                                <div className="flex flex-col">
+                                    <label className="mb-1 font-medium text-gray-700">Account Number <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="text"
+                                        name="accountNumber"
+                                        value={formData.accountNumber}
+                                        onChange={handleAccountNumberChange}
+                                        placeholder="Enter account number"
+                                        maxLength="18"
+                                        className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.accountNumber ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                    />
+                                    {errors.accountNumber && <span className="text-red-500 text-sm mt-1">{errors.accountNumber}</span>}
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="mb-1 font-medium text-gray-700">IFSC No <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="text"
+                                        name="ifscNo"
+                                        value={formData.ifscNo}
+                                        onChange={handleIFSCChange}
+                                        placeholder="Enter IFSC code"
+                                        maxLength="11"
+                                        className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.ifscNo ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                    />
+                                    {errors.ifscNo && <span className="text-red-500 text-sm mt-1">{errors.ifscNo}</span>}
+                                </div>
                             </div>
                         </>
                     )}
@@ -627,16 +666,12 @@ export default function AddUserForm() {
 
                 {/* Submit Button */}
                 <div className="flex justify-end px-6 py-4">
-                    <div className="flex justify-end px-6 py-4">
-                        <button
-                            onClick={handleSubmit}
-                            disabled={loading}
-                            className={`btn-primary ${loading ? "opacity-60 cursor-not-allowed" : ""}`}
-                        >
-                            {loading ? "Please wait..." : "Submit (जमा करें)"}
-                        </button>
-                    </div>
-
+                    <button
+                        onClick={handleSubmit}
+                        className="btn-primary"
+                    >
+                        Submit (जमा करें)
+                    </button>
                 </div>
             </div>
         </div>
