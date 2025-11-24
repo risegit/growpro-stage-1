@@ -1028,11 +1028,11 @@ export default function AMCForm() {
           )}
           <button
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={loading}
             className={`btn-primary ${submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600'}`}
 
           >
-            {submitting ? 'Submitting...' : 'Submit'}
+            {loading ? "Please wait..." : "Submit (जमा करें)"}
           </button>
         </div>
       </div>

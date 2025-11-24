@@ -229,10 +229,67 @@ export default function AddUserForm() {
         return Object.keys(newErrors).length === 0;
     };
 
+    // const handleSubmit = async () => {
+    //     if (!validateForm()) return;
+
+    //     try {
+    //         const form = new FormData();
+    //         Object.entries(formData).forEach(([key, value]) => {
+    //             if (value !== null) form.append(key, value);
+    //         });
+
+    //         const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php`, {
+    //             method: 'POST',
+    //             body: form,
+    //         });
+
+    //         const result = await response.json();
+    //         // alert(`result1 = ${result.message}`);
+    //         if (result.status == 'success') {
+    //             toast.success(result.message);
+    //             setFormData({
+    //                 name: '',
+    //                 email: '',
+    //                 password: '',
+    //                 phone: '',
+    //                 bankName: '',
+    //                 accountNumber: '',
+    //                 ifscNo: '',
+    //                 profilePic: null,
+    //                 locality: '',
+    //                 landmark: '',
+    //                 state: '',
+    //                 city: '',
+    //                 pincode: '',
+    //                 streetAddress: '',
+    //                 role: '',
+    //                 aadhaarNo: ''
+    //             });
+    //             setCities([]);
+    //             setErrors({});
+    //             if (fileInputRef.current) {
+    //                 fileInputRef.current.value = "";
+    //             }
+
+    //         } else {
+    //             toast.error(result.message || 'Failed to add user');
+    //         }
+
+    //     } catch (error) {
+    //         // console.error('Error submitting form:', error);
+    //         toast.error('Something went wrong!');
+    //     }
+    // };
+
+
     const handleSubmit = async () => {
         if (!validateForm()) return;
 
+        setLoading(true); // 🔥 Start loading (disable button + change label)
+
         try {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+    
             const form = new FormData();
             Object.entries(formData).forEach(([key, value]) => {
                 if (value !== null) form.append(key, value);
@@ -247,6 +304,7 @@ export default function AddUserForm() {
 
             if (result.status == 'success') {
                 toast.success(result.message);
+
                 setFormData({
                     name: '',
                     email: '',
@@ -266,6 +324,7 @@ export default function AddUserForm() {
                     aadhaarCard: null,
                     joiningDate: ''
                 });
+
                 setCities([]);
                 setErrors({});
                 setPreviewImage(null);
@@ -281,6 +340,8 @@ export default function AddUserForm() {
             }
         } catch (error) {
             toast.error('Something went wrong!');
+        } finally {
+            setLoading(false);  // 🔥 Stop loading
         }
     };
 

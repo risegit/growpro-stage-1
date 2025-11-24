@@ -7,45 +7,60 @@ export function SignIn() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
-  // 🧹 Always clean leftover login data when Sign-In page loads
-  useEffect(() => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("loggedIn");
-  }, []);
+  // useEffect(() => {
+  //   localStorage.removeItem("user");
+  //   localStorage.removeItem("loggedIn");
+  // }, []);
 
-  const fixedUsers = [
-    { username: "admin", password: "admin123", role: "admin" },
-    { username: "manager", password: "manager123", role: "manager" },
-    { username: "tech", password: "tech123", role: "technician" },
-  ];
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     if (!username || !password) {
       setError("Please fill both Username and Password");
       return;
     }
 
-    const foundUser = fixedUsers.find(
-      (u) => u.username === username && u.password === password
-    );
+    setLoading(true);
 
-    if (!foundUser) {
-      setError("Invalid username or password");
-      return;
+    try {
+      // Prepare POST Body
+      const formData = new FormData();
+      formData.append("username", username);
+      formData.append("password", password);
+
+      // 🔥 SEND TO API
+      const res = await fetch(`${import.meta.env.VITE_API_URL}api/signin-out.php`, {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+      console.log("Login API Response:", data);
+
+      if (!data.status || data.status !== "success") {
+        setError(data.error || "Invalid username or password");
+        setLoading(false);
+        return;
+      }
+
+      // Save logged-in user info
+      localStorage.setItem("user", JSON.stringify(data.data));
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("loggedIn", "true");
+      
+      // Redirect
+      navigate("/dashboard/home", { replace: true });
+    } catch (err) {
+      console.error("Login Error:", err);
+      setError("Something went wrong while logging in.");
+    } finally {
+      setLoading(false);
     }
-
-    setError("");
-
-    // Save user + role
-    localStorage.setItem("user", JSON.stringify(foundUser));
-    localStorage.setItem("loggedIn", "true");
-
-    navigate("/dashboard/home", { replace: true });
   };
 
   return (
@@ -85,8 +100,8 @@ export function SignIn() {
 
           {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
 
-          <Button type="submit" className="mt-6" fullWidth>
-            Sign In
+          <Button type="submit" className="mt-6" fullWidth disabled={loading}>
+            {loading ? "Signing In..." : "Sign In"}
           </Button>
         </form>
       </div>

@@ -140,6 +140,12 @@ export default function EditUserForm() {
             setFormData(prev => ({ ...prev, pincode: value }));
             if (errors.pincode) setErrors({ ...errors, pincode: '' });
         }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        alert('Failed to fetch user details!');
+      } finally {
+        setLoading(false);
+      }
     };
 
     const handleFileChange = (e) => {
@@ -196,9 +202,6 @@ export default function EditUserForm() {
         for (let i = 0; i < 10; i++) {
             password += chars.charAt(Math.floor(Math.random() * chars.length));
         }
-        setFormData(prev => ({ ...prev, password }));
-        if (errors.password) setErrors({ ...errors, password: '' });
-    };
 
     // 🔵 Validation
     const validateForm = () => {
@@ -227,17 +230,6 @@ export default function EditUserForm() {
                 newErrors.ifscNo = 'Invalid IFSC format';
         }
 
-        if (!formData.state) newErrors.state = "State required";
-        if (!formData.city) newErrors.city = "City required";
-        if (!formData.locality.trim()) newErrors.locality = "Locality required";
-        if (!formData.landmark.trim()) newErrors.landmark = "Landmark required";
-        if (!formData.pincode) newErrors.pincode = "Pincode required";
-        else if (formData.pincode.length !== 6)
-            newErrors.pincode = "Must be 6 digits";
-        if (!formData.streetAddress.trim()) newErrors.streetAddress = "Address required";
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
 
     // 🟢 Submit handler
     const handleSubmit = async () => {

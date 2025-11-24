@@ -138,7 +138,7 @@ const routes = [
       {
         icon: <WrenchScrewdriverIcon {...icon} />,
         name: "AMC",
-        allowedRoles: ["admin", "manager"],
+        allowedRoles: ["admin", "manager", "technician"],
         collapse: [
           {
             name: "Add AMC",
@@ -154,11 +154,11 @@ const routes = [
           {
             name: "Manage AMC",
             path: "/amc/viewamc",
-            allowedRoles: ["admin", "manager"],
+            allowedRoles: ["admin", "manager", "technician"],
             element: (
               <RoleProtectedRoute
                 element={<Viewamc />}
-                allowedRoles={["admin", "manager"]}
+                allowedRoles={["admin", "manager", "technician"]}
               />
             ),
           },

@@ -7,6 +7,9 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     const [customers, setCustomers] = useState([]); // options for react-select
     const [submitting, setSubmitting] = useState(false);
 
+    const user = JSON.parse(localStorage.getItem("user"));
+    const user_code = user?.user_code;
+    
     const addDynamicRow = () => {
         setFormData((prevFormData) => ({
             ...prevFormData,
@@ -16,6 +19,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             ],
         }));
     };
+const [isStep4Submitting, setIsStep4Submitting] = useState(false);
+
 
     const removeDynamicRow = (index) => {
         setFormData((prevFormData) => ({
@@ -87,6 +92,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         /* STEP 4 - Material Supply */
         plants: [],
         plantQuantities: {},
+        materialsSuppliedPlantData: "",
         otherPlants: "",
         otherPlantName: "",
         nutrients: "",
@@ -94,11 +100,10 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         numberOfTopups: "",
         additionalNutrients: "",
 
-        neemOil: "",
-        chargeableItemsSupplied: [],
-        changebleItemsOptionsother: "",
+        material_supplied_neemoil: "",
+        material_supplied_chargeable_items: [],
+        materialschargeableItemsOptionsother: "",
         setupPhotos: [],
-        materialsOtherInput: "",
         materialNeedsDelivery: false,
 
         // Dynamic fields for multiple rows of nutrients, tank capacity, and top-ups
@@ -106,20 +111,21 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
         /* STEP 5 - Delivery Details */
         step5Plants: [],
-        step5MaterialsOtherInput: "",
-        step5ChargeableItemsSupplied: [],
-        step5ChangebleItemsOptionsother: "",
-        step5DynamicFields: [
+        materialsDeliveredPlantData: "",
+        material_need_chargeable_items: [],
+        materialsNeedChargeableItemsOptionsother: "",
+        material_need_nutrientsData: [
             { nutrients: "", tankCapacity: "", numberOfTopups: "" }
         ],
-        step5NeemOil: "",
-        step5PlantQuantities: {},
+        material_need_neemoil: "",
+        materialNeedPlantQuantities: {},
         step5OtherPlantName: ""
     });
 
     const [errors, setErrors] = useState({});
 
     const pestOptions = [
+        { label: "Others", value: "Others" },
         { label: "Aphids", value: "Aphids" },
         { label: "Mites", value: "Mites" },
         { label: "Mealy Bugs", value: "Mealy Bugs" },
@@ -130,17 +136,16 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         { label: "Rats", value: "Rats" },
         { label: "Birds", value: "Birds" },
         { label: "White flies", value: "White flies" },
-        { label: "Leaf Miners", value: "Leaf Miners" },
-        { label: "Others", value: "Others" }
+        { label: "Leaf Miners", value: "Leaf Miners" }
     ];
 
     const changebleItemsOptions = [
+        { label: "Others", value: "Others" },
         { label: "Motor", value: "Motor" },
         { label: "Timer", value: "Timer" },
         { label: "Lights", value: "Lights" },
         { label: "End caps", value: "End caps" },
-        { label: "Netpots", value: "Netpots" },
-        { label: "others", value: "Others" }
+        { label: "Netpots", value: "Netpots" }
     ];
 
     const plantProblemOptions = [
@@ -153,6 +158,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
     // Material Supply Options
     const plantOptions = [
+        { label: "Others", value: "Others" },
         { label: "Spinach", value: "Spinach" },
         { label: "Methi", value: "Methi" },
         { label: "Coriander", value: "Coriander" },
@@ -190,8 +196,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         { label: "Brinjal", value: "Brinjal" },
         { label: "Jalapenos", value: "Jalapenos" },
         { label: "Cauliflower", value: "Cauliflower" },
-        { label: "Cucumber", value: "Cucumber" },
-        { label: "Others", value: "Others" }
+        { label: "Cucumber", value: "Cucumber" }
     ];
 
     const nutrientOptions = [
@@ -380,8 +385,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     //             JSON.stringify(formData.plants?.map((g) => g.value) || [])
     //         );
     //         formPayload.append(
-    //             "chargeableItemsSupplied",
-    //             JSON.stringify(formData.chargeableItemsSupplied?.map((g) => g.value) || [])
+    //             "material_supplied_chargeable_items",
+    //             JSON.stringify(formData.material_supplied_chargeable_items?.map((g) => g.value) || [])
     //         );
 
     //         // ✅ Optional: log for debugging
@@ -409,6 +414,104 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     //         setSubmitting(false);
     //     }
     // };
+    const handleSubmit = async () => {
+        setSubmitting(true); // disable button + show "Please wait..."
+
+        try {
+            // OPTIONAL DELAY (800ms)
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            const formPayload = new FormData();
+
+            // Helper function to safely append values
+            const appendFormData = (key, value) => {
+                if (value === null || value === undefined) {
+                    formPayload.append(key, '');
+                } else if (typeof value === 'object') {
+                    if (Array.isArray(value)) {
+                        formPayload.append(key, JSON.stringify(value.map(item => item.value || item)));
+                    } else if (value instanceof File) {
+                        formPayload.append(key, value);
+                    } else if (value.hasOwnProperty('value')) {
+                        formPayload.append(key, value.value);
+                    } else {
+                        formPayload.append(key, JSON.stringify(value));
+                    }
+                } else {
+                    formPayload.append(key, value.toString());
+                }
+            };
+
+            // Append all fields
+            Object.keys(formData).forEach((key) => {
+                const value = formData[key];
+
+                switch (key) {
+                    case 'customers':
+                        formPayload.append("customer_id", value?.value || "");
+                        break;
+
+                    case 'pestTypes':
+                    case 'plantProblems':
+                    case 'plants':
+                    case 'material_supplied_chargeable_items':
+                    case 'step5Plants':
+                    case 'material_need_chargeable_items':
+                        formPayload.append(key, JSON.stringify(value?.map(i => i.value) || []));
+                        break;
+
+                    case 'setupPhotos':
+                        if (value && Array.isArray(value)) {
+                            value.forEach((photo, index) => {
+                                if (photo.file) {
+                                    formPayload.append(`setupPhotos_${index}`, photo.file);
+                                }
+                            });
+                        }
+                        break;
+
+                    case 'nutrientsData':
+                    case 'material_need_nutrientsData':
+                    case 'plantQuantities':
+                    case 'materialNeedPlantQuantities':
+                        formPayload.append(key, JSON.stringify(value || {}));
+                        break;
+
+                    default:
+                        appendFormData(key, value);
+                }
+            });
+            formPayload.append("user_code", user_code || "");
+
+            // Debug logs
+            console.log("Final FormData:");
+            for (let [k, v] of formPayload.entries()) console.log(k, v);
+
+            // API Request
+            const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php`, {
+                method: "POST",
+                body: formPayload,
+                
+            });
+
+            const result = await res.json();
+
+            if (result.status === "success") {
+                toast.success(result.message);
+                setErrors({});
+            } else {
+                toast.error(result.error);
+            }
+
+        } catch (err) {
+            console.error('Submit failed:', err);
+            toast.error('Submission failed. Check console.');
+        } finally {
+            setSubmitting(false); // Enable button again
+        }
+    };
+
+
 
     /* ----------------------- HANDLE INPUT CHANGE ----------------------- */
     const handleChange = (e) => {
@@ -490,7 +593,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
     const handleStep5PlantSelection = (selected) => {
         const newPlants = selected || [];
-        const newQuantities = { ...formData.step5PlantQuantities };
+        const newQuantities = { ...formData.materialNeedPlantQuantities };
 
         // Remove quantities for deselected plants
         const selectedValues = newPlants.map(p => p.value);
@@ -503,7 +606,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         // Check if "Others" is selected
         if (selectedValues.includes("Others")) {
             // If "Others" is selected, preserve quantity if exists
-            newQuantities["Others"] = formData.step5PlantQuantities["Others"] || "";
+            newQuantities["Others"] = formData.materialNeedPlantQuantities["Others"] || "";
         } else {
             // If "Others" is not selected, clear the quantity
             newQuantities["Others"] = "";
@@ -512,10 +615,10 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         setFormData({
             ...formData,
             step5Plants: newPlants,
-            step5PlantQuantities: newQuantities,
+            materialNeedPlantQuantities: newQuantities,
         });
 
-        setErrors({ ...errors, step5Plants: "", step5PlantQuantities: "" });
+        setErrors({ ...errors, step5Plants: "", materialNeedPlantQuantities: "" });
     };
 
     const handleCustomerChange = (selected) => {
@@ -557,7 +660,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     // FIXED: Proper handler for Step 5 Materials Supplied
     const handleStep5MaterialsSelection = (selected) => {
         const newMaterials = selected || [];
-        const newQuantities = { ...formData.step5PlantQuantities };
+        const newQuantities = { ...formData.materialNeedPlantQuantities };
 
         // Remove quantities for deselected materials
         const selectedValues = newMaterials.map(m => m.value);
@@ -569,7 +672,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
         // Check if "Others" is selected
         if (selectedValues.includes("Others")) {
-            newQuantities["Others"] = formData.step5PlantQuantities["Others"] || "";
+            newQuantities["Others"] = formData.materialNeedPlantQuantities["Others"] || "";
         } else {
             newQuantities["Others"] = "";
         }
@@ -577,10 +680,10 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         setFormData({
             ...formData,
             step5Plants: newMaterials,
-            step5PlantQuantities: newQuantities,
+            materialNeedPlantQuantities: newQuantities,
         });
 
-        setErrors({ ...errors, step5Plants: "", step5PlantQuantities: "" });
+        setErrors({ ...errors, step5Plants: "", materialNeedPlantQuantities: "" });
     };
 
     /* ----------------------- VALIDATION ----------------------- */
@@ -677,12 +780,12 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             newErrors.plants = "Select at least one plant";
         }
 
-        // Check if "Others" is selected and materialsOtherInput is empty
+        // Check if "Others" is selected and materialsSuppliedPlantData is empty
         if (
             formData.plants.some((i) => i.value === "Others") &&
-            !formData.materialsOtherInput
+            !formData.materialsSuppliedPlantData
         ) {
-            newErrors.materialsOtherInput = "Please specify the other material";
+            newErrors.materialsSuppliedPlantData = "Please specify the other material";
         }
 
         formData.nutrientsData.forEach((field, index) => {
@@ -710,19 +813,19 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             }
         });
 
-        if (!formData.neemOil) {
-            newErrors.neemOil = "Required";
+        if (!formData.material_supplied_neemoil) {
+            newErrors.material_supplied_neemoil = "Required";
         }
 
-        if (!formData.chargeableItemsSupplied || formData.chargeableItemsSupplied.length === 0) {
-            newErrors.chargeableItemsSupplied = "Select chargeable items supplied";
+        if (!formData.material_supplied_chargeable_items || formData.material_supplied_chargeable_items.length === 0) {
+            newErrors.material_supplied_chargeable_items = "Select chargeable items supplied";
         }
 
         if (
-            formData.chargeableItemsSupplied?.some((item) => item.value === "Others") &&
-            !formData.changebleItemsOptionsother
+            formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") &&
+            !formData.materialschargeableItemsOptionsother
         ) {
-            newErrors.changebleItemsOptionsother = "Please specify other items";
+            newErrors.materialschargeableItemsOptionsother = "Please specify other items";
         }
 
         if (!formData.setupPhotos || formData.setupPhotos.length === 0) {
@@ -776,16 +879,20 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                 isValid = validateStep3();
                 if (isValid) setStep(4);
                 break;
-            case 4:
-                isValid = validateStep4();
-                if (isValid) {
-                    if (formData.materialNeedsDelivery) {
-                        setStep(5);
-                    } else {
-                        onSubmit(formData);
-                    }
-                }
-                break;
+          case 4:
+    isValid = validateStep4();
+    if (isValid) {
+        if (formData.materialNeedsDelivery) {
+            setStep(5);
+        } else {
+            // Step 4 direct submission
+            setIsStep4Submitting(true);
+         
+            setIsStep4Submitting(false);
+        }
+    }
+    break;
+
             case 5:
                 isValid = validateStep5();
                 if (isValid) {
@@ -807,8 +914,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     const addStep5DynamicRow = () => {
         setFormData((prevFormData) => ({
             ...prevFormData,
-            step5DynamicFields: [
-                ...prevFormData.step5DynamicFields,
+            material_need_nutrientsData: [
+                ...prevFormData.material_need_nutrientsData,
                 { nutrients: "", tankCapacity: "", numberOfTopups: "" },
             ],
         }));
@@ -817,17 +924,17 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     const removeStep5DynamicRow = (index) => {
         setFormData((prevFormData) => ({
             ...prevFormData,
-            step5DynamicFields: prevFormData.step5DynamicFields.filter((_, idx) => idx !== index),
+            material_need_nutrientsData: prevFormData.material_need_nutrientsData.filter((_, idx) => idx !== index),
         }));
     };
 
     const handleStep5DynamicFieldChange = (index, field, value) => {
         setFormData((prevFormData) => {
-            const updatedFields = [...prevFormData.step5DynamicFields];
+            const updatedFields = [...prevFormData.material_need_nutrientsData];
             updatedFields[index][field] = value;
             return {
                 ...prevFormData,
-                step5DynamicFields: updatedFields,
+                material_need_nutrientsData: updatedFields,
             };
         });
     };
@@ -843,9 +950,9 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         const { value } = e.target;
         setFormData({
             ...formData,
-            materialsOtherInput: value,
+            materialsSuppliedPlantData: value,
         });
-        setErrors({ ...errors, materialsOtherInput: "" });
+        setErrors({ ...errors, materialsSuppliedPlantData: "" });
     };
 
     // FIXED: Handler for Step 5 Other Input
@@ -853,9 +960,9 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         const { value } = e.target;
         setFormData({
             ...formData,
-            step5MaterialsOtherInput: value,
+            materialsDeliveredPlantData: value,
         });
-        setErrors({ ...errors, step5MaterialsOtherInput: "" });
+        setErrors({ ...errors, materialsDeliveredPlantData: "" });
     };
 
     // FIXED: Handler for Step 4 Plant Quantity Change
@@ -873,8 +980,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     const handleStep5QuantityChange = (plantValue, quantity) => {
         setFormData({
             ...formData,
-            step5PlantQuantities: {
-                ...formData.step5PlantQuantities,
+            materialNeedPlantQuantities: {
+                ...formData.materialNeedPlantQuantities,
                 [plantValue]: quantity,
             },
         });
@@ -888,6 +995,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             value={formData[name]}
             onChange={handleChange}
             placeholder={placeholder}
+            autoFocus
             className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[name] ? "border-red-500 focus:ring-red-400" : "border-gray-300 focus:ring-blue-400"
                 }`}
         />
@@ -915,7 +1023,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             </div>
 
             {formData[name] === showOn && (
-                <SmallInput name={issueName} placeholder="Describe" />
+                <SmallInput name={issueName} placeholder="Describe" autoFocus />
             )}
 
             {errors[name] && <span className="text-red-500 text-sm">{errors[name]}</span>}
@@ -1344,7 +1452,12 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         />
                                         NO
                                     </label>
+
                                 </div>
+                                {errors.nutrientDeficiency && (
+                                    <span className="text-red-500 text-sm mt-1">{errors.nutrientDeficiency}</span>
+                                )}
+
 
                                 {formData.nutrientDeficiency === "yes" && (
                                     <div className="mt-3">
@@ -1588,19 +1701,19 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     <div className="mt-3">
                                         <input
                                             type="text"
-                                            name="materialsOtherInput"
-                                            value={formData.materialsOtherInput || ""}
+                                            name="materialsSuppliedPlantData"
+                                            value={formData.materialsSuppliedPlantData || ""}
                                             onChange={handleStep4OtherInput}
                                             placeholder="Specify other material"
-                                            className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialsOtherInput
+                                            className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialsSuppliedPlantData
                                                 ? "border-red-500 focus:ring-red-400"
                                                 : "border-gray-300 focus:ring-blue-400"
                                                 }`}
                                         />
 
-                                        {errors.materialsOtherInput && (
+                                        {errors.materialsSuppliedPlantData && (
                                             <span className="text-red-500 text-sm mt-1">
-                                                {errors.materialsOtherInput}
+                                                {errors.materialsSuppliedPlantData}
                                             </span>
                                         )}
                                     </div>
@@ -1747,9 +1860,9 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     <label className="flex items-center gap-2">
                                         <input
                                             type="radio"
-                                            name="neemOil"
+                                            name="material_supplied_neemoil"
                                             value="yes"
-                                            checked={formData.neemOil === "yes"}
+                                            checked={formData.material_supplied_neemoil === "yes"}
                                             onChange={handleChange}
                                         />
                                         YES
@@ -1757,16 +1870,16 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     <label className="flex items-center gap-2">
                                         <input
                                             type="radio"
-                                            name="neemOil"
+                                            name="material_supplied_neemoil"
                                             value="no"
-                                            checked={formData.neemOil === "no"}
+                                            checked={formData.material_supplied_neemoil === "no"}
                                             onChange={handleChange}
                                         />
                                         NO
                                     </label>
                                 </div>
-                                {errors.neemOil && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.neemOil}</span>
+                                {errors.material_supplied_neemoil && (
+                                    <span className="text-red-500 text-sm mt-1">{errors.material_supplied_neemoil}</span>
                                 )}
                             </div>
 
@@ -1780,36 +1893,36 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     <Select
                                         isMulti
                                         options={changebleItemsOptions}
-                                        value={formData.chargeableItemsSupplied}
+                                        value={formData.material_supplied_chargeable_items}
                                         onChange={(selected) => {
                                             setFormData({
                                                 ...formData,
-                                                chargeableItemsSupplied: selected || [],
+                                                material_supplied_chargeable_items: selected || [],
                                             });
                                         }}
                                         classNamePrefix="react-select"
                                         placeholder="Select items..."
                                         styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
                                     />
-                                    {errors.chargeableItemsSupplied && (
-                                        <span className="text-red-500 text-sm mt-1">{errors.chargeableItemsSupplied}</span>
+                                    {errors.material_supplied_chargeable_items && (
+                                        <span className="text-red-500 text-sm mt-1">{errors.material_supplied_chargeable_items}</span>
                                     )}
 
                                     {/* Render the "Others" input field if "Others" is selected */}
-                                    {formData.chargeableItemsSupplied?.some((item) => item.value === "Others") && (
+                                    {formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") && (
                                         <div className="mt-3">
                                             <input
                                                 type="text"
-                                                name="changebleItemsOptionsother"
-                                                value={formData.changebleItemsOptionsother || ""}
+                                                name="materialschargeableItemsOptionsother"
+                                                value={formData.materialschargeableItemsOptionsother || ""}
                                                 onChange={handleChange}
                                                 placeholder="Specify other item"
-                                                className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.changebleItemsOptionsother ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                                                className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialschargeableItemsOptionsother ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
                                                     }`}
                                             />
-                                            {errors.changebleItemsOptionsother && (
+                                            {errors.materialschargeableItemsOptionsother && (
                                                 <span className="text-red-500 text-sm mt-1">
-                                                    {errors.changebleItemsOptionsother}
+                                                    {errors.materialschargeableItemsOptionsother}
                                                 </span>
                                             )}
                                         </div>
@@ -1897,8 +2010,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     <div className="mt-3">
                                         <input
                                             type="text"
-                                            name="step5MaterialsOtherInput"
-                                            value={formData.step5MaterialsOtherInput || ""}
+                                            name="materialsDeliveredPlantData"
+                                            value={formData.materialsDeliveredPlantData || ""}
                                             onChange={handleStep5OtherInput}
                                             placeholder="Specify other material"
                                             className="px-3 py-2 border rounded-lg w-full shadow-sm border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
@@ -1940,10 +2053,10 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
                                             {/* Qty for Others typed input */}
                                             {formData.step5Plants?.some((item) => item.value === "Others") &&
-                                                formData.step5MaterialsOtherInput?.trim() !== "" && (
+                                                formData.materialsDeliveredPlantData?.trim() !== "" && (
                                                     <div className="flex items-center gap-3">
                                                         <label className="font-medium text-gray-600 min-w-[150px]">
-                                                            {formData.step5MaterialsOtherInput}:
+                                                            {formData.materialsDeliveredPlantData}:
                                                         </label>
 
                                                         <input
@@ -2026,7 +2139,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
                             {/* Add / Remove Dynamic Rows */}
                             <div className="flex flex-col sm:flex-row items-center justify-end gap-3 mt-4">
-                                {formData.step5DynamicFields.length > 1 && (
+                                {formData.material_need_nutrientsData.length > 1 && (
                                     <button
                                         type="button"
                                         onClick={() =>
@@ -2056,9 +2169,9 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     <label className="flex items-center gap-2">
                                         <input
                                             type="radio"
-                                            name="step5NeemOil"
+                                            name="material_need_neemoil"
                                             value="yes"
-                                            checked={formData.step5NeemOil === "yes"}
+                                            checked={formData.material_need_neemoil === "yes"}
                                             onChange={handleStep5Change}
                                         />
                                         YES
@@ -2067,9 +2180,9 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     <label className="flex items-center gap-2">
                                         <input
                                             type="radio"
-                                            name="step5NeemOil"
+                                            name="material_need_neemoil"
                                             value="no"
-                                            checked={formData.step5NeemOil === "no"}
+                                            checked={formData.material_need_neemoil === "no"}
                                             onChange={handleStep5Change}
                                         />
                                         NO
@@ -2108,8 +2221,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     <div className="mt-3">
                                         <input
                                             type="text"
-                                            name="step5ChangebleItemsOptionsother"
-                                            value={formData.step5ChangebleItemsOptionsother || ""}
+                                            name="materialsNeedChargeableItemsOptionsother"
+                                            value={formData.materialsNeedChargeableItemsOptionsother || ""}
                                             onChange={handleStep5Change}
                                             placeholder="Specify other item"
                                             className="px-3 py-2 border rounded-lg w-full shadow-sm border-gray-300 focus:ring-2 focus:ring-blue-400"
@@ -2143,10 +2256,13 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     : handleNext}
                                 className="btn-primary"
                             >
-                                {(step === 5 || (step === 4 && !formData.materialNeedsDelivery))
-                                    ? "Submit"
-                                    : "Next"}
+                                {submitting
+                                    ? "Please wait..."
+                                    : (step === 5 || (step === 4 && !formData.materialNeedsDelivery))
+                                        ? "Submit"
+                                        : "Next"}
                             </button>
+
                         </div>
                     </div>
                 </div>

@@ -164,7 +164,7 @@ const StepperCustomerForm = () => {
     console.log("FormData updated:", formData);
   }, [formData]);
 
- 
+
   useEffect(() => {
     const fetchUser = async () => {
       if (!id) return;
@@ -333,8 +333,84 @@ const StepperCustomerForm = () => {
     return Object.keys(stepErrors).length === 0;
   };
 
+  // const handleSubmit = async () => {
+  //   if (!validateStep()) return;
+
+  //   const formPayload = new FormData();
+
+  //   // Append main form fields
+  //   for (const key in formData) {
+  //     formPayload.append(key, formData[key]);
+  //   }
+
+  //   // Append growers as JSON string
+  //   // formPayload.append("growers", JSON.stringify(growers));
+
+  //   console.log("Form Payload Data:");
+  //   for (let pair of formPayload.entries()) {
+  //     console.log(pair[0] + ": ", pair[1]);
+  //   }
+  //   formPayload.append('id', id);
+  //   formPayload.append('_method', 'PUT');
+
+  //   growers.forEach((grower, index) => {
+  //     // Clone grower and remove image from JSON object
+  //     const growerData = { ...grower };
+  //     const imageFile = growerData.photoAtInstallation;
+  //     delete growerData.photoAtInstallation;
+
+  //     // Add JSON grower data
+  //     // formPayload.append(`growers[${index}]`, JSON.stringify(growerData));
+  //     formPayload.append("growers", JSON.stringify(growers));
+
+  //     // Add image separately if exists
+  //     if (imageFile instanceof File) {
+  //       formPayload.append(`photoAtInstallation_${index}`, imageFile);
+  //     }
+  //   });
+  //   console.log("Form data entries:");
+  //   for (let [key, value] of formPayload.entries()) {
+  //     console.log(key, ":", value);
+  //   }
+
+
+
+  //   try {
+  //     const response = await fetch(
+  //       `${import.meta.env.VITE_API_URL}api/customer.php`,
+  //       {
+  //         method: "POST",
+  //         body: formPayload
+  //       }
+  //     );
+
+
+  //     const result = await response.json();
+  //     console.log("Server response:", result);
+
+  //     if (result.status === "success") {
+  //       toast.success(result.message);
+
+  //       // Reset form after success
+  //       // setFormData(initialCustomerState);
+  //       // setGrowers([initialGrowerState]);
+  //       // setCurrentStep(1);
+  //       setErrors({});
+  //     } else {
+  //       toast.error(result.error);
+  //       // alert("Something went wrong. Please try again.");
+  //     }
+  //   } catch (error) {
+  //     toast.error("Error submitting form");
+  //     console.error("Error submitting form:", error);
+  //     // alert("Server error. Contact admin.");
+  //   }
+  // };
+
   const handleSubmit = async () => {
     if (!validateStep()) return;
+
+    setLoading(true); // 🔥 disable button & show "Please wait..."
 
     const formPayload = new FormData();
 
@@ -343,39 +419,30 @@ const StepperCustomerForm = () => {
       formPayload.append(key, formData[key]);
     }
 
-    // Append growers as JSON string
-    // formPayload.append("growers", JSON.stringify(growers));
+    formPayload.append('id', id);
+    formPayload.append('_method', 'PUT');
+
+    growers.forEach((grower, index) => {
+      const growerData = { ...grower };
+      const imageFile = growerData.photoAtInstallation;
+      delete growerData.photoAtInstallation;
+
+      formPayload.append("growers", JSON.stringify(growers));
+
+      if (imageFile instanceof File) {
+        formPayload.append(`photoAtInstallation_${index}`, imageFile);
+      }
+    });
 
     console.log("Form Payload Data:");
     for (let pair of formPayload.entries()) {
       console.log(pair[0] + ": ", pair[1]);
     }
-    formPayload.append('id', id);
-    formPayload.append('_method', 'PUT');
-
-    growers.forEach((grower, index) => {
-      // Clone grower and remove image from JSON object
-      const growerData = { ...grower };
-      const imageFile = growerData.photoAtInstallation;
-      delete growerData.photoAtInstallation;
-
-      // Add JSON grower data
-      // formPayload.append(`growers[${index}]`, JSON.stringify(growerData));
-      formPayload.append("growers", JSON.stringify(growers));
-
-      // Add image separately if exists
-      if (imageFile instanceof File) {
-        formPayload.append(`photoAtInstallation_${index}`, imageFile);
-      }
-    });
-    console.log("Form data entries:");
-    for (let [key, value] of formPayload.entries()) {
-      console.log(key, ":", value);
-    }
-
-
 
     try {
+      // ⏳ 1-second delay (change value if needed)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}api/customer.php`,
         {
@@ -384,26 +451,22 @@ const StepperCustomerForm = () => {
         }
       );
 
-
       const result = await response.json();
       console.log("Server response:", result);
 
       if (result.status === "success") {
         toast.success(result.message);
-
-        // Reset form after success
-        // setFormData(initialCustomerState);
-        // setGrowers([initialGrowerState]);
-        // setCurrentStep(1);
         setErrors({});
       } else {
-        toast.error(result.error);
-        // alert("Something went wrong. Please try again.");
+        toast.error(result.error || "Something went wrong");
       }
+
     } catch (error) {
       toast.error("Error submitting form");
       console.error("Error submitting form:", error);
-      // alert("Server error. Contact admin.");
+
+    } finally {
+      setLoading(false); // 🔥 Enable button again
     }
   };
 
@@ -1364,11 +1427,13 @@ const StepperCustomerForm = () => {
                 ) : (
                   <button
                     type="button"
+                    disabled={loading}
                     onClick={handleSubmit}
-                    className="btn-primary "
+                    className={`btn-primary ${loading ? "opacity-60 cursor-not-allowed" : ""}`}
                   >
-                    Submit(जमा करें)
+                    {loading ? "Please wait..." : "Submit(जमा करें)"}
                   </button>
+
                 )}
               </div>
             )}

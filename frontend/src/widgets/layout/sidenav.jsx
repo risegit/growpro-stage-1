@@ -24,6 +24,9 @@ export function Sidenav({ brandImg, brandName, routes }) {
   const rawRole = localStorage.getItem("role");
   const rawUser = localStorage.getItem("user");
   let role = rawRole ?? null;
+  const rawUsername = JSON.parse(localStorage.getItem("user"));
+  const username = rawUsername?.name;
+  
   try {
     if (!role && rawUser) {
       const parsed = JSON.parse(rawUser);
@@ -139,8 +142,9 @@ export function Sidenav({ brandImg, brandName, routes }) {
           </Typography>
 
           {role ? (
-            <p className="text-sm text-green-300 mt-1 capitalize">
-              Role: {role}
+            <p className="text-sm text-bgreen font-weight-500 mt-1 capitalize">
+              Role: {role}<br/>
+              <span className="text-borange font-weight-500">{username}</span>
             </p>
           ) : (
             <p className="text-sm text-red-300 mt-1">

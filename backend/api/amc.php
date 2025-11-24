@@ -54,7 +54,8 @@ switch ($method) {
             }
             echo json_encode(["status" => "success", "data" => $growerData]);
         }elseif ($viewAMC){
-            $result = $conn->query("SELECT users.name,users.phone,amc.id,amc.validity_upto,amc.visits_per_month FROM amc_details as amc INNER JOIN users ON users.id=amc.customer_id");
+            // $result = $conn->query("SELECT users.name,users.phone,amc.id,amc.validity_upto,amc.visits_per_month FROM amc_details as amc INNER JOIN users ON users.id=amc.customer_id");
+            $result = $conn->query("SELECT u.id AS customer_id, u.name, u.phone, a.id as amc_id, a.visits_per_month, a.validity_from, a.validity_upto, COUNT(s.id) AS total_visits_done, (a.visits_per_month - COUNT(s.id)) AS pending_visits FROM users u INNER JOIN amc_details a ON u.id = a.customer_id LEFT JOIN site_visit s ON s.customer_id = u.id AND s.created_date BETWEEN a.validity_from AND a.validity_upto WHERE u.status = 'active' AND CURRENT_DATE <= a.validity_upto GROUP BY u.id, u.name, u.phone, a.visits_per_month, a.validity_from, a.validity_upto");
             $data = [];
 
             while ($row = $result->fetch_assoc()) {
