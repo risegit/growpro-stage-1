@@ -5,7 +5,7 @@ import Select from 'react-select';
 import { toast } from "react-toastify";
 
 export default function AMCForm() {
-  const [formData, setFormData] = useState({
+const [formData, setFormData] = useState({
     systemType: [],
     systemTypeOther: "",
     validityFrom: "",
@@ -53,19 +53,19 @@ export default function AMCForm() {
   });
 
 
-  const systemTypes = ['Small Grower', 'Long Grower', 'Mini Pro Grower',
+const systemTypes = ['Small Grower', 'Long Grower', 'Mini Pro Grower',
     'Semi Pro Grower', 'Pro Grower', 'Vertical Outdoor Grower', 'Flat Bed',
     'Indoor Grower', 'Furniture Integrated Grower', 'Mini Grower', 'Dutch Bucket',
     'Growbags', 'Microgreen Racks', 'Other'];
 
-  const systemTypeOptions = systemTypes.map(s => ({
-    value: s,
-    label: s
-  }));
+const systemTypeOptions = systemTypes.map(s => ({
+  value: s,
+  label: s
+}));
 
   const [errors, setErrors] = useState({});
   const [addonErrors, setAddonErrors] = useState({});
-
+  
   const [growers, setGrowers] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const { id } = useParams();
@@ -73,7 +73,7 @@ export default function AMCForm() {
   const [consumableoptions, setConsumable] = useState([]);
   const [loadingConsumable, setLoadingConsumable] = useState(false);
   const [isNoGrowers, setIsNoGrowers] = useState(false);
-
+  
   const durationOptions = [
     { value: '30', label: 'Monthly' },
     { value: '90', label: 'Quarterly' },
@@ -82,7 +82,7 @@ export default function AMCForm() {
     { value: 'other', label: 'Other' },
   ];
 
-
+  
   const formatName = (str) => {
     return str
       .replace(/-/g, " ")                // replace hyphens with space
@@ -91,86 +91,86 @@ export default function AMCForm() {
   };
 
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (!id) return;
-      setLoading(true);
+useEffect(() => {
+  const fetchUser = async () => {
+    if (!id) return;
+    setLoading(true);
 
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`);
-        const data = await response.json();
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`);
+      const data = await response.json();
 
-        console.log("Fetched data:", data);
+      console.log("Fetched data:", data);
 
-        const amc = Array.isArray(data.amc_data) ? data.amc_data[0] : data.amc_data;
-        // const grower_data = Array.isArray(data.grower_data) ? data.grower_data[0] : data.grower_data;
-        const consumable_data = Array.isArray(data.consumable_data) ? data.consumable_data : [];
+      const amc = Array.isArray(data.amc_data) ? data.amc_data[0] : data.amc_data;
+      // const grower_data = Array.isArray(data.grower_data) ? data.grower_data[0] : data.grower_data;
+      const consumable_data = Array.isArray(data.consumable_data) ? data.consumable_data : [];
 
-        // ------------------------------------
-        // FIND OTHER CONSUMABLE VALUE
-        // ------------------------------------
-        const otherItem = consumable_data.find(
-          c => c.other_consumable && c.other_consumable.trim() !== ""
-        );
+      // ------------------------------------
+      // FIND OTHER CONSUMABLE VALUE
+      // ------------------------------------
+      const otherItem = consumable_data.find(
+        c => c.other_consumable && c.other_consumable.trim() !== ""
+      );
 
-        // ------------------------------------
-        // SET AMC FIELDS
-        // ------------------------------------
-        if (amc) {
-          setFormData(prev => ({
-            ...prev,
-            customer: amc.name || "",
-            duration: amc.duration || "",
-            otherDuration: amc.duration_other || "",
-            validityFrom: amc.validity_from || "",
-            validityUpto: amc.validity_upto || "",
-            visitsPerMonth: amc.visits_per_month || "",
-            consumables: consumable_data.map(p => ({ value: p.id, label: p.name })),
-            otherConsumable: otherItem ? otherItem.other_consumable : "",
-            pricing: amc.pricing || "",
-            transport: amc.transport || "",
-            gst: amc.gst || "",
-            total: amc.total || ""
-          }));
-        }
+      // ------------------------------------
+      // SET AMC FIELDS
+      // ------------------------------------
+      if (amc) {
+        setFormData(prev => ({
+          ...prev,
+          customer: amc.name || "",
+          duration: amc.duration || "",
+          otherDuration: amc.duration_other || "",
+          validityFrom: amc.validity_from || "",
+          validityUpto: amc.validity_upto || "",
+          visitsPerMonth: amc.visits_per_month || "",
+          consumables: consumable_data.map(p => ({ value: p.id, label: p.name })),
+          otherConsumable: otherItem ? otherItem.other_consumable : "",
+          pricing: amc.pricing || "",
+          transport: amc.transport || "",
+          gst: amc.gst || "",
+          total: amc.total || ""
+        }));
+      }
 
-        // ------------------------------------
-        // SET SYSTEM TYPE VALUES
-        // ------------------------------------
-        // if (grower_data) {
-        //   let { system_type, system_type_other } = grower_data;
+      // ------------------------------------
+      // SET SYSTEM TYPE VALUES
+      // ------------------------------------
+      // if (grower_data) {
+      //   let { system_type, system_type_other } = grower_data;
 
-        //   let parsedSystemTypes = [];
+      //   let parsedSystemTypes = [];
 
-        //   if (system_type_other && system_type_other.trim() !== "") {
-        //     parsedSystemTypes = ["Other"];
-        //   } else if (typeof system_type === "string" && system_type.trim() !== "") {
-        //     parsedSystemTypes = system_type.split(",").map(v => v.trim());
-        //   }
+      //   if (system_type_other && system_type_other.trim() !== "") {
+      //     parsedSystemTypes = ["Other"];
+      //   } else if (typeof system_type === "string" && system_type.trim() !== "") {
+      //     parsedSystemTypes = system_type.split(",").map(v => v.trim());
+      //   }
 
-        //   const systemTypeSelectData = parsedSystemTypes.map(g => ({
-        //     value: g,
-        //     label: g
-        //   }));
+      //   const systemTypeSelectData = parsedSystemTypes.map(g => ({
+      //     value: g,
+      //     label: g
+      //   }));
 
-        //   setFormData(prev => ({
-        //     ...prev,
-        //     systemType: systemTypeSelectData,
-        //     systemTypeOther: system_type_other || ""
-        //   }));
-        // }
+      //   setFormData(prev => ({
+      //     ...prev,
+      //     systemType: systemTypeSelectData,
+      //     systemTypeOther: system_type_other || ""
+      //   }));
+      // }
+      
+      const opts = Array.isArray(data.grower_data)
+      ? data.grower_data.map((g) => ({
+          value: g.id,
+          label: g.system_type,
+          other: g.system_type_other   // <-- VERY IMPORTANT
+        }))
+      : [];
 
-        const opts = Array.isArray(data.grower_data)
-          ? data.grower_data.map((g) => ({
-            value: g.id,
-            label: g.system_type,
-            other: g.system_type_other   // <-- VERY IMPORTANT
-          }))
-          : [];
-
-        const isEmptyGrowers = opts.length === 0;
-        setIsNoGrowers(isEmptyGrowers);
-        if (isEmptyGrowers) {
+      const isEmptyGrowers = opts.length === 0;
+      setIsNoGrowers(isEmptyGrowers);
+      if (isEmptyGrowers) {
           // No growers available for customer → AMC for all growers
           setGrowers([]);
           setFormData((prev) => ({
@@ -179,7 +179,7 @@ export default function AMCForm() {
             systemTypeOther: "",
           }));
           return;
-        }
+      }
 
         const hasOther = opts.some((g) => g.other && g.other.trim() !== "");
         const otherValue = hasOther
@@ -192,17 +192,17 @@ export default function AMCForm() {
           grower: opts,
           systemTypeOther: otherValue,
         }));
+    
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      alert("Failed to fetch user details!");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      } catch (error) {
-        console.error("Error fetching user:", error);
-        alert("Failed to fetch user details!");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUser();
-  }, [id]);
+  fetchUser();
+}, [id]);
 
 
 
@@ -222,15 +222,15 @@ export default function AMCForm() {
           //     label: `${c.system_type}`,
           //   }))
           //   : [];
-          const grower_opts = Array.isArray(data.grower_data)
-            ? data.grower_data.map((g) => ({
-              value: g.id,
-              label: g.system_type,
-              other: g.system_type_other   // <-- VERY IMPORTANT
-            }))
-            : [];
+             const grower_opts = Array.isArray(data.grower_data)
+              ? data.grower_data.map((g) => ({
+                  value: g.id,
+                  label: g.system_type,
+                  other: g.system_type_other   // <-- VERY IMPORTANT
+                }))
+              : [];
 
-          const opts = Array.isArray(data.data)
+            const opts = Array.isArray(data.data)
             ? data.data.map((c) => ({
               value: c.id,
               label: formatName(c.name),
@@ -267,86 +267,86 @@ export default function AMCForm() {
   //   }
   // };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const handleInputChange = (e) => {
+  const { name, value } = e.target;
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  setFormData((prev) => ({
+    ...prev,
+    [name]: value,
+  }));
 
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+  // Clear error for this field
+  if (errors[name]) {
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+  }
+
+  // ==============================
+  // CASE 1: DURATION DROPDOWN CHANGED
+  // ==============================
+  if (name === "duration") {
+    // If user chooses OTHER
+    if (value === "other") {
+      setFormData((prev) => ({
+        ...prev,
+        duration: value,
+        validityFrom: "",
+        validityUpto: "",
+        otherDuration: "" // Allow user to type
+      }));
+      return;
     }
 
-    // ==============================
-    // CASE 1: DURATION DROPDOWN CHANGED
-    // ==============================
-    if (name === "duration") {
-      // If user chooses OTHER
-      if (value === "other") {
-        setFormData((prev) => ({
-          ...prev,
-          duration: value,
-          validityFrom: "",
-          validityUpto: "",
-          otherDuration: "" // Allow user to type
-        }));
-        return;
-      }
+    // If user selects predefined values (30, 60, 90…)
+    if (value !== "") {
+      const days = parseInt(value, 10);
+      const today = new Date();
 
-      // If user selects predefined values (30, 60, 90…)
-      if (value !== "") {
-        const days = parseInt(value, 10);
-        const today = new Date();
+      const validityFrom = today.toISOString().split("T")[0];
 
-        const validityFrom = today.toISOString().split("T")[0];
+      const validityUptoDate = new Date();
+      validityUptoDate.setDate(validityUptoDate.getDate() + days);
+      const validityUpto = validityUptoDate.toISOString().split("T")[0];
 
-        const validityUptoDate = new Date();
-        validityUptoDate.setDate(validityUptoDate.getDate() + days);
-        const validityUpto = validityUptoDate.toISOString().split("T")[0];
-
-        setFormData((prev) => ({
-          ...prev,
-          duration: value,
-          validityFrom: validityFrom,
-          validityUpto: validityUpto,
-          otherDuration: "" // clear text field
-        }));
-      }
+      setFormData((prev) => ({
+        ...prev,
+        duration: value,
+        validityFrom: validityFrom,
+        validityUpto: validityUpto,
+        otherDuration: "" // clear text field
+      }));
     }
+  }
 
-    // ==============================
-    // CASE 2: USER TYPING IN "OTHER DURATION"
-    // ==============================
-    if (name === "otherDuration") {
-      if (!isNaN(value) && value !== "") {
-        const days = parseInt(value, 10);
-        const today = new Date();
+  // ==============================
+  // CASE 2: USER TYPING IN "OTHER DURATION"
+  // ==============================
+  if (name === "otherDuration") {
+    if (!isNaN(value) && value !== "") {
+      const days = parseInt(value, 10);
+      const today = new Date();
 
-        const validityFrom = today.toISOString().split("T")[0];
+      const validityFrom = today.toISOString().split("T")[0];
 
-        const validityUptoDate = new Date();
-        validityUptoDate.setDate(validityUptoDate.getDate() + days);
-        const validityUpto = validityUptoDate.toISOString().split("T")[0];
+      const validityUptoDate = new Date();
+      validityUptoDate.setDate(validityUptoDate.getDate() + days);
+      const validityUpto = validityUptoDate.toISOString().split("T")[0];
 
-        setFormData((prev) => ({
-          ...prev,
-          otherDuration: value,
-          validityFrom: validityFrom,
-          validityUpto: validityUpto,
-        }));
-      }
+      setFormData((prev) => ({
+        ...prev,
+        otherDuration: value,
+        validityFrom: validityFrom,
+        validityUpto: validityUpto,
+      }));
     }
+  }
 
-    // ==============================
-    // PRICE RELATED FIELDS
-    // ==============================
-    if (name === "pricing" || name === "transport" || name === "gst") {
-      calculateTotal(name, value);
-    }
-  };
+  // ==============================
+  // PRICE RELATED FIELDS
+  // ==============================
+  if (name === "pricing" || name === "transport" || name === "gst") {
+    calculateTotal(name, value);
+  }
+};
 
   const handleAddonInputChange = (e) => {
     const { name, value } = e.target;
@@ -496,93 +496,149 @@ export default function AMCForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  //   const handleSubmit = async () => {
-  //   if (!validateForm()) return;
+//   const handleSubmit = async () => {
+//   if (!validateForm()) return;
 
-  //   try {
-  //     const form = new FormData();
+//   try {
+//     const form = new FormData();
 
-  //     // convert consumables to array of ids
-  //     const consumableIds = formData.consumables.map((c) => c.value);
-  //     form.append("consumables", JSON.stringify(consumableIds));
+//     // convert consumables to array of ids
+//     const consumableIds = formData.consumables.map((c) => c.value);
+//     form.append("consumables", JSON.stringify(consumableIds));
 
-  //     // append remaining keys
-  //     Object.entries(formData).forEach(([key, value]) => {
-  //       if (key !== "consumables") {
-  //         form.append(key, value);
-  //       }
-  //     });
+//     // append remaining keys
+//     Object.entries(formData).forEach(([key, value]) => {
+//       if (key !== "consumables") {
+//         form.append(key, value);
+//       }
+//     });
 
-  //     form.append("id", id);
-  //     form.append("_method", "PUT");
-  //     // form.append("system_type_other",growerData.systemTypeOther || "");
+//     form.append("id", id);
+//     form.append("_method", "PUT");
+//     // form.append("system_type_other",growerData.systemTypeOther || "");
 
-  //     console.log("Payload you are sending:");
-  //     for (let p of form.entries()) console.log(p[0], p[1]);
+//     console.log("Payload you are sending:");
+//     for (let p of form.entries()) console.log(p[0], p[1]);
 
-  //     const response = await fetch(
-  //       `${import.meta.env.VITE_API_URL}api/amc1.php?id=${id}`,
-  //       { method: "POST", body: form }
-  //     );
+//     const response = await fetch(
+//       `${import.meta.env.VITE_API_URL}api/amc1.php?id=${id}`,
+//       { method: "POST", body: form }
+//     );
 
-  //     const result = await response.json();
-  //     console.log("API Response:", result);
+//     const result = await response.json();
+//     console.log("API Response:", result);
 
-  //   } catch (error) {
-  //     console.error("Submit Error:", error);
-  //   }
-  // };
+//   } catch (error) {
+//     console.error("Submit Error:", error);
+//   }
+// };
 
-  const handleSubmit = async () => {
-    try {
-      const form = new FormData();
+// const handleSubmit = async () => {
+//   try {
+//     const form = new FormData();
 
-      // 1️⃣ Convert multi-select values into plain arrays
-      const consumableIds = formData.consumables?.map(c => c.value) || [];
-      // const systemTypeValues = formData.systemType?.map(s => s.value) || [];
+//     // 1️⃣ Convert multi-select values into plain arrays
+//     const consumableIds = formData.consumables?.map(c => c.value) || [];
+//     // const systemTypeValues = formData.systemType?.map(s => s.value) || [];
 
-      // 2️⃣ Append converted arrays properly
-      form.append("consumables", JSON.stringify(consumableIds));
-      // form.append("systemType", JSON.stringify(systemTypeValues));
+//     // 2️⃣ Append converted arrays properly
+//     form.append("consumables", JSON.stringify(consumableIds));
+//     // form.append("systemType", JSON.stringify(systemTypeValues));
 
-      // 3️⃣ Append remaining fields except arrays
-      Object.entries(formData).forEach(([key, value]) => {
-        if (!["consumables", "grower", "customer"].includes(key)) {
-          form.append(key, value ?? "");
-        }
-      });
+//     // 3️⃣ Append remaining fields except arrays
+//     Object.entries(formData).forEach(([key, value]) => {
+//       if (!["consumables", "grower", "customer"].includes(key)) {
+//         form.append(key, value ?? "");
+//       }
+//     });
 
-      // 4️⃣ Additional fields
-      form.append("id", id);
-      form.append("_method", "PUT");
+//     // 4️⃣ Additional fields
+//     form.append("id", id);
+//     form.append("_method", "PUT");
 
-      // 🔍 DEBUG PRINT
-      console.log("PAYLOAD SENDING:");
-      for (let p of form.entries()) console.log(p[0], p[1]);
+//     // 🔍 DEBUG PRINT
+//     console.log("PAYLOAD SENDING:");
+//     for (let p of form.entries()) console.log(p[0], p[1]);
 
-      // 5️⃣ Submit request
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`,
-        {
-          method: "POST",
-          body: form
-        }
-      );
+//     // 5️⃣ Submit request
+//     const response = await fetch(
+//       `${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`,
+//       {
+//         method: "POST",
+//         body: form
+//       }
+//     );
 
-      const result = await response.json();
-      if (result.status === "success") {
-        toast.success(result.message);
-        setErrors({});
-      } else {
-        toast.error(result.error);
-        // alert("Something went wrong. Please try again.");
+//     const result = await response.json();
+//     if (result.status === "success") {
+//         toast.success(result.message);
+//         setErrors({});
+//     } else {
+//       toast.error(result.error);
+//       // alert("Something went wrong. Please try again.");
+//     }
+//     console.log("API RESPONSE:", result);
+
+//   } catch (error) {
+//     console.error("Submit Error:", error);
+//   }
+// };
+
+const handleSubmit = async () => {
+  setLoading(true); // 🔥 Disable button + show “Please wait...”
+
+  try {
+    // ⏳ Optional delay (1 second)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const form = new FormData();
+
+    // 1️⃣ Convert multi-select values into plain arrays
+    const consumableIds = formData.consumables?.map(c => c.value) || [];
+
+    // 2️⃣ Append converted arrays
+    form.append("consumables", JSON.stringify(consumableIds));
+
+    // 3️⃣ Append remaining fields except arrays
+    Object.entries(formData).forEach(([key, value]) => {
+      if (!["consumables", "grower", "customer"].includes(key)) {
+        form.append(key, value ?? "");
       }
-      console.log("API RESPONSE:", result);
+    });
 
-    } catch (error) {
-      console.error("Submit Error:", error);
+    // 4️⃣ Additional fields
+    form.append("id", id);
+    form.append("_method", "PUT");
+
+    console.log("PAYLOAD SENDING:");
+    for (let p of form.entries()) console.log(p[0], p[1]);
+
+    // 5️⃣ Submit request
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`,
+      {
+        method: "POST",
+        body: form
+      }
+    );
+
+    const result = await response.json();
+    console.log("API RESPONSE:", result);
+
+    if (result.status === "success") {
+      toast.success(result.message);
+      setErrors({});
+    } else {
+      toast.error(result.error || "Something went wrong!");
     }
-  };
+
+  } catch (error) {
+    console.error("Submit Error:", error);
+    toast.error("Submission failed. Check console.");
+  } finally {
+    setLoading(false); // 🔥 Re-enable button
+  }
+};
 
 
 
@@ -626,47 +682,43 @@ export default function AMCForm() {
           </div>
 
           <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700">
-              System Type <span className="text-red-500">*</span>
-            </label>
+        <label className="mb-1 font-medium text-gray-700">
+          System Type <span className="text-red-500">*</span>
+        </label>
 
-            {isNoGrowers ? (
-              <div className="px-3 py-4 border rounded-lg bg-gray-100 text-gray-700">
-                AMC created for all the growers
-              </div>
-            ) : (
-              <>
-                <Select
-                  isMulti
-                  options={growers}
-                  value={formData.grower}
-                  isDisabled={true}
-                  isClearable={false}
-                  classNamePrefix="react-select"
-                  components={{
-                    MultiValueRemove: () => null,
-                  }}
-                  styles={{
-                    menu: (provided) => ({ ...provided, zIndex: 9999 }),
-                  }}
-                />
-
-                {growerHasOther && (
-                  <input
-                    type="text"
-                    name="systemTypeOther"
-                    value={formData.systemTypeOther}
-                    readOnly
-                    className="mt-2 px-3 py-2 border rounded-lg"
-                  />
-                )}
-              </>
-            )}
-
-            {errors.grower && (
-              <span className="text-red-500 text-sm mt-1">{errors.grower}</span>
-            )}
+        {isNoGrowers ? (
+          <div className="px-3 py-4 border rounded-lg bg-gray-100 text-gray-700">
+            AMC created for all the growers
           </div>
+        ) : (
+          <>
+            <Select
+              isMulti
+              options={growers}
+              value={formData.grower}
+              isDisabled={true}
+              classNamePrefix="react-select"
+              styles={{
+                menu: (provided) => ({ ...provided, zIndex: 9999 }),
+              }}
+            />
+
+            {growerHasOther && (
+              <input
+                type="text"
+                name="systemTypeOther"
+                value={formData.systemTypeOther}
+                readOnly
+                className="mt-2 px-3 py-2 border rounded-lg"
+              />
+            )}
+          </>
+        )}
+
+        {errors.grower && (
+          <span className="text-red-500 text-sm mt-1">{errors.grower}</span>
+        )}
+      </div>
 
           {/* Duration */}
           <div className="flex flex-col">

@@ -105,7 +105,7 @@ const ManageVisits = () => {
               Manage Visits
             </h1>
             <p className="text-sm sm:text-base text-gray-600">
-              View and            
+              View and manage Visits
             </p>
           </div>
 

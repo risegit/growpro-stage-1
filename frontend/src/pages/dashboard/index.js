@@ -15,4 +15,3 @@ export * from "@/pages/dashboard/viewcustomer";
 export * from "@/pages/dashboard/sitevists";
 export * from "@/pages/dashboard/revisit";
 export * from "@/pages/dashboard/editmanagevisit";
-export * from "@/pages/dashboard/schedulevisit";

@@ -100,7 +100,7 @@ export function DashboardNavbar() {
             </IconButton>
           </Link>
           <Menu>
-{/*   
+  
             <MenuList className="w-max border-0">
               <MenuItem className="flex items-center gap-3">
                 <Avatar
@@ -171,15 +171,15 @@ export function DashboardNavbar() {
                   </Typography>
                 </div>
               </MenuItem>
-            </MenuList> */}
+            </MenuList>
           </Menu>
-          {/* <IconButton
+          <IconButton
             variant="text"
             color="blue-gray"
             onClick={() => setOpenConfigurator(dispatch, true)}
           >
             <Cog6ToothIcon className="h-5 w-5 text-blue-gray-500" />
-          </IconButton> */}
+          </IconButton>
         </div>
       </div>
     </Navbar>
