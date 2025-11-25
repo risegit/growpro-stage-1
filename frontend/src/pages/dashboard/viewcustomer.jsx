@@ -194,16 +194,6 @@ export default function UserTable() {
                         <h3 className="font-semibold text-gray-800 text-lg mb-2">
                           {user.name}
                         </h3>
-                        <span
-                          className={`inline-block px-3 py-1 rounded-lg text-xs font-medium ${user.role === "Admin"
-                            ? "bg-blue-100 text-blue-700"
-                            : user.role === "Manager"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-700"
-                            }`}
-                        >
-                          {user.role}
-                        </span>
                       </div>
                     </div>
                     <div className="space-y-3 mb-5">
@@ -226,6 +216,21 @@ export default function UserTable() {
                           {user.phone}
                         </a>
                       </div>
+                      {/* Status (same color logic as desktop) */}
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                            Status
+                          </span>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide w-fit border-2
+                ${user.status === "active"
+                                ? "bg-green-600 text-white border-green-600"
+                                : "bg-red-600 text-white border-red-600"
+                              }`}
+                          >
+                            {user.status === "active" ? "Active" : "Inactive"}
+                          </span>
+                        </div>
 
                     </div>
                     <button

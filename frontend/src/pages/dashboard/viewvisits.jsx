@@ -9,6 +9,11 @@ export default function UserTable() {
   const usersPerPage = 10;
   const navigate = useNavigate();
 
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userRole = user?.role;
+  const user_code = user?.user_code;
+  console.log("userCode=", user_code);
+
    const formatDate = (dateString) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
@@ -23,7 +28,7 @@ export default function UserTable() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?view-visit='viewvisit'`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?view-visit='viewvisit'&user_code=${user_code}`, {
           method: "GET",
         });
         const data = await response.json();
@@ -46,9 +51,10 @@ export default function UserTable() {
     return allUsers.filter(
       (user) =>
         user.customer_name.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query) ||
-        // user.role.toLowerCase().includes(query) ||
-        user.phone.includes(query)
+        user.phone.includes(query) ||
+        user.technician_name.toLowerCase().includes(query) ||
+        user.visited_by.toLowerCase().includes(query) ||
+        user.created_date.includes(query)
     );
   }, [allUsers, searchQuery]);
 
@@ -93,15 +99,15 @@ export default function UserTable() {
             </p>
           </div>
 
-          <div className="mt-3 sm:mt-0 w-full sm:w-1/3">
+          { <div className="mt-3 sm:mt-0 w-full sm:w-1/3">
             <input
               type="text"
-              placeholder="Search by name, email, role, or mobile..."
+              placeholder="Search by name, visited by..."
               value={searchQuery}
               onChange={handleSearchChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
             />
-          </div>
+          </div>}
         </div>
 
         <div className="p-4 sm:p-6">
@@ -118,9 +124,12 @@ export default function UserTable() {
                   <thead>
                     <tr className="border-b border-gray-200">
                       <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Customer Name</th>
+                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Phone</th>
                       <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Visited By</th>
                       <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Visit Date</th>
-                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-right">Action</th>
+                      {userRole !== "technician" && (
+                        <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">Action</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -146,25 +155,35 @@ export default function UserTable() {
                                 alt={user.customer_name}
                                 className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                               />
-                              <a
-                              href={`/dashboard/users/edituser/${user.customer_id}`}
+                              {/* <a
+                              href={`/dashboard/customers/editcustomer/${user.customer_id}`}
                               className="text-blue-600 hover:underline"
-                            >
+                            > */}
                               <span className="font-medium text-gray-800 truncate">
                                 {user.customer_name}
                               </span>
-                              </a>
+                              {/* </a> */}
                             </div>
                           </td>
 
                           {/* Phone */}
                           <td className="py-4 px-4 text-gray-700 truncate">
                             <a
-                              href={`/dashboard/users/edituser/${user.technician_id}`}
+                              href={`tel:${user.phone}`}
                               className="text-blue-600 hover:underline"
                             >
-                              {user.technician_name} ({user.visited_by})
+                              {user.phone}
                             </a>
+                          </td>
+
+                          
+                          <td className="py-4 px-4 text-gray-700 truncate">
+                            {/* <a
+                              href={`/dashboard/users/edituser/${user.technician_id}`}
+                              className="text-blue-600 hover:underline"
+                            > */}
+                              {user.technician_name} ({user.visited_by})
+                            {/* </a> */}
                           </td>
 
                           {/* Email — moved up before Status */}
@@ -173,14 +192,16 @@ export default function UserTable() {
                           </td>
 
                           {/* Action */}
-                          <td className="py-4 px-4 text-right">
-                            <button
-                              onClick={() => handleEdit(user.id)}
-                              className="px-4 py-2 btn-primary"
-                            >
-                              Edit
-                            </button>
-                          </td>
+                          {userRole !== "technician" && (
+                            <td className="py-4 px-4 text-right">
+                              <button
+                                onClick={() => handleEdit(user.id)}
+                                className="px-4 py-2 btn-primary"
+                              >
+                                Edit
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
@@ -204,7 +225,7 @@ export default function UserTable() {
                         <img
                           src={
                             user.profile_pic
-                              ? `${import.meta.env.VITE_API_URL}uploads/users/${user.profile_pic}`
+                              ? `${import.meta.env.VITE_API_URL}uploads/customers/${user.profile_pic}`
                               : `https://ui-avatars.com/api/?name=${encodeURIComponent(
                                 user.customer_name
                               )}&background=3b82f6&color=fff`
@@ -214,23 +235,8 @@ export default function UserTable() {
                         />
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-gray-800 text-lg mb-2">
-                            {user.customer_name}
+                            {user.customer_name} <br/><small>({user.phone})</small>
                           </h3>
-
-                          {/* Role badge (same colors as desktop) */}
-                          {/* <span
-                            className={`inline-block px-3 py-1 rounded-lg text-xs font-semibold text-white border-2
-                ${user.role === "admin"
-                                ? "bg-green-700 border-green-700" // dark green
-                                : user.role === "manager"
-                                  ? "bg-green-400 border-green-400" // light green
-                                  : user.role === "technician"
-                                    ? "bg-[rgb(244,166,74)] border-[rgb(244,166,74)]" // orange
-                                    : "bg-gray-400 border-gray-400"
-                              }`}
-                          >
-                            {role}
-                          </span> */}
                         </div>
                       </div>
 
@@ -238,41 +244,28 @@ export default function UserTable() {
                         {/* Email */}
                         <div className="flex flex-col">
                           <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Email
+                            Visisted By
                           </span>
                           <span className="text-sm text-gray-700 break-all">
-                            {user.email}
+                            <a
+                              href={`/dashboard/users/edituser/${user.technician_id}`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              {user.technician_name} ({user.visited_by})
+                            </a>
+                            
                           </span>
                         </div>
 
                         {/* Mobile */}
                         <div className="flex flex-col">
                           <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Mobile
+                            Visit Date
                           </span>
-                          <a
-                            href={`tel:${user.phone || user.mobile}`}
-                            className="text-sm text-blue-600 hover:underline"
-                          >
-                            {user.phone || user.mobile}
-                          </a>
+                            {formatDate(user.created_date)}
                         </div>
 
-                        {/* Status (same color logic as desktop) */}
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Status
-                          </span>
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide w-fit border-2
-                ${user.status === "active"
-                                ? "bg-green-600 text-white border-green-600"
-                                : "bg-red-600 text-white border-red-600"
-                              }`}
-                          >
-                            {user.status === "active" ? "Active" : "Inactive"}
-                          </span>
-                        </div>
+                        
                       </div>
 
                       <button

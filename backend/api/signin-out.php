@@ -70,7 +70,7 @@ switch ($method) {
         $token = bin2hex(random_bytes(16));
 
         // Save token in DB (optional)
-        $sql = "UPDATE users SET token='$token' WHERE id={$user['id']}";
+        $sql = "UPDATE users SET token='$token', login_status='active' WHERE id={$user['id']}";
         $conn->query($sql);
 
         echo json_encode([

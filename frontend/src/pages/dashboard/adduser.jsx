@@ -29,10 +29,6 @@ export default function AddUserForm() {
     const [previewImage, setPreviewImage] = useState(null);
     const [loading, setLoading] = useState(false);
 
-
-
-
-
     const statesAndCities = {
         Maharashtra: ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
         Karnataka: ['Bengaluru', 'Mysore', 'Mangalore'],

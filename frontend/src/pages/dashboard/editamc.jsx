@@ -73,6 +73,7 @@ const systemTypeOptions = systemTypes.map(s => ({
   const [consumableoptions, setConsumable] = useState([]);
   const [loadingConsumable, setLoadingConsumable] = useState(false);
   const [isNoGrowers, setIsNoGrowers] = useState(false);
+  const NoRemove = (props) => null;
   
   const durationOptions = [
     { value: '30', label: 'Monthly' },
@@ -701,6 +702,7 @@ const handleSubmit = async () => {
               styles={{
                 menu: (provided) => ({ ...provided, zIndex: 9999 }),
               }}
+              components={{ MultiValueRemove: NoRemove }}
             />
 
             {growerHasOther && (
