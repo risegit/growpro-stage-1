@@ -35,7 +35,7 @@ import Sitevists from "@/pages/dashboard/sitevists";
 import Createvisits from "@/pages/dashboard/createvisits";
 import Viewvisits from "@/pages/dashboard/viewvisits";
 import Editvisit from "@/pages/dashboard/editvisit";
-import Revisit from "@/pages/dashboard/revisit";
+import Revisit from "@/pages/dashboard/schedulevisit";
 
 import { SignIn } from "@/pages/auth";
 import LogoutButton from "./Components/LogoutButton";
@@ -181,6 +181,17 @@ const routes = [
         allowedRoles: ["admin", "manager", "technician"],
         collapse: [
           {
+            name: "Schedule Visit",
+            path: "/sitevisits/schedulevisit",
+            allowedRoles: ["admin", "manager"],
+            element: (
+              <RoleProtectedRoute
+                element={<Revisit />}
+                allowedRoles={["admin", "manager"]}
+              />
+            ),
+          },
+          {
             name: "Create Visits",
             path: "/sitevisits/createvisits",
             allowedRoles: ["admin", "manager", "technician"],
@@ -214,31 +225,20 @@ const routes = [
             ),
             hidden: true,
           },
-          // {
-          //   name: "Revisit",
-          //   path: "/sitevisits/revisit",
-          //   allowedRoles: ["admin", "manager", "technician"],
-          //   element: (
-          //     <RoleProtectedRoute
-          //       element={<Revisit />}
-          //       allowedRoles={["admin", "manager", "technician"]}
-          //     />
-          //   ),
-          // },
         ],
       },
-      {
-        icon: <IdentificationIcon {...icon} />,
-        name: "Profile",
-        path: "/profile",
-        allowedRoles: ["admin", "manager", "technician"],
-        element: (
-          <RoleProtectedRoute
-            element={<Profile />}
-            allowedRoles={["admin", "manager", "technician"]}
-          />
-        ),
-      },
+      // {
+      //   icon: <IdentificationIcon {...icon} />,
+      //   name: "Profile",
+      //   path: "/profile",
+      //   allowedRoles: ["admin", "manager", "technician"],
+      //   element: (
+      //     <RoleProtectedRoute
+      //       element={<Profile />}
+      //       allowedRoles={["admin", "manager", "technician"]}
+      //     />
+      //   ),
+      // },
     ],
   },
   {

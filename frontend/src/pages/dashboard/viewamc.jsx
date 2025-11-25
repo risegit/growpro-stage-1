@@ -11,7 +11,7 @@ export default function UserTable() {
 
   const user = JSON.parse(localStorage.getItem("user"));
   const userRole = user?.role;
-  console.log("user",user)
+  // console.log("user",user)
 
   const formatDate = (dateString) => {
     if (!dateString) return "-";
@@ -50,8 +50,8 @@ export default function UserTable() {
     return allAMC.filter(
       (user) =>
         user.name.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query) ||
-        user.role.toLowerCase().includes(query) ||
+        user.visits_per_month.toLowerCase().includes(query) ||
+        user.pending_visits.toLowerCase().includes(query) ||
         user.phone.includes(query)
     );
   }, [allAMC, searchQuery]);
@@ -97,15 +97,15 @@ export default function UserTable() {
             </p>
           </div>
 
-          <div className="mt-3 sm:mt-0 w-full sm:w-1/3">
+          { <div className="mt-3 sm:mt-0 w-full sm:w-1/3">
             <input
               type="text"
-              placeholder="Search by name, email, role, or mobile..."
+              placeholder="Search by name, contact, visit per month, or visit pending..."
               value={searchQuery}
               onChange={handleSearchChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
             />
-          </div>
+          </div>}
         </div>
 
         <div className="p-4 sm:p-6">
@@ -126,7 +126,7 @@ export default function UserTable() {
                       <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Visits per Month</th>
                       {<th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">Visit Pending</th>}
                       <th className="w-[16%] py-4 px-4 font-medium text-gray-700 text-left">Days Left</th>
-                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Expire On</th>
+                      <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">AMC Status</th>
                       {userRole !== "technician" && (
                         <th className="py-4 px-4 font-medium text-gray-700 text-right">Action</th>
                       )}

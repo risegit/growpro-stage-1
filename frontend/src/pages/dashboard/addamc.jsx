@@ -31,7 +31,7 @@ export default function AMCForm() {
   const [loadingGrowers, setLoadingGrowers] = useState(false);
   const [loadingConsumable, setLoadingConsumable] = useState(false);
   const [isNoGrowers, setIsNoGrowers] = useState(false);
-
+  const NoRemove = (props) => null;
 
 
   // Consumable options including "Other"
@@ -629,6 +629,7 @@ export default function AMCForm() {
                   styles={{
                     menu: (provided) => ({ ...provided, zIndex: 9999 }),
                   }}
+                  components={{ MultiValueRemove: NoRemove }}
                 />
 
                 {growerHasOther && (

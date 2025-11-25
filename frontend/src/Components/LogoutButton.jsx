@@ -5,7 +5,8 @@ export default function LogoutButton() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    localStorage.clear();                          // clear roles + user + flags
+    localStorage.clear();  
+                            
     navigate("/sign-in", { replace: true });       // correct redirect route
   }, []);
 

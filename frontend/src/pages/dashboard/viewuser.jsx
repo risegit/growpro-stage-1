@@ -107,10 +107,11 @@ export default function UserTable() {
                 <table className="w-full table-fixed text-left border-collapse">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="w-[25%] py-4 px-4 font-medium text-gray-700 text-left">Name</th>
-                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Phone Number</th>
-                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Role</th>
-                      <th className="w-[25%] py-4 px-4 font-medium text-gray-700 text-left">Email</th>
+                      <th className="w-[20%] py-4 px-4 font-medium text-gray-700 text-left">Name</th>
+                      <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">EMP Code</th>
+                      <th className="w-[14%] py-4 px-4 font-medium text-gray-700 text-left">Contact No.</th>
+                      <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">Role</th>
+                      <th className="w-[22%] py-4 px-4 font-medium text-gray-700 text-left">Email</th>
                       <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Status</th>
                       <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-right">Action</th>
                     </tr>
@@ -145,6 +146,10 @@ export default function UserTable() {
                                 {user.name}
                               </span>
                             </div>
+                          </td>
+
+                          <td className="py-4 px-4 text-gray-700 truncate">
+                              {user.user_code}
                           </td>
 
                           {/* Phone */}
@@ -236,7 +241,7 @@ export default function UserTable() {
                         />
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-gray-800 text-lg mb-2">
-                            {user.name}
+                            {user.name} <br/><small>({user.user_code})</small>
                           </h3>
 
                           {/* Role badge (same colors as desktop) */}
@@ -257,6 +262,19 @@ export default function UserTable() {
                       </div>
 
                       <div className="space-y-3 mb-5">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                            Contact No.
+                          </span>
+                          <span className="text-sm text-gray-700 break-all">
+                            <a
+                              href={`tel:${user.phone || user.mobile}`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              {user.phone || user.mobile}
+                            </a>
+                          </span>
+                        </div>
                         {/* Email */}
                         <div className="flex flex-col">
                           <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
