@@ -6,7 +6,7 @@ header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 $servername = "localhost";
 $username = "root";
 $password = "";
-$database = "growpro";
+$database = "growpro-app";
 
 $conn = new mysqli($servername, $username, $password, $database);
 if ($conn->connect_error) {

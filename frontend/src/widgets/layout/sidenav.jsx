@@ -211,7 +211,7 @@ export function Sidenav({ brandImg, brandName, routes }) {
                     </Button>
 
                     <Collapse open={openDropdown === name}>
-                      <ul className="ml-10 mt-1 flex flex-col gap-1 border-l border-green-400 pl-3">
+                      <ul className="ml-5 mt-1 flex flex-col gap-1 border-l border-green-400 pl-3">
                         {collapse.map(({ name: subName, path: subPath }) => (
                           <li key={subName}>
                             <NavLink
