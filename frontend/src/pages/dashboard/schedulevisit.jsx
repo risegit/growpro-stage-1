@@ -24,7 +24,7 @@ export default function CustomerVisitForm() {
     // const customers = ["John Doe", "Nimish", "Akash", "Rohan"];
     // const technicians = ["Technician 1", "Technician 2", "Technician 3"];
 
-    const visitTimeOptions = ["Morning (8:00 am - 11:00 am)", "Afternoon (11:00 am - 3:00 pm)", "Evening (3 pm - 6 pm)", "Night (6 pm -9 pm)"];
+    const visitTimeOptions = ["Morning (8:00 am - 11:00 am)", "Afternoon (11:00 am - 3:00 pm)", "Evening (3:00 pm - 6:00 pm)", "Night (6:00 pm - 9:00 pm)"];
  
     const handleInputChange = (e) => {
         const { name, value } = e.target;

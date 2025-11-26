@@ -12,6 +12,16 @@
          focus:ring-[#e17a00] focus:ring-offset-2 transition-colors
          hover:bg-[#66bb6a];
 }
+.btn-success {
+  @apply px-6 py-2 bg-[#28a745] text-white font-medium rounded-lg 
+         focus:ring-[#28a745] focus:ring-offset-2 transition-colors
+         hover:bg-[#218838];
+}
+.btn-danger {
+  @apply px-6 py-2 bg-[#dc3545] text-white font-medium rounded-lg 
+         focus:ring-[#dc3545] focus:ring-offset-2 transition-colors
+         hover:bg-[#c82333];
+}
 .small-text{
     font-size: 13px;
     /* color: #1e8b23; */
@@ -30,6 +40,9 @@
 }
 .text-borange{
     color: #e17a00;
+}
+aside{
+    overflow-y: scroll;
 }
 /* @media(max-width:1700px){
     .mobileResponsive{

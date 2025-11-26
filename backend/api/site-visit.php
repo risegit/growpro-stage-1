@@ -14,6 +14,9 @@ $userCode = $_GET['user_code'] ?? null;
 $scheduleVisit = $_GET['schedule_visit'] ?? null;
 $chkScheduleVisit = $_GET['chkScheduleVisit'] ?? null;
 $techId = $_GET['techId'] ?? null;
+$viewScheduleVisit = $_GET['view-schedule-visit'] ?? null;
+$editSiteVisit = $_GET['editSiteVisit'] ?? null;
+$schId = $_GET['schId'] ?? null;
 
 if ($method === 'POST' && isset($_POST['_method'])) {
     $method = strtoupper($_POST['_method']);
@@ -50,14 +53,21 @@ switch ($method) {
                 "status" => "success",
                 "data" => $userId ? ($data[0] ?? null) : $data
             ]);
-        }elseif ($emailId) {
-            $userResult = $conn->query("SELECT * FROM users where email='$emailId'");
-            if ($userResult && $userResult->num_rows > 0) {
-                echo json_encode(["status" => "error", "message" => 'An account with this email already exists']);
-            }else{
-                echo json_encode(["status" => "success", "message" => 'An account with this email not exists']);
+        }elseif ($viewScheduleVisit) {
+            if (!empty($userCode)) {
+                if (str_starts_with($userCode, 'TC')) {
+                    $whereClause = "WHERE sch.technician_id= '$techId'";
+                } elseif (str_starts_with($userCode, 'AD') || str_starts_with($userCode, 'MN')) {
+                    $whereClause = '';
+                }
             }
-            
+            $result = $conn->query("SELECT sch.id,sch.visit_date,sch.visit_time,sch.status,u.id customer_id,u.name as customer_name,u.phone customer_phone,t.name technician_name FROM site_visit_schedule sch INNER JOIN users u ON sch.customer_id=u.id INNER JOIN users t ON sch.technician_id=t.id $whereClause order by sch.id DESC");
+            $data = [];
+            while ($row = $result->fetch_assoc()) {
+                $data[] = $row;
+            }
+            echo json_encode(["status" => "success","data" => $data]);
+
         }elseif ($viewVisit) {
             if (!empty($userCode)) {
                 if (str_starts_with($userCode, 'TC')) {
@@ -67,7 +77,7 @@ switch ($method) {
                 }
             }
 
-            $sql1 = "SELECT u.id AS customer_id, u.name AS customer_name, u.profile_pic, u.phone, tech.id AS technician_id, tech.name AS technician_name,sv.visited_by, sv.created_date FROM site_visit sv INNER JOIN users u ON sv.customer_id = u.id LEFT JOIN users tech ON sv.visited_by = tech.user_code $whereClause Order By sv.id DESC;";
+            $sql1 = "SELECT u.id AS customer_id, u.name AS customer_name, u.profile_pic, u.phone, tech.id AS technician_id, tech.name AS technician_name,sv.id site_visit_id,sv.visited_by, sv.created_date FROM site_visit sv INNER JOIN users u ON sv.customer_id = u.id LEFT JOIN users tech ON sv.visited_by = tech.user_code $whereClause Order By sv.id DESC;";
             $result = $conn->query($sql1);
             $data = [];
             while ($row = $result->fetch_assoc()) {
@@ -83,7 +93,7 @@ switch ($method) {
                 if (str_starts_with($userCode, 'TC')) {
                     $whereClause = "WHERE sch.technician_id = '$techId' and sch.status='scheduled'";
                 } elseif (str_starts_with($userCode, 'AD') || str_starts_with($userCode, 'MN')) {
-                    $whereClause = '';
+                    $whereClause = 'WHERE sch.status="scheduled"';
                 }
             }
 
@@ -98,6 +108,23 @@ switch ($method) {
                 "status" => "success",
                 "data" => $data
             ]);
+        }elseif ($editSiteVisit) {
+            if (!empty($userCode)) {
+                if (str_starts_with($userCode, 'TC')) {
+                    $whereClause = "WHERE sv.visited_by = '$userCode'";
+                } elseif (str_starts_with($userCode, 'AD') || str_starts_with($userCode, 'MN')) {
+                    $whereClause = '';
+                }
+            }
+
+            $sql1 = "SELECT sv.id,sv.schedule_id,sv.are_plants_getting_water,sv.water_above_pump,sv.timer_working,sv.timer_issue,sv.motor_working,sv.motor_issue,sv.light_working,sv.light_issue,sv.equipment_damaged,sv.damaged_items,sv.any_leaks,sv.clean_equipment,sv.electric_connections_secured,sv.initial_ph,sv.corrected_ph,sv.initial_tds,sv.corrected_tds,sv.presence_of_pests,sv.nutrient_deficiency,sv.deficiency_types,sv.which_crop,sv.client_training_harvest,sv.pest_management,sv.equipment_cleaning,sv.plant_maintenance,sv.scope_of_improvement,sv.material_supplied_neemoil,sv.material_delivered_neemoil,u.name customer_name FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id WHERE sv.id='$schId'";
+            $result = $conn->query($sql1);
+            $data = [];
+            while ($row = $result->fetch_assoc()) {
+                $data[] = $row;
+            }
+
+            echo json_encode(["status" => "success","data" => $data]);
         } else {
             // SELECT u.id AS customer_id, u.name, u.phone, a.visits_per_month, a.validity_from, a.validity_upto, COUNT(s.id) AS total_visits_done, (a.visits_per_month - COUNT(s.id)) AS pending_visits FROM users u INNER JOIN amc_details a ON u.id = a.customer_id LEFT JOIN site_visit s ON s.customer_id = u.id AND s.created_date BETWEEN a.validity_from AND a.validity_upto WHERE u.status = 'active' AND CURRENT_DATE <= a.validity_upto -- AMC still active GROUP BY u.id, u.name, u.phone, a.visits_per_month, a.validity_from, a.validity_upto HAVING pending_visits > 0; 
             // This query count Total_visit and pending_visit

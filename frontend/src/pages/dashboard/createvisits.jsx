@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Select from "react-select";
+import { useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
 export default function ObservationForm({ onSubmit = (data) => console.log(data) }) {
@@ -10,6 +11,10 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
     const user = JSON.parse(localStorage.getItem("user"));
     const user_code = user?.user_code;
+
+    const location = useLocation();
+    const schId = location.state?.scheduleId;
+    console.log("Received scheduleId from location state:", schId);
 
     const addDynamicRow = () => {
         setFormData((prevFormData) => ({
@@ -226,7 +231,16 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                         label: `${c.name} - ${c.phone} - ${c.visit_time}`,
                     }))
                     : [];
-                if (mounted) setCustomers(opts);
+                if (mounted) {
+                    setCustomers(opts);
+                    const selected = opts.find((item) => item.value == schId);
+                    if (selected) {
+                        setFormData((prev) => ({
+                            ...prev,
+                            customers: selected,
+                        }));
+                    }
+                }
             } catch (err) {
                 console.error('Error loading customers:', err);
             } finally {

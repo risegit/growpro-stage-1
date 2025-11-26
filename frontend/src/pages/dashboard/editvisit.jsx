@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from "react";
 import Select from "react-select";
+import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 export default function ObservationForm({ onSubmit = (data) => console.log(data) }) {
     const [step, setStep] = useState(1);
     const [loadingCustomers, setLoadingCustomers] = useState(false);
-    const [customers, setCustomers] = useState([]); // options for react-select
+    const [customers, setCustomers] = useState([]);
     const [submitting, setSubmitting] = useState(false);
 
     const user = JSON.parse(localStorage.getItem("user"));
     const user_code = user?.user_code;
-    
+
+    const { id } = useParams(); // "id" matches the param name in your route
+    console.log("Visit ID:", id);
+
     const addDynamicRow = () => {
         setFormData((prevFormData) => ({
             ...prevFormData,
@@ -21,15 +25,12 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         }));
     };
 
-    const [isStep4Submitting, setIsStep4Submitting] = useState(false);
-
     const removeDynamicRow = (index) => {
         setFormData((prevFormData) => ({
             ...prevFormData,
             nutrientsData: prevFormData.nutrientsData.filter((_, idx) => idx !== index),
         }));
 
-        // Clear errors for the removed row
         setErrors((prevErrors) => {
             if (prevErrors.nutrientsData && prevErrors.nutrientsData[index]) {
                 const newErrors = { ...prevErrors };
@@ -51,12 +52,29 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                 nutrientsData: updatedFields,
             };
         });
+
+        setErrors((prevErrors) => {
+            const newErrors = { ...prevErrors };
+            if (newErrors.nutrientsData && newErrors.nutrientsData[index]) {
+                newErrors.nutrientsData[index] = {
+                    ...newErrors.nutrientsData[index],
+                    [field]: "",
+                };
+
+                const hasRowErrors = Object.values(newErrors.nutrientsData[index]).some(error => error);
+                if (!hasRowErrors) {
+                    newErrors.nutrientsData = newErrors.nutrientsData.filter((_, idx) => idx !== index);
+                    if (newErrors.nutrientsData.length === 0) {
+                        delete newErrors.nutrientsData;
+                    }
+                }
+            }
+            return newErrors;
+        });
     };
 
-    // Initial form state
     const initialFormState = {
-        /* STEP 1 */
-        customers: null,
+        customer_name: '',
         plantsWater: "",
         waterAbovePump: "",
         timerWorking: "",
@@ -71,7 +89,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         cleanEnvironment: "",
         electricSecured: "",
 
-        /* STEP 2 */
         initialPh: "",
         correctedPh: "",
         initialTds: "",
@@ -84,48 +101,32 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         plantProblems: [],
         cropNames: "",
 
-        /* STEP 3 */
         harvestTraining: "",
         pestManagement: "",
         equipmentCleaning: "",
         plantMaintenance: "",
         scopesOfImprovement: "",
 
-        /* STEP 4 - Material Supply */
         plants: [],
         plantQuantities: {},
         materialsSuppliedPlantData: "",
-        otherPlants: "",
-        otherPlantName: "",
-        nutrients: "",
-        tankCapacity: "",
-        numberOfTopups: "",
-        additionalNutrients: "",
-
         material_supplied_neemoil: "",
         material_supplied_chargeable_items: [],
         materialschargeableItemsOptionsother: "",
         setupPhotos: [],
         materialNeedsDelivery: false,
-
-        // Dynamic fields for multiple rows of nutrients, tank capacity, and top-ups
         nutrientsData: [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
 
-        /* STEP 5 - Delivery Details */
         step5Plants: [],
         materialsDeliveredPlantData: "",
         material_need_chargeable_items: [],
         materialsNeedChargeableItemsOptionsother: "",
-        material_need_nutrientsData: [
-            { nutrients: "", tankCapacity: "", numberOfTopups: "" }
-        ],
+        material_need_nutrientsData: [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
         material_need_neemoil: "",
         materialNeedPlantQuantities: {},
-        step5OtherPlantName: ""
     };
 
     const [formData, setFormData] = useState(initialFormState);
-
     const [errors, setErrors] = useState({});
 
     const pestOptions = [
@@ -160,7 +161,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         { label: "Bolting", value: "Bolting" }
     ];
 
-    // Material Supply Options
     const plantOptions = [
         { label: "Others", value: "Others" },
         { label: "Spinach", value: "Spinach" },
@@ -216,23 +216,50 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         { label: "200", value: "200" }
     ];
 
-    /* ----------------------- Start Retrieve Customer ----------------------- */
     useEffect(() => {
         let mounted = true;
         const loadCustomers = async () => {
             setLoadingCustomers(true);
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?status=active`);
-                if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+                const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?editSiteVisit='active'&user_code=${user_code}&schId=${id}`);
+
                 const data = await res.json();
-                console.log("Fetched customers:", data);
-                const opts = Array.isArray(data.data)
-                    ? data.data.map((c) => ({
-                        value: c.customer_id,
-                        label: `${c.name} - ${c.phone}`,
-                    }))
-                    : [];
-                if (mounted) setCustomers(opts);
+                console.log("Fetched user data:", data);
+
+                if (data.status === "success" && data.data) {
+                    const user = data.data[0];
+                    setFormData({
+                        customer_name: user.customer_name || '',
+                        plantsWater: user.are_plants_getting_water || "",
+                        waterAbovePump: user.water_above_pump || "",
+                        timerWorking: user.timer_working || "",
+                        timerIssue: user.timer_issue || "",
+                        motorWorking: user.motor_working || "",
+                        motorIssue: user.motor_issue || "",
+                        lightsWorking: user.light_working || "",
+                        lightsIssue: user.light_issue || "",
+                        equipmentDamaged: user.equipment_damaged || "",
+                        equipmentDamageDetails: user.damaged_items || "",
+                        anyLeaks: user.any_leaks || "",
+                        cleanEnvironment: user.clean_equipment || "",
+                        electricSecured: user.electric_connections_secured || "",
+                        initialPh: user.initial_ph || "",
+                        correctedPh: user.corrected_ph || "",
+                        initialTds: user.initial_tds || "",
+                        correctedTds: user.corrected_tds || "",
+                        pestsPresent: user.presence_of_pests || "",
+                        pestOther: user.pest_other || "",
+                        nutrientDeficiency: user.nutrient_deficiency || "",
+                        deficiencyDetails: user.deficiency_details || "",
+                        cropNames: user.which_crop || "",
+                        harvestTraining: user.harvest_training || "",
+                        pestManagement: user.pest_management || "",
+                        equipmentCleaning: user.equipment_cleaning || "",
+                        plantMaintenance: user.plant_maintenance || "",
+                        scopesOfImprovement: user.scopes_of_improvement || "",
+                    });
+                }
+                
             } catch (err) {
                 console.error('Error loading customers:', err);
             } finally {
@@ -245,282 +272,174 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             mounted = false;
         };
     }, []);
-    /* ----------------------- End Retrieve Customer ----------------------- */
 
-    // Reset form function
-// Add this function near the top of your component, after the initialFormState definition
-const resetForm = () => {
-    setFormData(initialFormState);
-    setErrors({});
-    setStep(1);
-    
-    // Also clear any file previews if they exist
-    if (formData.setupPhotos && formData.setupPhotos.length > 0) {
-        formData.setupPhotos.forEach(photo => {
-            if (photo.preview) {
-                URL.revokeObjectURL(photo.preview);
-            }
-        });
-    }
-};
-const handleSubmit = async () => {
-    setSubmitting(true);
+    const resetForm = () => {
+        setFormData(initialFormState);
+        setErrors({});
+        setStep(1);
 
-    try {
-        // OPTIONAL DELAY (800ms)
-        await new Promise(resolve => setTimeout(resolve, 800));
-
-        const formPayload = new FormData();
-
-        // Helper function to safely append values
-        const appendFormData = (key, value) => {
-            if (value === null || value === undefined) {
-                formPayload.append(key, '');
-            } else if (typeof value === 'object') {
-                if (Array.isArray(value)) {
-                    formPayload.append(key, JSON.stringify(value.map(item => item.value || item)));
-                } else if (value instanceof File) {
-                    formPayload.append(key, value);
-                } else if (value && value.hasOwnProperty('value')) {
-                    formPayload.append(key, value.value);
-                } else {
-                    formPayload.append(key, JSON.stringify(value));
+        if (formData.setupPhotos && formData.setupPhotos.length > 0) {
+            formData.setupPhotos.forEach(photo => {
+                if (photo.preview) {
+                    URL.revokeObjectURL(photo.preview);
                 }
-            } else {
-                formPayload.append(key, value.toString());
-            }
-        };
-
-        // Append all fields
-        Object.keys(formData).forEach((key) => {
-            const value = formData[key];
-
-            switch (key) {
-                case 'customers':
-                    if (value) {
-                        formPayload.append("customer_id", value.value || "");
-                    }
-                    break;
-
-                case 'pestTypes':
-                case 'plantProblems':
-                case 'plants':
-                case 'material_supplied_chargeable_items':
-                case 'step5Plants':
-                case 'material_need_chargeable_items':
-                    if (value && Array.isArray(value)) {
-                        formPayload.append(key, JSON.stringify(value.map(i => i.value || i)));
-                    } else {
-                        formPayload.append(key, '[]');
-                    }
-                    break;
-
-                case 'setupPhotos':
-                    if (value && Array.isArray(value)) {
-                        value.forEach((photo, index) => {
-                            if (photo && photo.file) {
-                                formPayload.append(`setupPhotos_${index}`, photo.file);
-                            }
-                        });
-                    }
-                    break;
-
-                case 'nutrientsData':
-                case 'material_need_nutrientsData':
-                case 'plantQuantities':
-                case 'materialNeedPlantQuantities':
-                    formPayload.append(key, JSON.stringify(value || []));
-                    break;
-
-                default:
-                    appendFormData(key, value);
-            }
-        });
-        
-        // Add user_code
-        if (user_code) {
-            formPayload.append("user_code", user_code);
+            });
         }
+    };
 
-        // Debug logs
-        console.log("Final FormData:");
-        for (let [k, v] of formPayload.entries()) {
-            console.log(k, v);
-        }
+    const handleSubmit = async () => {
+        setSubmitting(true);
 
-        // API Request with better error handling
-        const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php`, {
-            method: "POST",
-            body: formPayload,
-        });
-
-        // Get response as text first
-        const responseText = await res.text();
-        console.log("Raw response:", responseText);
-
-        let result;
-        
-        // Try to parse JSON, but handle cases where it might not be valid JSON
         try {
-            // Clean the response text - remove any extra whitespace or non-JSON content
-            const cleanedResponse = responseText.trim();
-            result = JSON.parse(cleanedResponse);
-        } catch (parseError) {
-            console.error('JSON Parse Error:', parseError);
-            console.error('Response that failed to parse:', responseText);
-            
-            // If it's not valid JSON, check if it contains success message
-            if (responseText.toLowerCase().includes('success') || responseText.toLowerCase().includes('inserted')) {
-                toast.success("Form submitted successfully!");
-                resetForm();
-                return;
-            } else if (responseText.toLowerCase().includes('error') || responseText.toLowerCase().includes('fail')) {
-                toast.error("Submission failed. Please try again.");
-                return;
-            } else {
-                // If we can't determine the response, show a generic message
-                toast.error("Unexpected response from server. Please check console for details.");
-                return;
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            const formPayload = new FormData();
+
+            const appendFormData = (key, value) => {
+                if (value === null || value === undefined) {
+                    formPayload.append(key, '');
+                } else if (typeof value === 'object') {
+                    if (Array.isArray(value)) {
+                        formPayload.append(key, JSON.stringify(value.map(item => item.value || item)));
+                    } else if (value instanceof File) {
+                        formPayload.append(key, value);
+                    } else if (value && value.hasOwnProperty('value')) {
+                        formPayload.append(key, value.value);
+                    } else {
+                        formPayload.append(key, JSON.stringify(value));
+                    }
+                } else {
+                    formPayload.append(key, value.toString());
+                }
+            };
+
+            Object.keys(formData).forEach((key) => {
+                const value = formData[key];
+
+                switch (key) {
+                    case 'customers':
+                        if (value) {
+                            formPayload.append("schedule_id", value.value || "");
+                        }
+                        break;
+
+                    case 'pestTypes':
+                    case 'plantProblems':
+                    case 'plants':
+                    case 'material_supplied_chargeable_items':
+                    case 'step5Plants':
+                    case 'material_need_chargeable_items':
+                        if (value && Array.isArray(value)) {
+                            formPayload.append(key, JSON.stringify(value.map(i => i.value || i)));
+                        } else {
+                            formPayload.append(key, '[]');
+                        }
+                        break;
+
+                    case 'setupPhotos':
+                        if (value && Array.isArray(value)) {
+                            value.forEach((photo, index) => {
+                                if (photo && photo.file) {
+                                    formPayload.append(`setupPhotos_${index}`, photo.file);
+                                }
+                            });
+                        }
+                        break;
+
+                    case 'nutrientsData':
+                    case 'material_need_nutrientsData':
+                    case 'plantQuantities':
+                    case 'materialNeedPlantQuantities':
+                        formPayload.append(key, JSON.stringify(value || []));
+                        break;
+
+                    default:
+                        appendFormData(key, value);
+                }
+            });
+
+            if (user_code) {
+                formPayload.append("user_code", user_code);
             }
+
+            const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php`, {
+                method: "POST",
+                body: formPayload,
+            });
+
+            const responseText = await res.text();
+            let result;
+
+            try {
+                const cleanedResponse = responseText.trim();
+                result = JSON.parse(cleanedResponse);
+            } catch (parseError) {
+                console.error('JSON Parse Error:', parseError);
+                if (responseText.toLowerCase().includes('success') || responseText.toLowerCase().includes('inserted')) {
+                    toast.success("Form submitted successfully!");
+                    resetForm();
+                    return;
+                } else if (responseText.toLowerCase().includes('error') || responseText.toLowerCase().includes('fail')) {
+                    toast.error("Submission failed. Please try again.");
+                    return;
+                } else {
+                    toast.error("Unexpected response from server. Please check console for details.");
+                    return;
+                }
+            }
+
+            if (result.status === "success") {
+                toast.success(result.message || "Form submitted successfully!");
+                resetForm();
+            } else {
+                toast.error(result.error || result.message || "Something went wrong");
+            }
+
+        } catch (err) {
+            console.error('Submit failed:', err);
+            toast.error('Submission failed. Please try again.');
+        } finally {
+            setSubmitting(false);
         }
+    };
 
-        // Handle the parsed result
-        if (result.status === "success") {
-            toast.success(result.message || "Form submitted successfully!");
-            resetForm();
-        } else {
-            toast.error(result.error || result.message || "Something went wrong");
-        }
-
-    } catch (err) {
-        console.error('Submit failed:', err);
-        toast.error('Submission failed. Please try again.');
-    } finally {
-        setSubmitting(false);
-    }
-};
-
-    /* ----------------------- HANDLE INPUT CHANGE ----------------------- */
     const handleChange = (e) => {
         const { name, value } = e.target;
         let updated = { ...formData, [name]: value };
 
-        // Auto-clear issue fields (step 1)
         if (name === "timerWorking" && value === "yes") updated.timerIssue = "";
         if (name === "motorWorking" && value === "yes") updated.motorIssue = "";
         if (name === "lightsWorking" && value === "yes") updated.lightsIssue = "";
         if (name === "equipmentDamaged" && value === "no") updated.equipmentDamageDetails = "";
-
-        // Auto-clear pests
         if (name === "pestsPresent" && value === "no") {
             updated.pestTypes = [];
             updated.pestOther = "";
         }
-
-        // Auto-clear deficiency
         if (name === "nutrientDeficiency" && value === "no") updated.deficiencyDetails = "";
-
-        // Update the "Other" plant name if it's being entered
-        if (name === "otherPlantName") {
-            updated.otherPlantName = value;
-        }
 
         setFormData(updated);
         setErrors({ ...errors, [name]: "" });
     };
 
     const handlePhotoChange = (e) => {
-        const files = Array.from(e.target.files); // Get all selected files
-
-        // Map over the selected files to generate preview URLs
+        const files = Array.from(e.target.files);
         const updatedPhotos = files.map(file => ({
             file: file,
-            preview: URL.createObjectURL(file), // Create preview URL
+            preview: URL.createObjectURL(file),
         }));
 
-        // Update the form data with the new photos
         setFormData({
             ...formData,
             setupPhotos: updatedPhotos,
         });
 
-        // Reset any errors related to photo validation
         setErrors({ ...errors, setupPhoto: "" });
     };
 
-    const handlePlantSelection = (selected) => {
-        const newPlants = selected || [];
-        const newQuantities = { ...formData.plantQuantities };
-
-        // Remove quantities for deselected plants
-        const selectedValues = newPlants.map(p => p.value);
-        Object.keys(newQuantities).forEach(plant => {
-            if (!selectedValues.includes(plant)) {
-                delete newQuantities[plant];
-            }
-        });
-
-        // Check if "Other" is selected
-        if (selectedValues.includes("Others")) {
-            // If "Other" is selected, set empty plant name and quantity for it
-            newQuantities["Others"] = formData.plantQuantities["Others"] || ""; // Preserve quantity if already exists
-        } else {
-            // If "Other" is not selected, clear the custom plant name and quantity
-            newQuantities["Others"] = "";  // Clear quantity for "Other"
-        }
-
-        setFormData({
-            ...formData,
-            plants: newPlants,
-            plantQuantities: newQuantities,
-        });
-
-        setErrors({ ...errors, plants: "", plantQuantities: "" });
-    };
-
-    const handleStep5PlantSelection = (selected) => {
-        const newPlants = selected || [];
-        const newQuantities = { ...formData.materialNeedPlantQuantities };
-
-        // Remove quantities for deselected plants
-        const selectedValues = newPlants.map(p => p.value);
-        Object.keys(newQuantities).forEach(plant => {
-            if (!selectedValues.includes(plant)) {
-                delete newQuantities[plant];
-            }
-        });
-
-        // Check if "Others" is selected
-        if (selectedValues.includes("Others")) {
-            // If "Others" is selected, preserve quantity if exists
-            newQuantities["Others"] = formData.materialNeedPlantQuantities["Others"] || "";
-        } else {
-            // If "Others" is not selected, clear the quantity
-            newQuantities["Others"] = "";
-        }
-
-        setFormData({
-            ...formData,
-            step5Plants: newPlants,
-            materialNeedPlantQuantities: newQuantities,
-        });
-
-        setErrors({ ...errors, step5Plants: "", materialNeedPlantQuantities: "" });
-    };
-
-    const handleCustomerChange = (selected) => {
-        setFormData(prev => ({
-            ...prev,
-            customers: selected,   // MUST store full object
-        }));
-    };
-
-    // FIXED: Proper handler for Step 4 Materials Supplied
     const handleStep4MaterialsSelection = (selected) => {
         const newMaterials = selected || [];
         const newQuantities = { ...formData.plantQuantities };
 
-        // Remove quantities for deselected materials
         const selectedValues = newMaterials.map(m => m.value);
         Object.keys(newQuantities).forEach(material => {
             if (!selectedValues.includes(material)) {
@@ -528,7 +447,6 @@ const handleSubmit = async () => {
             }
         });
 
-        // Check if "Others" is selected
         if (selectedValues.includes("Others")) {
             newQuantities["Others"] = formData.plantQuantities["Others"] || "";
         } else {
@@ -544,12 +462,10 @@ const handleSubmit = async () => {
         setErrors({ ...errors, plants: "", plantQuantities: "" });
     };
 
-    // FIXED: Proper handler for Step 5 Materials Supplied
     const handleStep5MaterialsSelection = (selected) => {
         const newMaterials = selected || [];
         const newQuantities = { ...formData.materialNeedPlantQuantities };
 
-        // Remove quantities for deselected materials
         const selectedValues = newMaterials.map(m => m.value);
         Object.keys(newQuantities).forEach(material => {
             if (!selectedValues.includes(material)) {
@@ -557,7 +473,6 @@ const handleSubmit = async () => {
             }
         });
 
-        // Check if "Others" is selected
         if (selectedValues.includes("Others")) {
             newQuantities["Others"] = formData.materialNeedPlantQuantities["Others"] || "";
         } else {
@@ -573,11 +488,73 @@ const handleSubmit = async () => {
         setErrors({ ...errors, step5Plants: "", materialNeedPlantQuantities: "" });
     };
 
-    /* ----------------------- VALIDATION ----------------------- */
+    const handleCustomerChange = (selected) => {
+        setFormData(prev => ({
+            ...prev,
+            customers: selected,
+        }));
+    };
+
+    const handleChargeableItemsChange = (selected) => {
+        setFormData({
+            ...formData,
+            material_supplied_chargeable_items: selected || [],
+        });
+
+        setErrors((prevErrors) => ({
+            ...prevErrors,
+            material_supplied_chargeable_items: "",
+            materialschargeableItemsOptionsother: selected?.some(item => item.value === "Others") ? prevErrors.materialschargeableItemsOptionsother : ""
+        }));
+    };
+
+    const handleStep4QuantityChange = (plantValue, quantity) => {
+        setFormData({
+            ...formData,
+            plantQuantities: {
+                ...formData.plantQuantities,
+                [plantValue]: quantity,
+            },
+        });
+
+        setErrors((prevErrors) => {
+            const newErrors = { ...prevErrors };
+            if (newErrors.plantQuantities && newErrors.plantQuantities[plantValue]) {
+                delete newErrors.plantQuantities[plantValue];
+
+                if (Object.keys(newErrors.plantQuantities).length === 0) {
+                    delete newErrors.plantQuantities;
+                }
+            }
+            return newErrors;
+        });
+    };
+
+    const handleStep5QuantityChange = (plantValue, quantity) => {
+        setFormData({
+            ...formData,
+            materialNeedPlantQuantities: {
+                ...formData.materialNeedPlantQuantities,
+                [plantValue]: quantity,
+            },
+        });
+
+        setErrors((prevErrors) => {
+            const newErrors = { ...prevErrors };
+            if (newErrors.materialNeedPlantQuantities && newErrors.materialNeedPlantQuantities[plantValue]) {
+                delete newErrors.materialNeedPlantQuantities[plantValue];
+
+                if (Object.keys(newErrors.materialNeedPlantQuantities).length === 0) {
+                    delete newErrors.materialNeedPlantQuantities;
+                }
+            }
+            return newErrors;
+        });
+    };
+
     const validateStep1 = () => {
         let newErrors = {};
 
-        if (!formData.customers) newErrors.customers = "Required";
         if (!formData.plantsWater) newErrors.plantsWater = "Required";
         if (!formData.waterAbovePump) newErrors.waterAbovePump = "Required";
 
@@ -667,36 +644,56 @@ const handleSubmit = async () => {
             newErrors.plants = "Select at least one plant";
         }
 
-        // Check if "Others" is selected and materialsSuppliedPlantData is empty
         if (
-            formData.plants.some((i) => i.value === "Others") &&
-            !formData.materialsSuppliedPlantData
+            formData.plants?.some((i) => i.value === "Others") &&
+            !formData.materialsSuppliedPlantData?.trim()
         ) {
             newErrors.materialsSuppliedPlantData = "Please specify the other material";
         }
 
+        if (formData.plants && formData.plants.length > 0) {
+            const quantityErrors = {};
+            let hasQuantityErrors = false;
+
+            formData.plants.forEach((plant) => {
+                if (plant.value !== "Others") {
+                    const quantity = formData.plantQuantities?.[plant.value];
+                    if (!quantity || quantity.trim() === "" || isNaN(quantity) || parseInt(quantity) <= 0) {
+                        quantityErrors[plant.value] = "Quantity is required";
+                        hasQuantityErrors = true;
+                    }
+                } else {
+                    const otherQuantity = formData.plantQuantities?.["Others"];
+                    if (!otherQuantity || otherQuantity.trim() === "" || isNaN(otherQuantity) || parseInt(otherQuantity) <= 0) {
+                        quantityErrors["Others"] = "Quantity is required";
+                        hasQuantityErrors = true;
+                    }
+                }
+            });
+
+            if (hasQuantityErrors) {
+                newErrors.plantQuantities = quantityErrors;
+            }
+        }
+
         formData.nutrientsData.forEach((field, index) => {
+            const rowErrors = {};
+
             if (!field.nutrients) {
-                if (!newErrors.nutrientsData) newErrors.nutrientsData = [];
-                newErrors.nutrientsData[index] = {
-                    ...newErrors.nutrientsData[index],
-                    nutrients: "Required",
-                };
+                rowErrors.nutrients = "Required";
             }
 
             if (!field.tankCapacity) {
-                if (!newErrors.nutrientsData) newErrors.nutrientsData = [];
-                newErrors.nutrientsData[index] = {
-                    ...newErrors.nutrientsData[index],
-                    tankCapacity: "Required",
-                };
+                rowErrors.tankCapacity = "Required";
             }
+
             if (!field.numberOfTopups && field.numberOfTopups !== 0) {
+                rowErrors.numberOfTopups = "Required";
+            }
+
+            if (Object.keys(rowErrors).length > 0) {
                 if (!newErrors.nutrientsData) newErrors.nutrientsData = [];
-                newErrors.nutrientsData[index] = {
-                    ...newErrors.nutrientsData[index],
-                    numberOfTopups: "Required",
-                };
+                newErrors.nutrientsData[index] = rowErrors;
             }
         });
 
@@ -704,13 +701,15 @@ const handleSubmit = async () => {
             newErrors.material_supplied_neemoil = "Required";
         }
 
-        if (!formData.material_supplied_chargeable_items || formData.material_supplied_chargeable_items.length === 0) {
+        if (!formData.material_supplied_chargeable_items ||
+            !Array.isArray(formData.material_supplied_chargeable_items) ||
+            formData.material_supplied_chargeable_items.length === 0) {
             newErrors.material_supplied_chargeable_items = "Select chargeable items supplied";
         }
 
         if (
             formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") &&
-            !formData.materialschargeableItemsOptionsother
+            !formData.materialschargeableItemsOptionsother?.trim()
         ) {
             newErrors.materialschargeableItemsOptionsother = "Please specify other items";
         }
@@ -726,67 +725,61 @@ const handleSubmit = async () => {
     const validateStep5 = () => {
         let newErrors = {};
 
-        // Materials Supplied
-        if (!formData.step5Plants || formData.step5Plants.length === 0) {
-            newErrors.step5Plants = "Select at least one plant";
+        // Quantity validation for materials
+        if (formData.step5Plants && formData.step5Plants.length > 0) {
+            const quantityErrors = {};
+            let hasQuantityErrors = false;
+
+            formData.step5Plants.forEach((plant) => {
+                if (plant.value !== "Others") {
+                    const quantity = formData.materialNeedPlantQuantities?.[plant.value];
+                    if (!quantity || quantity.trim() === "" || isNaN(quantity) || parseInt(quantity) <= 0) {
+                        quantityErrors[plant.value] = "Quantity is required";
+                        hasQuantityErrors = true;
+                    }
+                } else {
+                    const otherQuantity = formData.materialNeedPlantQuantities?.["Others"];
+                    if (!otherQuantity || otherQuantity.trim() === "" || isNaN(otherQuantity) || parseInt(otherQuantity) <= 0) {
+                        quantityErrors["Others"] = "Quantity is required";
+                        hasQuantityErrors = true;
+                    }
+                }
+            });
+
+            if (hasQuantityErrors) {
+                newErrors.materialNeedPlantQuantities = quantityErrors;
+            }
         }
 
-        // Check if "Others" is selected in step5Plants
-        if (
-            formData.step5Plants.some((i) => i.value === "Others") &&
-            !formData.materialsDeliveredPlantData
-        ) {
-            newErrors.materialsDeliveredPlantData = "Please specify the other material";
-        }
-
-        // Dynamic Fields
+        // Nutrients validation - Tank Capacity and Top-ups are required only if Nutrients is selected
         formData.material_need_nutrientsData.forEach((field, index) => {
-            if (!field.nutrients) {
-                if (!newErrors.material_need_nutrientsData) newErrors.material_need_nutrientsData = [];
-                newErrors.material_need_nutrientsData[index] = {
-                    ...newErrors.material_need_nutrientsData[index],
-                    nutrients: "Required",
-                };
-            }
+            if (field.nutrients) {
+                const rowErrors = {};
 
-            if (!field.tankCapacity) {
-                if (!newErrors.material_need_nutrientsData) newErrors.material_need_nutrientsData = [];
-                newErrors.material_need_nutrientsData[index] = {
-                    ...newErrors.material_need_nutrientsData[index],
-                    tankCapacity: "Required",
-                };
-            }
-            if (!field.numberOfTopups && field.numberOfTopups !== 0) {
-                if (!newErrors.material_need_nutrientsData) newErrors.material_need_nutrientsData = [];
-                newErrors.material_need_nutrientsData[index] = {
-                    ...newErrors.material_need_nutrientsData[index],
-                    numberOfTopups: "Required",
-                };
+                if (!field.tankCapacity) {
+                    rowErrors.tankCapacity = "Required when Nutrients is selected";
+                }
+
+                if (!field.numberOfTopups && field.numberOfTopups !== 0) {
+                    rowErrors.numberOfTopups = "Required when Nutrients is selected";
+                }
+
+                if (Object.keys(rowErrors).length > 0) {
+                    if (!newErrors.material_need_nutrientsData) newErrors.material_need_nutrientsData = [];
+                    newErrors.material_need_nutrientsData[index] = rowErrors;
+                }
             }
         });
 
-        // Neem Oil
+        // Neem Oil validation
         if (!formData.material_need_neemoil) {
             newErrors.material_need_neemoil = "Required";
-        }
-
-        // Chargeable Items
-        if (!formData.material_need_chargeable_items || formData.material_need_chargeable_items.length === 0) {
-            newErrors.material_need_chargeable_items = "Select chargeable items supplied";
-        }
-
-        if (
-            formData.material_need_chargeable_items?.some((item) => item.value === "Others") &&
-            !formData.materialsNeedChargeableItemsOptionsother
-        ) {
-            newErrors.materialsNeedChargeableItemsOptionsother = "Please specify other items";
         }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    /* ----------------------- NEXT / PREVIOUS / SUBMIT ----------------------- */
     const handleNext = () => {
         let isValid = false;
 
@@ -809,7 +802,6 @@ const handleSubmit = async () => {
                     if (formData.materialNeedsDelivery) {
                         setStep(5);
                     } else {
-                        // Step 4 direct submission
                         handleSubmit();
                     }
                 }
@@ -846,6 +838,17 @@ const handleSubmit = async () => {
             ...prevFormData,
             material_need_nutrientsData: prevFormData.material_need_nutrientsData.filter((_, idx) => idx !== index),
         }));
+
+        setErrors((prevErrors) => {
+            if (prevErrors.material_need_nutrientsData && prevErrors.material_need_nutrientsData[index]) {
+                const newErrors = { ...prevErrors };
+                if (newErrors.material_need_nutrientsData) {
+                    newErrors.material_need_nutrientsData = newErrors.material_need_nutrientsData.filter((_, idx) => idx !== index);
+                }
+                return newErrors;
+            }
+            return prevErrors;
+        });
     };
 
     const handleStep5DynamicFieldChange = (index, field, value) => {
@@ -857,6 +860,25 @@ const handleSubmit = async () => {
                 material_need_nutrientsData: updatedFields,
             };
         });
+
+        setErrors((prevErrors) => {
+            const newErrors = { ...prevErrors };
+            if (newErrors.material_need_nutrientsData && newErrors.material_need_nutrientsData[index]) {
+                newErrors.material_need_nutrientsData[index] = {
+                    ...newErrors.material_need_nutrientsData[index],
+                    [field]: "",
+                };
+
+                const hasRowErrors = Object.values(newErrors.material_need_nutrientsData[index]).some(error => error);
+                if (!hasRowErrors) {
+                    newErrors.material_need_nutrientsData = newErrors.material_need_nutrientsData.filter((_, idx) => idx !== index);
+                    if (newErrors.material_need_nutrientsData.length === 0) {
+                        delete newErrors.material_need_nutrientsData;
+                    }
+                }
+            }
+            return newErrors;
+        });
     };
 
     const handleStep5Change = (e) => {
@@ -865,7 +887,6 @@ const handleSubmit = async () => {
         setErrors({ ...errors, [name]: "" });
     };
 
-    // FIXED: Handler for Step 4 Other Input
     const handleStep4OtherInput = (e) => {
         const { value } = e.target;
         setFormData({
@@ -875,7 +896,6 @@ const handleSubmit = async () => {
         setErrors({ ...errors, materialsSuppliedPlantData: "" });
     };
 
-    // FIXED: Handler for Step 5 Other Input
     const handleStep5OtherInput = (e) => {
         const { value } = e.target;
         setFormData({
@@ -885,100 +905,6 @@ const handleSubmit = async () => {
         setErrors({ ...errors, materialsDeliveredPlantData: "" });
     };
 
-    // FIXED: Handler for Step 4 Plant Quantity Change
-    const handleStep4QuantityChange = (plantValue, quantity) => {
-        setFormData({
-            ...formData,
-            plantQuantities: {
-                ...formData.plantQuantities,
-                [plantValue]: quantity,
-            },
-        });
-    };
-
-    // FIXED: Handler for Step 5 Plant Quantity Change
-    const handleStep5QuantityChange = (plantValue, quantity) => {
-        setFormData({
-            ...formData,
-            materialNeedPlantQuantities: {
-                ...formData.materialNeedPlantQuantities,
-                [plantValue]: quantity,
-            },
-        });
-    };
-
-    /* ----------------------- UI COMPONENTS ----------------------- */
-    const SmallInput = ({ name, placeholder }) => (
-        <input
-            type="text"
-            name={name}
-            value={formData[name]}
-            onChange={handleChange}
-            placeholder={placeholder}
-            autoFocus
-            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[name] ? "border-red-500 focus:ring-red-400" : "border-gray-300 focus:ring-blue-400"
-                }`}
-        />
-    );
-
-    const YesNoWithInput = ({ name, issueName, label, showOn }) => (
-        <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700">
-                {label} <span className="text-red-500">*</span>
-            </label>
-
-            <div className="flex gap-4">
-                {["yes", "no"].map((v) => (
-                    <label key={v} className="flex items-center gap-2">
-                        <input
-                            type="radio"
-                            name={name}
-                            value={v}
-                            checked={formData[name] === v}
-                            onChange={handleChange}
-                        />
-                        {v.toUpperCase()}
-                    </label>
-                ))}
-            </div>
-
-            {formData[name] === showOn && (
-                <SmallInput name={issueName} placeholder="Describe" autoFocus />
-            )}
-
-            {errors[name] && <span className="text-red-500 text-sm">{errors[name]}</span>}
-            {errors[issueName] && (
-                <span className="text-red-500 text-sm">{errors[issueName]}</span>
-            )}
-        </div>
-    );
-
-    const YesNoSimple = ({ name, label }) => (
-        <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700">
-                {label} <span className="text-red-500">*</span>
-            </label>
-
-            <div className="flex gap-6">
-                {["yes", "no"].map((v) => (
-                    <label key={v} className="flex items-center gap-2">
-                        <input
-                            type="radio"
-                            name={name}
-                            value={v}
-                            checked={formData[name] === v}
-                            onChange={handleChange}
-                        />
-                        {v.toUpperCase()}
-                    </label>
-                ))}
-            </div>
-
-            {errors[name] && <span className="text-red-500 text-sm">{errors[name]}</span>}
-        </div>
-    );
-
-    /* ----------------------- STEPPER HEADER ---------------------- */
     const StepperHeader = () => (
         <div className="flex overflow-x-auto md:overflow-visible space-x-4 md:space-x-0 justify-between mb-8 pl-4 md:pl-0 pt-3">
             {[1, 2, 3, 4, 5].map((stepNum, idx) => (
@@ -997,9 +923,31 @@ const handleSubmit = async () => {
                                     stepNum === 4 ? 'Material Supply' :
                                         stepNum === 5 ? 'Material Need To Deliver' : ''}
                     </div>
-
                 </div>
             ))}
+        </div>
+    );
+
+    const YesNoSimple = ({ name, label }) => (
+        <div className="flex flex-col">
+            <label className="mb-1 font-medium text-gray-700">
+                {label} <span className="text-red-500">*</span>
+            </label>
+            <div className="flex gap-6">
+                {["yes", "no"].map((v) => (
+                    <label key={v} className="flex items-center gap-2">
+                        <input
+                            type="radio"
+                            name={name}
+                            value={v}
+                            checked={formData[name] === v}
+                            onChange={handleChange}
+                        />
+                        {v.toUpperCase()}
+                    </label>
+                ))}
+            </div>
+            {errors[name] && <span className="text-red-500 text-sm">{errors[name]}</span>}
         </div>
     );
 
@@ -1010,30 +958,14 @@ const handleSubmit = async () => {
                 <StepperHeader />
 
                 <div className="mt-6 space-y-6">
-                    {/* ========================= STEP 1 ========================= */}
+                    {/* STEP 1 */}
                     {step === 1 && (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-6 py-6">
                             <div className="flex flex-col md:col-span-3">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    Select Customer (ग्राहक नाम) <span className="text-red-500">*</span>
+                                    Customer (ग्राहक नाम) <span className="text-red-500">*</span>
                                 </label>
-
-                                <Select
-                                    options={customers}
-                                    value={formData.customers}
-                                    onChange={handleCustomerChange}
-                                    isClearable
-                                    isLoading={loadingCustomers}
-                                    placeholder={loadingCustomers ? 'Loading customers...' : 'Select customer...'}
-                                    classNamePrefix="react-select"
-                                    styles={{
-                                        menu: (provided) => ({ ...provided, zIndex: 9999 }),
-                                    }}
-                                />
-
-                                {errors.customers && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.customers}</span>
-                                )}
+                                <label>{formData.customer_name}</label>
                             </div>
 
                             <YesNoSimple name="plantsWater" label="Are the Plants Getting Water (क्या पौधों को पानी मिल रहा है?)" />
@@ -1059,7 +991,6 @@ const handleSubmit = async () => {
                                     ))}
                                 </div>
                                 {errors.timerWorking && <span className="text-red-500 text-sm mt-1">{errors.timerWorking}</span>}
-
                                 {formData.timerWorking === "no" && (
                                     <div className="mt-3">
                                         <input
@@ -1095,7 +1026,6 @@ const handleSubmit = async () => {
                                     ))}
                                 </div>
                                 {errors.motorWorking && <span className="text-red-500 text-sm mt-1">{errors.motorWorking}</span>}
-
                                 {formData.motorWorking === "no" && (
                                     <div className="mt-3">
                                         <input
@@ -1131,7 +1061,6 @@ const handleSubmit = async () => {
                                     ))}
                                 </div>
                                 {errors.lightsWorking && <span className="text-red-500 text-sm mt-1">{errors.lightsWorking}</span>}
-
                                 {formData.lightsWorking === "no" && (
                                     <div className="mt-3">
                                         <input
@@ -1167,7 +1096,6 @@ const handleSubmit = async () => {
                                     ))}
                                 </div>
                                 {errors.equipmentDamaged && <span className="text-red-500 text-sm mt-1">{errors.equipmentDamaged}</span>}
-
                                 {formData.equipmentDamaged === "yes" && (
                                     <div className="mt-3">
                                         <input
@@ -1189,7 +1117,7 @@ const handleSubmit = async () => {
                         </div>
                     )}
 
-                    {/* ========================= STEP 2 ========================= */}
+                    {/* STEP 2 */}
                     {step === 2 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6">
                             {/* Initial pH */}
@@ -1203,8 +1131,7 @@ const handleSubmit = async () => {
                                     name="initialPh"
                                     value={formData.initialPh}
                                     onChange={handleChange}
-                                    className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.initialPh ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                        }`}
+                                    className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.initialPh ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                                 />
                                 {errors.initialPh && (
                                     <span className="text-red-500 text-sm mt-1">{errors.initialPh}</span>
@@ -1222,8 +1149,7 @@ const handleSubmit = async () => {
                                     name="correctedPh"
                                     value={formData.correctedPh}
                                     onChange={handleChange}
-                                    className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.correctedPh ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                        }`}
+                                    className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.correctedPh ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                                 />
                                 {errors.correctedPh && (
                                     <span className="text-red-500 text-sm mt-1">{errors.correctedPh}</span>
@@ -1240,8 +1166,7 @@ const handleSubmit = async () => {
                                     name="initialTds"
                                     value={formData.initialTds}
                                     onChange={handleChange}
-                                    className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.initialTds ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                        }`}
+                                    className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.initialTds ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                                 />
                                 {errors.initialTds && (
                                     <span className="text-red-500 text-sm mt-1">{errors.initialTds}</span>
@@ -1258,11 +1183,49 @@ const handleSubmit = async () => {
                                     name="correctedTds"
                                     value={formData.correctedTds}
                                     onChange={handleChange}
-                                    className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.correctedTds ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                        }`}
+                                    className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.correctedTds ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                                 />
                                 {errors.correctedTds && (
                                     <span className="text-red-500 text-sm mt-1">{errors.correctedTds}</span>
+                                )}
+                            </div>
+
+                            {/* Crop Names */}
+                            <div className="flex flex-col">
+                                <label className="mb-1 font-medium text-gray-700">
+                                    State which crops (कौन सी फसल बताएं?) <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="cropNames"
+                                    value={formData.cropNames}
+                                    onChange={handleChange}
+                                    placeholder="Enter crop names (e.g., Lettuce, Tomato, Basil)"
+                                    className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.cropNames ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                />
+                                {errors.cropNames && (
+                                    <span className="text-red-500 text-sm mt-1">{errors.cropNames}</span>
+                                )}
+                            </div>
+
+                            {/* Plant Problems */}
+                            <div className="flex flex-col">
+                                <label className="mb-1 font-medium text-gray-700">
+                                    Plant Problems (पौधों की समस्याएँ) <span className="text-red-500">*</span>
+                                </label>
+                                <Select
+                                    isMulti
+                                    options={plantProblemOptions}
+                                    value={formData.plantProblems}
+                                    onChange={(selected) =>
+                                        setFormData({ ...formData, plantProblems: selected || [] })
+                                    }
+                                    classNamePrefix="react-select"
+                                    placeholder="Select plant problems..."
+                                    styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
+                                />
+                                {errors.plantProblems && (
+                                    <span className="text-red-500 text-sm mt-1">{errors.plantProblems}</span>
                                 )}
                             </div>
 
@@ -1298,6 +1261,44 @@ const handleSubmit = async () => {
                                 )}
                             </div>
 
+                            {/* Which Pests */}
+                            {formData.pestsPresent === "yes" && (
+                                <div className="flex flex-col">
+                                    <label className="mb-1 font-medium text-gray-700">
+                                        Which Pests? (कौन से कीट) <span className="text-red-500">*</span>
+                                    </label>
+                                    <Select
+                                        isMulti
+                                        options={pestOptions}
+                                        value={formData.pestTypes}
+                                        onChange={(selected) =>
+                                            setFormData({ ...formData, pestTypes: selected || [] })
+                                        }
+                                        classNamePrefix="react-select"
+                                        placeholder="Select pests..."
+                                        styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
+                                    />
+                                    {errors.pestTypes && (
+                                        <span className="text-red-500 text-sm mt-1">{errors.pestTypes}</span>
+                                    )}
+                                    {formData.pestTypes?.some((p) => p.value === "Others") && (
+                                        <div className="mt-3">
+                                            <input
+                                                type="text"
+                                                name="pestOther"
+                                                value={formData.pestOther}
+                                                onChange={handleChange}
+                                                placeholder="Specify other pest"
+                                                className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.pestOther ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                            />
+                                            {errors.pestOther && (
+                                                <span className="text-red-500 text-sm mt-1">{errors.pestOther}</span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Nutrient Deficiency */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
@@ -1324,13 +1325,10 @@ const handleSubmit = async () => {
                                         />
                                         NO
                                     </label>
-
                                 </div>
                                 {errors.nutrientDeficiency && (
                                     <span className="text-red-500 text-sm mt-1">{errors.nutrientDeficiency}</span>
                                 )}
-
-
                                 {formData.nutrientDeficiency === "yes" && (
                                     <div className="mt-3">
                                         <input
@@ -1339,8 +1337,7 @@ const handleSubmit = async () => {
                                             value={formData.deficiencyDetails}
                                             onChange={handleChange}
                                             placeholder="Specify deficiency"
-                                            className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.deficiencyDetails ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                                }`}
+                                            className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.deficiencyDetails ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                                         />
                                         {errors.deficiencyDetails && (
                                             <span className="text-red-500 text-sm mt-1">{errors.deficiencyDetails}</span>
@@ -1348,225 +1345,16 @@ const handleSubmit = async () => {
                                     </div>
                                 )}
                             </div>
-
-                            {/* Which Pests */}
-                            {formData.pestsPresent === "yes" && (
-                                <div className="flex flex-col">
-                                    <label className="mb-1 font-medium text-gray-700">
-                                        Which Pests? (कौन से कीट) <span className="text-red-500">*</span>
-                                    </label>
-
-                                    <Select
-                                        isMulti
-                                        options={pestOptions}
-                                        value={formData.pestTypes}
-                                        onChange={(selected) =>
-                                            setFormData({ ...formData, pestTypes: selected || [] })
-                                        }
-                                        classNamePrefix="react-select"
-                                        placeholder="Select pests..."
-                                        styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
-                                    />
-                                    {errors.pestTypes && (
-                                        <span className="text-red-500 text-sm mt-1">{errors.pestTypes}</span>
-                                    )}
-
-                                    {formData.pestTypes?.some((p) => p.value === "Others") && (
-                                        <div className="mt-3">
-                                            <input
-                                                type="text"
-                                                name="pestOther"
-                                                value={formData.pestOther}
-                                                onChange={handleChange}
-                                                placeholder="Specify other pest"
-                                                className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.pestOther ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                                    }`}
-                                            />
-                                            {errors.pestOther && (
-                                                <span className="text-red-500 text-sm mt-1">{errors.pestOther}</span>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Crop Names */}
-                            <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">
-                                    State which crops (कौन सी फसल बताएं?) <span className="text-red-500">*</span>
-                                </label>
-
-                                <input
-                                    type="text"
-                                    name="cropNames"
-                                    value={formData.cropNames}
-                                    onChange={handleChange}
-                                    placeholder="Enter crop names (e.g., Lettuce, Tomato, Basil)"
-                                    className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.cropNames ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                        }`}
-                                />
-                                {errors.cropNames && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.cropNames}</span>
-                                )}
-                            </div>
-
-                            {/* Plant Problems */}
-                            <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">
-                                    Plant Problems (पौधों की समस्याएँ) <span className="text-red-500">*</span>
-                                </label>
-
-                                <Select
-                                    isMulti
-                                    options={plantProblemOptions}
-                                    value={formData.plantProblems}
-                                    onChange={(selected) =>
-                                        setFormData({ ...formData, plantProblems: selected || [] })
-                                    }
-                                    classNamePrefix="react-select"
-                                    placeholder="Select plant problems..."
-                                    styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
-                                />
-
-                                {errors.plantProblems && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.plantProblems}</span>
-                                )}
-                            </div>
-
-
                         </div>
                     )}
 
-                    {/* ========================= STEP 3 ========================= */}
+                    {/* STEP 3 */}
                     {step === 3 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6">
-                            {/* How & When to Harvest */}
-                            <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">
-                                    How & When to Harvest (कटाई कैसे और कब करें) <span className="text-red-500">*</span>
-                                </label>
-                                <div className="flex gap-6 mt-2">
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="radio"
-                                            name="harvestTraining"
-                                            value="yes"
-                                            checked={formData.harvestTraining === "yes"}
-                                            onChange={handleChange}
-                                        />
-                                        YES
-                                    </label>
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="radio"
-                                            name="harvestTraining"
-                                            value="no"
-                                            checked={formData.harvestTraining === "no"}
-                                            onChange={handleChange}
-                                        />
-                                        NO
-                                    </label>
-                                </div>
-                                {errors.harvestTraining && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.harvestTraining}</span>
-                                )}
-                            </div>
-
-                            {/* Pest Management */}
-                            <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">
-                                    Pest Management (कीट प्रबंधन) <span className="text-red-500">*</span>
-                                </label>
-                                <div className="flex gap-6 mt-2">
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="radio"
-                                            name="pestManagement"
-                                            value="yes"
-                                            checked={formData.pestManagement === "yes"}
-                                            onChange={handleChange}
-                                        />
-                                        YES
-                                    </label>
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="radio"
-                                            name="pestManagement"
-                                            value="no"
-                                            checked={formData.pestManagement === "no"}
-                                            onChange={handleChange}
-                                        />
-                                        NO
-                                    </label>
-                                </div>
-                                {errors.pestManagement && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.pestManagement}</span>
-                                )}
-                            </div>
-
-                            {/* Equipment Cleaning */}
-                            <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">
-                                    Equipment Cleaning (उपकरण की सफ़ाई) <span className="text-red-500">*</span>
-                                </label>
-                                <div className="flex gap-6 mt-2">
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="radio"
-                                            name="equipmentCleaning"
-                                            value="yes"
-                                            checked={formData.equipmentCleaning === "yes"}
-                                            onChange={handleChange}
-                                        />
-                                        YES
-                                    </label>
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="radio"
-                                            name="equipmentCleaning"
-                                            value="no"
-                                            checked={formData.equipmentCleaning === "no"}
-                                            onChange={handleChange}
-                                        />
-                                        NO
-                                    </label>
-                                </div>
-                                {errors.equipmentCleaning && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.equipmentCleaning}</span>
-                                )}
-                            </div>
-
-                            {/* Plant Maintenance */}
-                            <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">
-                                    Plant Maintenance (पौध रखरखाव)<span className="text-red-500">*</span>
-                                </label>
-                                <div className="flex gap-6 mt-2">
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="radio"
-                                            name="plantMaintenance"
-                                            value="yes"
-                                            checked={formData.plantMaintenance === "yes"}
-                                            onChange={handleChange}
-                                        />
-                                        YES
-                                    </label>
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="radio"
-                                            name="plantMaintenance"
-                                            value="no"
-                                            checked={formData.plantMaintenance === "no"}
-                                            onChange={handleChange}
-                                        />
-                                        NO
-                                    </label>
-                                </div>
-                                {errors.plantMaintenance && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.plantMaintenance}</span>
-                                )}
-                            </div>
+                            <YesNoSimple name="harvestTraining" label="How & When to Harvest (कटाई कैसे और कब करें)" />
+                            <YesNoSimple name="pestManagement" label="Pest Management (कीट प्रबंधन)" />
+                            <YesNoSimple name="equipmentCleaning" label="Equipment Cleaning (उपकरण की सफ़ाई)" />
+                            <YesNoSimple name="plantMaintenance" label="Plant Maintenance (पौध रखरखाव)" />
 
                             {/* Scopes of Improvement */}
                             <div className="flex flex-col md:col-span-2">
@@ -1579,8 +1367,7 @@ const handleSubmit = async () => {
                                     value={formData.scopesOfImprovement}
                                     onChange={handleChange}
                                     placeholder="Specify areas for improvement"
-                                    className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.scopesOfImprovement ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                        }`}
+                                    className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.scopesOfImprovement ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                                 />
                                 {errors.scopesOfImprovement && (
                                     <span className="text-red-500 text-sm mt-1">{errors.scopesOfImprovement}</span>
@@ -1589,7 +1376,7 @@ const handleSubmit = async () => {
                         </div>
                     )}
 
-                    {/* ========================= STEP 4 ========================= */}
+                    {/* STEP 4 */}
                     {step === 4 && (
                         <div className="space-y-6 px-6 py-6 max-w-full overflow-x-hidden">
                             {/* Materials Supplied */}
@@ -1597,7 +1384,6 @@ const handleSubmit = async () => {
                                 <label className="mb-1 font-medium text-gray-700">
                                     Materials Supplied (सप्लाई किए जाने वाले सामान) <span className="text-red-500">*</span>
                                 </label>
-
                                 <Select
                                     isMulti
                                     options={plantOptions}
@@ -1605,14 +1391,12 @@ const handleSubmit = async () => {
                                     onChange={handleStep4MaterialsSelection}
                                     classNamePrefix="react-select"
                                     placeholder="Select materials..."
-                                    styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
+                                    styles={{ menu: (p) => ({ ...p, zIndex: 9999, overflow: "visible" }) }}
                                 />
-
                                 {errors.plants && (
                                     <span className="text-red-500 text-sm mt-1">{errors.plants}</span>
                                 )}
 
-                                {/* ❗ If "Others" selected show input */}
                                 {formData.plants?.some((item) => item.value === "Others") && (
                                     <div className="mt-3">
                                         <input
@@ -1626,7 +1410,6 @@ const handleSubmit = async () => {
                                                 : "border-gray-300 focus:ring-blue-400"
                                                 }`}
                                         />
-
                                         {errors.materialsSuppliedPlantData && (
                                             <span className="text-red-500 text-sm mt-1">
                                                 {errors.materialsSuppliedPlantData}
@@ -1635,57 +1418,63 @@ const handleSubmit = async () => {
                                     </div>
                                 )}
 
-                                {/* ✅ MATERIAL QUANTITY INPUTS */}
                                 {formData.plants && formData.plants.length > 0 && (
                                     <div className="flex flex-col mt-4">
                                         <label className="mb-2 font-medium text-gray-700">
                                             Quantity of Materials <span className="text-red-500">*</span>
                                         </label>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {/* Normal selected materials */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                             {formData.plants
                                                 .filter((item) => item.value !== "Others")
                                                 .map((material) => (
-                                                    <div key={material.value} className="flex items-center gap-3">
-                                                        <label className="font-medium text-gray-600 min-w-[150px]">
-                                                            {material.label}:
-                                                        </label>
-
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            value={formData.plantQuantities?.[material.value] || ""}
-                                                            onChange={(e) => handleStep4QuantityChange(material.value, e.target.value)}
-                                                            placeholder="Qty"
-                                                            className="px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition border-gray-300 focus:ring-blue-400 flex-1"
-                                                        />
+                                                    <div key={material.value} className="flex flex-col gap-2">
+                                                        <div className="flex items-center gap-3">
+                                                            <label className="font-medium text-gray-600 min-w-[140px]">
+                                                                {material.label}:
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                value={formData.plantQuantities?.[material.value] || ""}
+                                                                onChange={(e) => handleStep4QuantityChange(material.value, e.target.value)}
+                                                                placeholder="Qty"
+                                                                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.plantQuantities && errors.plantQuantities[material.value]
+                                                                    ? 'border-red-500 focus:ring-red-400'
+                                                                    : 'border-gray-300 focus:ring-blue-400'
+                                                                    } w-24`}
+                                                            />
+                                                        </div>
+                                                        {errors.plantQuantities && errors.plantQuantities[material.value] && (
+                                                            <span className="text-red-500 text-sm">{errors.plantQuantities[material.value]}</span>
+                                                        )}
                                                     </div>
                                                 ))}
 
-                                            {/* Quantity for OTHER typed value */}
                                             {formData.plants?.some((item) => item.value === "Others") &&
                                                 formData.materialsSuppliedPlantData?.trim() !== "" && (
-                                                    <div className="flex items-center gap-3">
-                                                        <label className="font-medium text-gray-600 min-w-[150px]">
-                                                            {formData.materialsSuppliedPlantData}:
-                                                        </label>
-
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            value={formData.plantQuantities?.["Others"] || ""}
-                                                            onChange={(e) => handleStep4QuantityChange("Others", e.target.value)}
-                                                            placeholder="Qty"
-                                                            className="px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition border-gray-300 focus:ring-blue-400 flex-1"
-                                                        />
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex items-center gap-3">
+                                                            <label className="font-medium text-gray-600 min-w-[140px]">
+                                                                {formData.materialsSuppliedPlantData}:
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                value={formData.plantQuantities?.["Others"] || ""}
+                                                                onChange={(e) => handleStep4QuantityChange("Others", e.target.value)}
+                                                                placeholder="Qty"
+                                                                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.plantQuantities && errors.plantQuantities["Others"]
+                                                                    ? 'border-red-500 focus:ring-red-400'
+                                                                    : 'border-gray-300 focus:ring-blue-400'
+                                                                    } w-24`}
+                                                            />
+                                                        </div>
+                                                        {errors.plantQuantities && errors.plantQuantities["Others"] && (
+                                                            <span className="text-red-500 text-sm">{errors.plantQuantities["Others"]}</span>
+                                                        )}
                                                     </div>
                                                 )}
                                         </div>
-
-                                        {errors.plantQuantities && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.plantQuantities}</span>
-                                        )}
                                     </div>
                                 )}
                             </div>
@@ -1747,7 +1536,7 @@ const handleSubmit = async () => {
                                 </div>
                             ))}
 
-                            {/* Add More and Remove Row Buttons - Side by Side */}
+                            {/* Add More and Remove Row Buttons */}
                             <div className="flex flex-col sm:flex-row items-center justify-end gap-3 mt-4">
                                 {formData.nutrientsData.length > 1 && (
                                     <button
@@ -1768,36 +1557,7 @@ const handleSubmit = async () => {
                             </div>
 
                             {/* Neem Oil */}
-                            <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">
-                                    Neem Oil (नीम का तेल) <span className="text-red-500">*</span>
-                                </label>
-                                <div className="flex gap-6 mt-2">
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="radio"
-                                            name="material_supplied_neemoil"
-                                            value="yes"
-                                            checked={formData.material_supplied_neemoil === "yes"}
-                                            onChange={handleChange}
-                                        />
-                                        YES
-                                    </label>
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="radio"
-                                            name="material_supplied_neemoil"
-                                            value="no"
-                                            checked={formData.material_supplied_neemoil === "no"}
-                                            onChange={handleChange}
-                                        />
-                                        NO
-                                    </label>
-                                </div>
-                                {errors.material_supplied_neemoil && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.material_supplied_neemoil}</span>
-                                )}
-                            </div>
+                            <YesNoSimple name="material_supplied_neemoil" label="Neem Oil (नीम का तेल)" />
 
                             {/* Chargeable Items */}
                             <div className="flex flex-col sm:flex-row space-x-0 sm:space-x-4 gap-4">
@@ -1810,21 +1570,15 @@ const handleSubmit = async () => {
                                         isMulti
                                         options={changebleItemsOptions}
                                         value={formData.material_supplied_chargeable_items}
-                                        onChange={(selected) => {
-                                            setFormData({
-                                                ...formData,
-                                                material_supplied_chargeable_items: selected || [],
-                                            });
-                                        }}
+                                        onChange={handleChargeableItemsChange}
                                         classNamePrefix="react-select"
                                         placeholder="Select items..."
-                                        styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
+                                        styles={{ menu: (p) => ({ ...p, zIndex: 9999, overflow: "visible" }) }}
                                     />
                                     {errors.material_supplied_chargeable_items && (
                                         <span className="text-red-500 text-sm mt-1">{errors.material_supplied_chargeable_items}</span>
                                     )}
 
-                                    {/* Render the "Others" input field if "Others" is selected */}
                                     {formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") && (
                                         <div className="mt-3">
                                             <input
@@ -1833,8 +1587,7 @@ const handleSubmit = async () => {
                                                 value={formData.materialschargeableItemsOptionsother || ""}
                                                 onChange={handleChange}
                                                 placeholder="Specify other item"
-                                                className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialschargeableItemsOptionsother ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                                    }`}
+                                                className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialschargeableItemsOptionsother ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                                             />
                                             {errors.materialschargeableItemsOptionsother && (
                                                 <span className="text-red-500 text-sm mt-1">
@@ -1864,8 +1617,6 @@ const handleSubmit = async () => {
                                     <label className="mb-1 font-medium text-gray-700">
                                         Photo of the Setup (सेटअप की तस्वीर) <span className="text-red-500">*</span>
                                     </label>
-
-                                    {/* Photo Upload Input */}
                                     <input
                                         type="file"
                                         accept="image/*"
@@ -1874,8 +1625,6 @@ const handleSubmit = async () => {
                                         onChange={handlePhotoChange}
                                         className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.setupPhoto ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'} w-full`}
                                     />
-
-                                    {/* Photo Preview */}
                                     <div className="mt-3 flex flex-wrap gap-4">
                                         {formData.setupPhotos && formData.setupPhotos.map((photo, index) => (
                                             <div key={index} className="flex flex-col items-center">
@@ -1888,8 +1637,6 @@ const handleSubmit = async () => {
                                             </div>
                                         ))}
                                     </div>
-
-                                    {/* Error Message */}
                                     {errors.setupPhoto && (
                                         <span className="text-red-500 text-sm mt-1">{errors.setupPhoto}</span>
                                     )}
@@ -1898,10 +1645,9 @@ const handleSubmit = async () => {
                         </div>
                     )}
 
-                    {/* ========================= STEP 5 ========================== */}
+                    {/* STEP 5 */}
                     {step === 5 && (
                         <div className="space-y-6 px-6 py-6 max-w-full overflow-x-hidden">
-                            {/* Title */}
                             <h3 className="font-semibold text-lg text-gray-800">Material Need To Deliver</h3>
 
                             {/* Materials Supplied */}
@@ -1909,7 +1655,6 @@ const handleSubmit = async () => {
                                 <label className="mb-1 font-medium text-gray-700">
                                     Materials Delivered (डिलीवर किए जाने वाले सामान) <span className="text-red-500">*</span>
                                 </label>
-
                                 <Select
                                     isMulti
                                     options={plantOptions}
@@ -1920,11 +1665,6 @@ const handleSubmit = async () => {
                                     styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
                                 />
 
-                                {errors.step5Plants && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.step5Plants}</span>
-                                )}
-
-                                {/* ❗ If "Others" selected show input */}
                                 {formData.step5Plants?.some((item) => item.value === "Others") && (
                                     <div className="mt-3">
                                         <input
@@ -1933,71 +1673,68 @@ const handleSubmit = async () => {
                                             value={formData.materialsDeliveredPlantData || ""}
                                             onChange={handleStep5OtherInput}
                                             placeholder="Specify other material"
-                                            className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialsDeliveredPlantData
-                                                ? "border-red-500 focus:ring-red-400"
-                                                : "border-gray-300 focus:ring-blue-400"
-                                                }`}
+                                            className="px-3 py-2 border border-gray-300 rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none focus:ring-blue-400 transition"
                                         />
-
-                                        {errors.materialsDeliveredPlantData && (
-                                            <span className="text-red-500 text-sm mt-1">
-                                                {errors.materialsDeliveredPlantData}
-                                            </span>
-                                        )}
                                     </div>
                                 )}
 
-                                {/* ✅ MATERIAL QUANTITY INPUTS */}
                                 {formData.step5Plants && formData.step5Plants.length > 0 && (
                                     <div className="flex flex-col mt-4">
                                         <label className="mb-2 font-medium text-gray-700">
                                             Quantity of Materials <span className="text-red-500">*</span>
                                         </label>
-
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {/* Normal selected materials */}
                                             {formData.step5Plants
                                                 .filter((item) => item.value !== "Others")
                                                 .map((material) => (
-                                                    <div key={material.value} className="flex items-center gap-3">
-                                                        <label className="font-medium text-gray-600 min-w-[150px]">
-                                                            {material.label}:
-                                                        </label>
-
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            value={formData.materialNeedPlantQuantities?.[material.value] || ""}
-                                                            onChange={(e) => handleStep5QuantityChange(material.value, e.target.value)}
-                                                            placeholder="Qty"
-                                                            className="px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition border-gray-300 focus:ring-blue-400 flex-1"
-                                                        />
+                                                    <div key={material.value} className="flex flex-col gap-2">
+                                                        <div className="flex items-center gap-3">
+                                                            <label className="font-medium text-gray-600 min-w-[150px]">
+                                                                {material.label}:
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                value={formData.materialNeedPlantQuantities?.[material.value] || ""}
+                                                                onChange={(e) => handleStep5QuantityChange(material.value, e.target.value)}
+                                                                placeholder="Qty"
+                                                                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialNeedPlantQuantities && errors.materialNeedPlantQuantities[material.value]
+                                                                    ? 'border-red-500 focus:ring-red-400'
+                                                                    : 'border-gray-300 focus:ring-blue-400'
+                                                                    } flex-1`}
+                                                            />
+                                                        </div>
+                                                        {errors.materialNeedPlantQuantities && errors.materialNeedPlantQuantities[material.value] && (
+                                                            <span className="text-red-500 text-sm">{errors.materialNeedPlantQuantities[material.value]}</span>
+                                                        )}
                                                     </div>
                                                 ))}
 
-                                            {/* Quantity for OTHER typed value */}
                                             {formData.step5Plants?.some((item) => item.value === "Others") &&
                                                 formData.materialsDeliveredPlantData?.trim() !== "" && (
-                                                    <div className="flex items-center gap-3">
-                                                        <label className="font-medium text-gray-600 min-w-[150px]">
-                                                            {formData.materialsDeliveredPlantData}:
-                                                        </label>
-
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            value={formData.materialNeedPlantQuantities?.["Others"] || ""}
-                                                            onChange={(e) => handleStep5QuantityChange("Others", e.target.value)}
-                                                            placeholder="Qty"
-                                                            className="px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition border-gray-300 focus:ring-blue-400 flex-1"
-                                                        />
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex items-center gap-3">
+                                                            <label className="font-medium text-gray-600 min-w-[150px]">
+                                                                {formData.materialsDeliveredPlantData}:
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                value={formData.materialNeedPlantQuantities?.["Others"] || ""}
+                                                                onChange={(e) => handleStep5QuantityChange("Others", e.target.value)}
+                                                                placeholder="Qty"
+                                                                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialNeedPlantQuantities && errors.materialNeedPlantQuantities["Others"]
+                                                                    ? 'border-red-500 focus:ring-red-400'
+                                                                    : 'border-gray-300 focus:ring-blue-400'
+                                                                    } flex-1`}
+                                                            />
+                                                        </div>
+                                                        {errors.materialNeedPlantQuantities && errors.materialNeedPlantQuantities["Others"] && (
+                                                            <span className="text-red-500 text-sm">{errors.materialNeedPlantQuantities["Others"]}</span>
+                                                        )}
                                                     </div>
                                                 )}
                                         </div>
-
-                                        {errors.materialNeedPlantQuantities && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.materialNeedPlantQuantities}</span>
-                                        )}
                                     </div>
                                 )}
                             </div>
@@ -2008,7 +1745,7 @@ const handleSubmit = async () => {
                                     {/* Nutrients */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Nutrients (पोषक तत्व) <span className="text-red-500">*</span>
+                                            Nutrients (पोषक तत्व)
                                         </label>
                                         <Select
                                             options={nutrientOptions}
@@ -2017,15 +1754,12 @@ const handleSubmit = async () => {
                                             classNamePrefix="react-select"
                                             placeholder="Select nutrient type..."
                                         />
-                                        {errors.material_need_nutrientsData && errors.material_need_nutrientsData[index]?.nutrients && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.material_need_nutrientsData[index]?.nutrients}</span>
-                                        )}
                                     </div>
 
                                     {/* Tank Capacity */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Tank Capacity in Litre (टैंक क्षमता लीटर में) <span className="text-red-500">*</span>
+                                            Tank Capacity in Litre (टैंक क्षमता लीटर में) {field.nutrients && <span className="text-red-500">*</span>}
                                         </label>
                                         <Select
                                             options={tankCapacityOptions}
@@ -2033,8 +1767,9 @@ const handleSubmit = async () => {
                                             onChange={(selected) => handleStep5DynamicFieldChange(index, 'tankCapacity', selected?.value || '')}
                                             classNamePrefix="react-select"
                                             placeholder="Select tank capacity..."
+                                            className={field.nutrients && errors.material_need_nutrientsData && errors.material_need_nutrientsData[index]?.tankCapacity ? 'border-red-500' : ''}
                                         />
-                                        {errors.material_need_nutrientsData && errors.material_need_nutrientsData[index]?.tankCapacity && (
+                                        {field.nutrients && errors.material_need_nutrientsData && errors.material_need_nutrientsData[index]?.tankCapacity && (
                                             <span className="text-red-500 text-sm mt-1">{errors.material_need_nutrientsData[index]?.tankCapacity}</span>
                                         )}
                                     </div>
@@ -2042,7 +1777,7 @@ const handleSubmit = async () => {
                                     {/* Number of Top-ups */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Number of Top-ups (टॉप-अप की संख्या) <span className="text-red-500">*</span>
+                                            Number of Top-ups (टॉप-अप की संख्या) {field.nutrients && <span className="text-red-500">*</span>}
                                         </label>
                                         <input
                                             type="number"
@@ -2050,16 +1785,19 @@ const handleSubmit = async () => {
                                             value={field.numberOfTopups}
                                             onChange={(e) => handleStep5DynamicFieldChange(index, 'numberOfTopups', e.target.value)}
                                             placeholder="Enter number of top-ups"
-                                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.material_need_nutrientsData && errors.material_need_nutrientsData[index]?.numberOfTopups ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'} w-full`}
+                                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${field.nutrients && errors.material_need_nutrientsData && errors.material_need_nutrientsData[index]?.numberOfTopups
+                                                ? 'border-red-500 focus:ring-red-400'
+                                                : 'border-gray-300 focus:ring-blue-400'
+                                                } w-full`}
                                         />
-                                        {errors.material_need_nutrientsData && errors.material_need_nutrientsData[index]?.numberOfTopups && (
+                                        {field.nutrients && errors.material_need_nutrientsData && errors.material_need_nutrientsData[index]?.numberOfTopups && (
                                             <span className="text-red-500 text-sm mt-1">{errors.material_need_nutrientsData[index]?.numberOfTopups}</span>
                                         )}
                                     </div>
                                 </div>
                             ))}
 
-                            {/* Add More and Remove Row Buttons - Side by Side */}
+                            {/* Add More and Remove Row Buttons */}
                             <div className="flex flex-col sm:flex-row items-center justify-end gap-3 mt-4">
                                 {formData.material_need_nutrientsData.length > 1 && (
                                     <button
@@ -2084,26 +1822,28 @@ const handleSubmit = async () => {
                                 <label className="mb-1 font-medium text-gray-700">
                                     Neem Oil (नीम का तेल) <span className="text-red-500">*</span>
                                 </label>
-                                <div className="flex gap-6 mt-2">
+                                <div className="flex gap-4">
                                     <label className="flex items-center gap-2">
                                         <input
                                             type="radio"
                                             name="material_need_neemoil"
-                                            value="yes"
-                                            checked={formData.material_need_neemoil === "yes"}
+                                            value="Yes"
+                                            checked={formData.material_need_neemoil === "Yes"}
                                             onChange={handleStep5Change}
+                                            className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                                         />
-                                        YES
+                                        <span>Yes</span>
                                     </label>
                                     <label className="flex items-center gap-2">
                                         <input
                                             type="radio"
                                             name="material_need_neemoil"
-                                            value="no"
-                                            checked={formData.material_need_neemoil === "no"}
+                                            value="No"
+                                            checked={formData.material_need_neemoil === "No"}
                                             onChange={handleStep5Change}
+                                            className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                                         />
-                                        NO
+                                        <span>No</span>
                                     </label>
                                 </div>
                                 {errors.material_need_neemoil && (
@@ -2114,7 +1854,7 @@ const handleSubmit = async () => {
                             {/* Chargeable Items */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    Chargeable Items Supplied (जो वस्तुएँ पैसे के लिए दी गई हैं) <span className="text-red-500">*</span>
+                                    Chargeable Items Supplied (जो वस्तुएँ पैसे के लिए दी गई हैं)
                                 </label>
                                 <Select
                                     isMulti
@@ -2130,11 +1870,7 @@ const handleSubmit = async () => {
                                     placeholder="Select items..."
                                     styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
                                 />
-                                {errors.material_need_chargeable_items && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.material_need_chargeable_items}</span>
-                                )}
 
-                                {/* Render the "Others" input field if "Others" is selected */}
                                 {formData.material_need_chargeable_items?.some((item) => item.value === "Others") && (
                                     <div className="mt-3">
                                         <input
@@ -2143,14 +1879,8 @@ const handleSubmit = async () => {
                                             value={formData.materialsNeedChargeableItemsOptionsother || ""}
                                             onChange={handleStep5Change}
                                             placeholder="Specify other item"
-                                            className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialsNeedChargeableItemsOptionsother ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
-                                                }`}
+                                            className="px-3 py-2 border border-gray-300 rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none focus:ring-blue-400 transition"
                                         />
-                                        {errors.materialsNeedChargeableItemsOptionsother && (
-                                            <span className="text-red-500 text-sm mt-1">
-                                                {errors.materialsNeedChargeableItemsOptionsother}
-                                            </span>
-                                        )}
                                     </div>
                                 )}
                             </div>
@@ -2160,7 +1890,6 @@ const handleSubmit = async () => {
                     {/* BUTTONS */}
                     <div className="mt-6 px-6">
                         <div className="flex flex-col md:flex-row justify-end w-full gap-3">
-                            {/* Previous Button */}
                             {step > 1 && (
                                 <button
                                     type="button"
@@ -2170,18 +1899,26 @@ const handleSubmit = async () => {
                                     Previous
                                 </button>
                             )}
-
-                            {/* Conditional Next/Submit Button */}
                             <button
                                 type="button"
-                                disabled={submitting}   // disable during API submit
-                                onClick={
-                                    (step === 5 || (step === 4 && !formData.materialNeedsDelivery))
-                                        ? handleSubmit
-                                        : handleNext
-                                }
+                                disabled={submitting}
+                                onClick={() => {
+                                    if (step === 5 || (step === 4 && !formData.materialNeedsDelivery)) {
+                                        let isValid = false;
+                                        if (step === 4) {
+                                            isValid = validateStep4();
+                                        } else if (step === 5) {
+                                            isValid = validateStep5();
+                                        }
+                                        if (isValid) {
+                                            handleSubmit();
+                                        }
+                                    } else {
+                                        handleNext();
+                                    }
+                                }}
                                 className={`bg-[#9FC762] hover:bg-[#8DB350] text-white font-medium px-6 py-2 rounded-lg w-full md:w-auto transition
-                ${submitting ? "opacity-60 cursor-not-allowed" : ""}`}
+        ${submitting ? "opacity-60 cursor-not-allowed" : ""}`}
                             >
                                 {submitting
                                     ? "Please wait..."
@@ -2189,7 +1926,6 @@ const handleSubmit = async () => {
                                         ? "Submit"
                                         : "Next"}
                             </button>
-
                         </div>
                     </div>
                 </div>

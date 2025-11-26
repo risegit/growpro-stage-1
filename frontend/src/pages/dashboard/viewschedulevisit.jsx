@@ -28,7 +28,7 @@ export default function UserTable() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?view-visit='viewvisit'&user_code=${user_code}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?view-schedule-visit='viewScheduleVisit'&user_code=${user_code}&techId=${user?.id}`, {
           method: "GET",
         });
         const data = await response.json();
@@ -51,10 +51,10 @@ export default function UserTable() {
     return allUsers.filter(
       (user) =>
         user.customer_name.toLowerCase().includes(query) ||
-        user.phone.includes(query) ||
-        user.technician_name.toLowerCase().includes(query) ||
-        user.visited_by.toLowerCase().includes(query) ||
-        user.created_date.includes(query)
+        user.customer_phone.includes(query) ||
+        user.technician_name.includes(query) ||
+        user.visit_date.toLowerCase().includes(query) ||
+        user.visit_time.toLowerCase().includes(query)
     );
   }, [allUsers, searchQuery]);
 
@@ -70,8 +70,14 @@ export default function UserTable() {
   };
 
   const handleEdit = (userId) => {
-    navigate(`/dashboard/sitevisits/editvisit/${userId}`);
+    navigate(`/dashboard/sitevisits/editschedulevisit/${userId}`);
   };
+
+    const handleCreateSiteVisit = (scheduleId) => {
+        navigate("/dashboard/sitevisits/createvisits", {
+            state: { scheduleId },   // <-- ID goes hidden in route state
+        });
+    };
 
   const goToPage = (page) => setCurrentPage(page);
   const goToPrevious = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -92,10 +98,10 @@ export default function UserTable() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 sm:px-6 py-5 sm:py-4 border-b">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-              Manage Visits
+              Manage Schedule Visits
             </h1>
             <p className="text-sm sm:text-base text-gray-600">
-              View and manage Visits
+              View and manage Schedule Visits
             </p>
           </div>
 
@@ -123,13 +129,12 @@ export default function UserTable() {
                 <table className="w-full table-fixed text-left border-collapse">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Customer Name</th>
-                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Phone</th>
-                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Visited By</th>
+                      <th className="w-[18%] py-4 px-4 font-medium text-gray-700 text-left">Customer Name</th>
+                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Customer Contact No.</th>
+                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Assign To</th>
                       <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Visit Date</th>
-                      {userRole !== "technician" && (
-                        <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">Action</th>
-                      )}
+                      <th className="w-[20%] py-4 px-4 font-medium text-gray-700 text-left">Visit Time</th>
+                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -169,10 +174,10 @@ export default function UserTable() {
                           {/* Phone */}
                           <td className="py-4 px-4 text-gray-700 truncate">
                             <a
-                              href={`tel:${user.phone}`}
+                              href={`tel:${user.customer_phone}`}
                               className="text-blue-600 hover:underline"
                             >
-                              {user.phone}
+                              {user.customer_phone}
                             </a>
                           </td>
 
@@ -182,26 +187,57 @@ export default function UserTable() {
                               href={`/dashboard/users/edituser/${user.technician_id}`}
                               className="text-blue-600 hover:underline"
                             > */}
-                              {user.technician_name} ({user.visited_by})
+                              {user.technician_name}
                             {/* </a> */}
                           </td>
 
-                          {/* Email — moved up before Status */}
                           <td className="py-4 px-4 text-gray-700 truncate">
-                              {formatDate(user.created_date)}
+                              {formatDate(user.visit_date)}
+                          </td>
+
+                          <td className="py-4 px-4 text-gray-700 truncate">
+                              {user.visit_time}
                           </td>
 
                           {/* Action */}
-                          {userRole !== "technician" && (
-                            <td className="py-4 px-4 text-right">
-                              <button
-                                onClick={() => handleEdit(user.site_visit_id)}
-                                className="px-4 py-2 btn-primary"
-                              >
+                          <td className="py-2 px-0 text-right">
+                            {userRole !== "technician" ? (
+                                <button
+                                onClick={() => handleEdit(user.id)}
+                                className="px-2 py-0 btn-primary"
+                                >
                                 Edit
-                              </button>
+                                </button>
+                            ) : (
+                                <>
+                                {user.status === "scheduled" && (
+                                    <button
+                                    onClick={() => handleCreateSiteVisit(user.id)}
+                                    className="px-2 py-2 btn-primary"
+                                    >
+                                    Start Visit
+                                    </button>
+                                )}
+                                {user.status === "completed" && (
+                                    <button
+                                    disabled
+                                    className="px-2 py-2 btn-success cursor-not-allowed"
+                                    >
+                                    Completed
+                                    </button>
+                                )}
+                                {user.status === "cancelled" && (
+                                    <button
+                                    disabled
+                                    className="px-2 py-2 btn-danger text-white cursor-not-allowed"
+                                    >
+                                    Cancelled
+                                    </button>
+                                )}
+                                </>
+                            )}
                             </td>
-                          )}
+
                         </tr>
                       );
                     })}
