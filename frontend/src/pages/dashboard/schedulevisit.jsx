@@ -50,7 +50,7 @@ export default function CustomerVisitForm() {
             setLoadingCustomers(true);
             setLoadingtechnicians(true);
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?status=active`);
+                const res = await fetch(`${import.meta.env.VITE_API_URL}api/schedule-site-visit.php?status=active`);
                 if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
                 const data = await res.json();
                 const opts = Array.isArray(data.data)
@@ -109,7 +109,7 @@ export default function CustomerVisitForm() {
                 console.log(pair[0] + ": ", pair[1]);
             }
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?schedule_visit='scheduleVisit'&id=${user_id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}api/schedule-site-visit.php?schedule_visit='scheduleVisit'&id=${user_id}`, {
                 method: 'POST',
                 body: form,
             });

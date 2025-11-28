@@ -221,6 +221,21 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         const loadCustomers = async () => {
             setLoadingCustomers(true);
             try {
+                let selectedPlantProblems = [];
+                let selectedPestTypes = [];
+                let selectedOtherPest = "";
+                let selectedsuppliedPlants = [];
+                let selectedSuppliedQuantities = [];
+                let selectedOtherSuppliedPlant = "";
+                let selectedSuppliedChargeableItem = [];
+                let selectedOtherSuppliedChargeableItem = "";
+                let selectedNutrientsData = [];
+                let selectedSuppliedPhotoSetup = [];
+                let selectedNeedPlants = [];
+                let selectedOtherNeedPlant = "";
+                let selectedNeedQuantities = [];
+                let selectedNeedNutrientsData = [];
+                let selectedNeedChargeableItem = [];
                 const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?editSiteVisit='active'&user_code=${user_code}&schId=${id}`);
 
                 const data = await res.json();
@@ -228,6 +243,141 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
                 if (data.status === "success" && data.data) {
                     const user = data.data[0];
+
+                    if (Array.isArray(data.plantProblems)) {
+                        selectedPlantProblems = data.plantProblems.map(p => ({
+                            value: p.problem_name,
+                            label: p.problem_name
+                        }));
+                    }
+                   if (Array.isArray(data.pestTypes)) {
+                        selectedPestTypes = data.pestTypes.map(p => {
+                            if (p.pest_name === "Others") {
+                                selectedOtherPest = p.other_pest_name || "";
+                                return {
+                                    value: "Others",
+                                    label: "Others"
+                                };
+                            }
+                            return {
+                                value: p.pest_name,
+                                label: p.pest_name
+                            };
+                        });
+                    }
+                    
+                    if (Array.isArray(data.suppliedPlants)) {
+                        selectedsuppliedPlants = data.suppliedPlants.map(p => {
+                            if (p.plant_name === "Others") {
+                                selectedOtherSuppliedPlant = p.other_plant_name || "";
+
+                                selectedSuppliedQuantities["Others"] = p.quantity || "";
+
+                                return {
+                                    value: "Others",
+                                    label: "Others"
+                                };
+                            }
+
+                            selectedSuppliedQuantities[p.plant_name] = p.quantity || "";
+
+                            return {
+                                value: p.plant_name,
+                                label: p.plant_name
+                            };
+                        });
+                    }
+
+                    if (Array.isArray(data.suppliedChargeableItem)) {
+                        selectedSuppliedChargeableItem = data.suppliedChargeableItem.map(p => {
+                            if (p.item_name === "Others") {
+                                selectedOtherPest = p.other_item_name || "";
+                                return {
+                                    value: "Others",
+                                    label: "Others"
+                                };
+                            }
+                            return {
+                                value: p.item_name,
+                                label: p.item_name
+                            };
+                        });
+                    }
+
+                    if (Array.isArray(data.suppliedNutrients)) {
+                        selectedNutrientsData = data.suppliedNutrients.map(n => ({
+                            nutrients: n.nutrient_type === "Others"
+                                ? "Others"
+                                : n.nutrient_type,
+
+                            tankCapacity: n.tank_capacity || "",
+                            numberOfTopups: n.topups || "",
+
+                            // Only needed if you want to show "Other" text field
+                            otherNutrient: n.other_nutrient_name || "",
+                        }));
+                    }
+
+                    if (Array.isArray(data.suppliedPhotoSetup)) {
+                        selectedSuppliedPhotoSetup = data.suppliedPhotoSetup.map(p => ({
+                            preview: `${import.meta.env.VITE_API_URL}uploads/site-visit/${p.image_url}`, // required for preview
+                            file: null // because these are not newly uploaded files
+                        }));
+                    }
+
+                    if (Array.isArray(data.needPlants)) {
+                        selectedNeedPlants = data.needPlants.map(p => {
+                            if (p.plant_name === "Others") {
+                                selectedOtherNeedPlant = p.other_plant_name || "";
+
+                                selectedNeedQuantities["Others"] = p.quantity || "";
+
+                                return {
+                                    value: "Others",
+                                    label: "Others"
+                                };
+                            }
+
+                            selectedNeedQuantities[p.plant_name] = p.quantity || "";
+
+                            return {
+                                value: p.plant_name,
+                                label: p.plant_name
+                            };
+                        });
+                    }
+
+                    if (Array.isArray(data.needNutrients)) {
+                        selectedNeedNutrientsData = data.needNutrients.map(n => ({
+                            nutrients: n.nutrient_type === "Others"
+                                ? "Others"
+                                : n.nutrient_type,
+
+                            tankCapacity: n.tank_capacity || "",
+                            numberOfTopups: n.topups || "",
+
+                            // Only needed if you want to show "Other" text field
+                            otherNutrient: n.other_nutrient_name || "",
+                        }));
+                    }
+
+                    if (Array.isArray(data.needChargeableItem)) {
+                        selectedNeedChargeableItem = data.needChargeableItem.map(p => {
+                            if (p.item_name === "Others") {
+                                selectedOtherPest = p.other_item_name || "";
+                                return {
+                                    value: "Others",
+                                    label: "Others"
+                                };
+                            }
+                            return {
+                                value: p.item_name,
+                                label: p.item_name
+                            };
+                        });
+                    }
+
+
                     setFormData({
                         customer_name: user.customer_name || '',
                         plantsWater: user.are_plants_getting_water || "",
@@ -251,12 +401,30 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                         pestOther: user.pest_other || "",
                         nutrientDeficiency: user.nutrient_deficiency || "",
                         deficiencyDetails: user.deficiency_details || "",
+                        plantProblems: selectedPlantProblems,
+                        pestTypes: selectedPestTypes,
+                        pestOther: selectedOtherPest,
                         cropNames: user.which_crop || "",
-                        harvestTraining: user.harvest_training || "",
+                        harvestTraining: user.client_training_harvest || "",
                         pestManagement: user.pest_management || "",
                         equipmentCleaning: user.equipment_cleaning || "",
                         plantMaintenance: user.plant_maintenance || "",
-                        scopesOfImprovement: user.scopes_of_improvement || "",
+                        scopesOfImprovement: user.scope_of_improvement || "",
+                        plants: selectedsuppliedPlants,
+                        materialsSuppliedPlantData: selectedOtherSuppliedPlant,
+                        plantQuantities: selectedSuppliedQuantities,
+                        material_supplied_neemoil: user.material_supplied_neemoil || "",
+                        material_supplied_chargeable_items: selectedSuppliedChargeableItem,
+                        materialNeedsDelivery: user.material_needs_delivery || "",
+                        nutrientsData: selectedNutrientsData.length > 0 ? selectedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
+                        setupPhotos: selectedSuppliedPhotoSetup,
+                        step5Plants: selectedNeedPlants,
+                        materialsDeliveredPlantData: selectedOtherNeedPlant,
+                        materialNeedPlantQuantities: selectedNeedQuantities,
+                        material_need_nutrientsData: selectedNeedNutrientsData.length > 0 ? selectedNeedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
+                        material_need_neemoil: user.material_delivered_neemoil || "",
+                        material_need_chargeable_items: selectedNeedChargeableItem,
+
                     });
                 }
                 

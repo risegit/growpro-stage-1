@@ -54,7 +54,7 @@ export default function UserTable() {
         user.phone.includes(query) ||
         user.technician_name.toLowerCase().includes(query) ||
         user.visited_by.toLowerCase().includes(query) ||
-        user.created_date.includes(query)
+        formatDate(user.created_date).toLowerCase().includes(query)
     );
   }, [allUsers, searchQuery]);
 
