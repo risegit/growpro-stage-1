@@ -585,7 +585,7 @@ export default function AMCForm() {
       <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
         {/* Header */}
         <div className="px-2 py-4 border-b">
-          <h1 className="text-2xl font-bold mb-1 text-gray-800">Add AMC Contract</h1>
+          <h2 className="text-2xl font-bold mb-2 text-gray-800">Add AMC Contract</h2>
           <p className="text-sm text-gray-600">Annual Maintenance Contract Details</p>
         </div>
 

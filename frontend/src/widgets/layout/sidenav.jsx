@@ -188,7 +188,7 @@ export function Sidenav({ brandImg, brandName, routes }) {
                     <Button
                       variant={openDropdown === name ? "gradient" : "text"}
                       color="green"
-                      className={`flex items-center justify-between gap-4 px-4 capitalize w-full text-left ${
+                      className={`flex items-center justify-between gap-2 px-2 capitalize w-full text-left ${
                         openDropdown === name
                           ? "bg-green-500 text-white"
                           : "text-green-700 hover:bg-green-700/30"
@@ -196,7 +196,7 @@ export function Sidenav({ brandImg, brandName, routes }) {
                       fullWidth
                       onClick={() => handleToggle(name)}
                     >
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
                         {icon}
                         <Typography color="inherit" className="font-medium capitalize">
                           {name}
@@ -222,7 +222,7 @@ export function Sidenav({ brandImg, brandName, routes }) {
                                 <Button
                                   variant={isActive ? "gradient" : "text"}
                                   color="green"
-                                  className={`flex items-center gap-4 px-4 text-sm capitalize ${
+                                  className={`flex items-center gap-2 px-2 text-sm capitalize ${
                                     isActive
                                       ? "bg-green-500 text-white"
                                       : "text-green-700 hover:bg-green-700/30"
@@ -247,7 +247,7 @@ export function Sidenav({ brandImg, brandName, routes }) {
                       <Button
                         variant={isActive ? "gradient" : "text"}
                         color="green"
-                        className={`flex items-center gap-4 px-4 capitalize ${
+                        className={`flex items-center gap-2 px-2 capitalize ${
                           isActive
                             ? "bg-green-500 text-white"
                             : "text-green-700 hover:bg-green-700/30"

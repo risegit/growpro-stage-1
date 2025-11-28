@@ -6,6 +6,7 @@ export default function UserTable() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const usersPerPage = 10;
   const navigate = useNavigate();
 
@@ -14,7 +15,7 @@ export default function UserTable() {
   const user_code = user?.user_code;
   console.log("userCode=", user_code);
 
-   const formatDate = (dateString) => {
+  const formatDate = (dateString) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
     return date.toLocaleDateString("en-GB", {
@@ -22,6 +23,28 @@ export default function UserTable() {
       month: "short",
       year: "numeric",
     });
+  };
+
+  // 🔹 Sorting functionality
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  // 🔹 Sort Arrow Component
+  const SortArrow = ({ columnKey }) => {
+    if (sortConfig.key !== columnKey) {
+      return <span className="ml-1 text-gray-400">↕↕</span>;
+    }
+    return (
+      <span className="ml-1">
+        {sortConfig.direction === "asc" ? "↑" : "↓"}
+      </span>
+    );
   };
 
   // 🔹 Fetch data from backend API
@@ -44,19 +67,53 @@ export default function UserTable() {
     fetchUsers();
   }, []);
 
-  // 🔹 Filter users based on search
+  // 🔹 Sorting + Search functionality
   const filteredUsers = useMemo(() => {
-    if (!searchQuery.trim()) return allUsers;
-    const query = searchQuery.toLowerCase();
-    return allUsers.filter(
-      (user) =>
-        user.customer_name.toLowerCase().includes(query) ||
-        user.customer_phone.includes(query) ||
-        user.technician_name.includes(query) ||
-        user.visit_date.toLowerCase().includes(query) ||
-        user.visit_time.toLowerCase().includes(query)
-    );
-  }, [allUsers, searchQuery]);
+    let users = [...allUsers];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      users = users.filter(
+        (user) =>
+          user.customer_name.toLowerCase().includes(query) ||
+          user.customer_phone.includes(query) ||
+          user.technician_name.toLowerCase().includes(query) ||
+          user.visit_date.toLowerCase().includes(query) ||
+          user.visit_time.toLowerCase().includes(query)
+      );
+    }
+
+    // Sorting logic
+    if (sortConfig.key) {
+      users.sort((a, b) => {
+        let valueA = a[sortConfig.key];
+        let valueB = b[sortConfig.key];
+
+        // Handle date sorting
+        if (sortConfig.key === 'visit_date') {
+          valueA = new Date(valueA).getTime();
+          valueB = new Date(valueB).getTime();
+        }
+        
+        // Handle string comparison
+        if (typeof valueA === 'string' && typeof valueB === 'string') {
+          valueA = valueA.toLowerCase();
+          valueB = valueB.toLowerCase();
+        }
+
+        if (valueA < valueB) {
+          return sortConfig.direction === "asc" ? -1 : 1;
+        }
+        if (valueA > valueB) {
+          return sortConfig.direction === "asc" ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    return users;
+  }, [allUsers, searchQuery, sortConfig]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
@@ -73,11 +130,11 @@ export default function UserTable() {
     navigate(`/dashboard/sitevisits/editschedulevisit/${userId}`);
   };
 
-    const handleCreateSiteVisit = (scheduleId) => {
-        navigate("/dashboard/sitevisits/createvisits", {
-            state: { scheduleId },   // <-- ID goes hidden in route state
-        });
-    };
+  const handleCreateSiteVisit = (scheduleId) => {
+    navigate("/dashboard/sitevisits/createvisits", {
+      state: { scheduleId },
+    });
+  };
 
   const goToPage = (page) => setCurrentPage(page);
   const goToPrevious = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -97,23 +154,45 @@ export default function UserTable() {
         {/* Header with Search */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 sm:px-6 py-5 sm:py-4 border-b">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+            <h2 className="text-2xl font-bold mb-2 text-gray-800">
               Manage Schedule Visits
-            </h1>
+            </h2>
             <p className="text-sm sm:text-base text-gray-600">
               View and manage Schedule Visits
             </p>
           </div>
 
-          { <div className="mt-3 sm:mt-0 w-full sm:w-1/3">
+          <div className="mt-3 sm:mt-0 w-full sm:w-1/3 relative">
             <input
               type="text"
               placeholder="Search by name, visited by..."
               value={searchQuery}
               onChange={handleSearchChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+              className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
             />
-          </div>}
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Clear search"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="p-4 sm:p-6">
@@ -129,17 +208,56 @@ export default function UserTable() {
                 <table className="w-full table-fixed text-left border-collapse">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="w-[18%] py-4 px-4 font-medium text-gray-700 text-left">Customer Name</th>
-                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Customer Contact No.</th>
-                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Assign To</th>
-                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">Visit Date</th>
-                      <th className="w-[20%] py-4 px-4 font-medium text-gray-700 text-left">Visit Time</th>
+                      <th 
+                        className="w-[18%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                        onClick={() => handleSort("customer_name")}
+                      >
+                        <div className="flex items-center">
+                          Customer Name
+                          <SortArrow columnKey="customer_name" />
+                        </div>
+                      </th>
+                      <th 
+                        className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                        onClick={() => handleSort("customer_phone")}
+                      >
+                        <div className="flex items-center">
+                          Customer Contact No.
+                          <SortArrow columnKey="customer_phone" />
+                        </div>
+                      </th>
+                      <th 
+                        className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                        onClick={() => handleSort("technician_name")}
+                      >
+                        <div className="flex items-center">
+                          Assign To
+                          <SortArrow columnKey="technician_name" />
+                        </div>
+                      </th>
+                      <th 
+                        className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                        onClick={() => handleSort("visit_date")}
+                      >
+                        <div className="flex items-center">
+                          Visit Date
+                          <SortArrow columnKey="visit_date" />
+                        </div>
+                      </th>
+                      <th 
+                        className="w-[20%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                        onClick={() => handleSort("visit_time")}
+                      >
+                        <div className="flex items-center">
+                          Visit Time
+                          <SortArrow columnKey="visit_time" />
+                        </div>
+                      </th>
                       <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {currentUsers.map((user) => {
-
                       return (
                         <tr
                           key={user._id}
@@ -148,7 +266,6 @@ export default function UserTable() {
                           {/* Name */}
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-3">
-                              
                               <img
                                 src={
                                   user.profile_pic
@@ -160,14 +277,9 @@ export default function UserTable() {
                                 alt={user.customer_name}
                                 className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                               />
-                              {/* <a
-                              href={`/dashboard/customers/editcustomer/${user.customer_id}`}
-                              className="text-blue-600 hover:underline"
-                            > */}
                               <span className="font-medium text-gray-800 truncate">
                                 {user.customer_name}
                               </span>
-                              {/* </a> */}
                             </div>
                           </td>
 
@@ -181,63 +293,56 @@ export default function UserTable() {
                             </a>
                           </td>
 
-                          
                           <td className="py-4 px-4 text-gray-700 truncate">
-                            {/* <a
-                              href={`/dashboard/users/edituser/${user.technician_id}`}
-                              className="text-blue-600 hover:underline"
-                            > */}
-                              {user.technician_name}
-                            {/* </a> */}
+                            {user.technician_name}
                           </td>
 
                           <td className="py-4 px-4 text-gray-700 truncate">
-                              {formatDate(user.visit_date)}
+                            {formatDate(user.visit_date)}
                           </td>
 
                           <td className="py-4 px-4 text-gray-700 truncate">
-                              {user.visit_time}
+                            {user.visit_time}
                           </td>
 
                           {/* Action */}
                           <td className="py-2 px-0 text-right">
                             {userRole !== "technician" ? (
-                                <button
+                              <button
                                 onClick={() => handleEdit(user.id)}
                                 className="px-2 py-0 btn-primary"
-                                >
+                              >
                                 Edit
-                                </button>
+                              </button>
                             ) : (
-                                <>
+                              <>
                                 {user.status === "scheduled" && (
-                                    <button
+                                  <button
                                     onClick={() => handleCreateSiteVisit(user.id)}
                                     className="px-2 py-2 btn-primary"
-                                    >
+                                  >
                                     Start Visit
-                                    </button>
+                                  </button>
                                 )}
                                 {user.status === "completed" && (
-                                    <button
+                                  <button
                                     disabled
                                     className="px-2 py-2 btn-success cursor-not-allowed"
-                                    >
+                                  >
                                     Completed
-                                    </button>
+                                  </button>
                                 )}
                                 {user.status === "cancelled" && (
-                                    <button
+                                  <button
                                     disabled
                                     className="px-2 py-2 btn-danger text-white cursor-not-allowed"
-                                    >
+                                  >
                                     Cancelled
-                                    </button>
+                                  </button>
                                 )}
-                                </>
+                              </>
                             )}
-                            </td>
-
+                          </td>
                         </tr>
                       );
                     })}
@@ -248,10 +353,6 @@ export default function UserTable() {
               {/* Mobile View */}
               <div className="block lg:hidden space-y-5">
                 {currentUsers.map((user) => {
-                  // Capitalize role for display
-                  // const role =
-                  //   user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase();
-
                   return (
                     <div
                       key={user._id}
@@ -277,31 +378,21 @@ export default function UserTable() {
                       </div>
 
                       <div className="space-y-3 mb-5">
-                        {/* Email */}
                         <div className="flex flex-col">
                           <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Visisted By
+                            Visited By
                           </span>
                           <span className="text-sm text-gray-700 break-all">
-                            <a
-                              href={`/dashboard/users/edituser/${user.technician_id}`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              {user.technician_name} ({user.visited_by})
-                            </a>
-                            
+                            {user.technician_name} ({user.visited_by})
                           </span>
                         </div>
 
-                        {/* Mobile */}
                         <div className="flex flex-col">
                           <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
                             Visit Date
                           </span>
-                            {formatDate(user.created_date)}
+                          {formatDate(user.created_date)}
                         </div>
-
-                        
                       </div>
 
                       <button
@@ -314,7 +405,6 @@ export default function UserTable() {
                   );
                 })}
               </div>
-
             </>
           )}
         </div>

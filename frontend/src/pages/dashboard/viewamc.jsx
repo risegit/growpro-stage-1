@@ -6,12 +6,12 @@ export default function UserTable() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
   const usersPerPage = 10;
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem("user"));
   const userRole = user?.role;
-  // console.log("user",user)
 
   const formatDate = (dateString) => {
     if (!dateString) return "-";
@@ -43,18 +43,75 @@ export default function UserTable() {
     fetchUsers();
   }, []);
 
+  // 🔹 Sorting functionality
+  const sortedUsers = useMemo(() => {
+    if (!sortConfig.key) return allAMC;
+
+    return [...allAMC].sort((a, b) => {
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+
+      // Handle numeric values
+      if (sortConfig.key === 'visits_per_month' || sortConfig.key === 'pending_visits') {
+        aValue = parseInt(aValue) || 0;
+        bValue = parseInt(bValue) || 0;
+      }
+
+      // Handle date values
+      if (sortConfig.key === 'validity_upto') {
+        aValue = new Date(aValue).getTime();
+        bValue = new Date(bValue).getTime();
+      }
+
+      // Handle string comparison
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+
+      if (aValue < bValue) {
+        return sortConfig.direction === 'ascending' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'ascending' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [allAMC, sortConfig]);
+
   // 🔹 Filter users based on search
   const filteredUsers = useMemo(() => {
-    if (!searchQuery.trim()) return allAMC;
+    if (!searchQuery.trim()) return sortedUsers;
     const query = searchQuery.toLowerCase();
-    return allAMC.filter(
+    return sortedUsers.filter(
       (user) =>
         user.name.toLowerCase().includes(query) ||
         user.visits_per_month.toLowerCase().includes(query) ||
         user.pending_visits.toLowerCase().includes(query) ||
         user.phone.includes(query)
     );
-  }, [allAMC, searchQuery]);
+  }, [sortedUsers, searchQuery]);
+
+  // 🔹 Handle sort request
+  const handleSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // 🔹 Sort arrow component
+  const SortArrow = ({ columnKey }) => {
+    if (sortConfig.key !== columnKey) {
+      return <span className="ml-1 text-gray-400">↕↕</span>;
+    }
+    return (
+      <span className="ml-1">
+        {sortConfig.direction === 'ascending' ? '↑' : '↓'}
+      </span>
+    );
+  };
 
   // Pagination logic
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
@@ -75,6 +132,26 @@ export default function UserTable() {
   const goToPrevious = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const goToNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
+  // 🔹 Get AMC Status function
+  const getAMCStatus = (validity_upto) => {
+    const validityDate = new Date(validity_upto);
+    const today = new Date();
+
+    validityDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    const diffTime = validityDate - today;
+    const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (daysLeft > 10) {
+      return "Active";
+    } else if (daysLeft > 6 && daysLeft <= 10) {
+      return "Renew Soon";
+    } else {
+      return "Expired";
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -89,23 +166,45 @@ export default function UserTable() {
         {/* Header with Search */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 sm:px-6 py-5 sm:py-4 border-b">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+            <h2 className="text-2xl font-bold mb-2 text-gray-800">
               AMC Management
-            </h1>
+            </h2>
             <p className="text-sm sm:text-base text-gray-600">
               View and manage AMC
             </p>
           </div>
 
-          { <div className="mt-3 sm:mt-0 w-full sm:w-1/3">
+          <div className="mt-3 sm:mt-0 w-full sm:w-1/3 relative">
             <input
               type="text"
               placeholder="Search by name, contact, visit per month, or visit pending..."
               value={searchQuery}
               onChange={handleSearchChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+              className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
             />
-          </div>}
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Clear search"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="p-4 sm:p-6">
@@ -121,12 +220,54 @@ export default function UserTable() {
                 <table className="w-full table-fixed text-left border-collapse">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Name</th>
-                      <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">Contact</th>
-                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left">Visits per Month</th>
-                      {<th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">Visit Pending</th>}
-                      <th className="w-[16%] py-4 px-4 font-medium text-gray-700 text-left">Days Left</th>
-                      <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">AMC Status</th>
+                      <th
+                        className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                        onClick={() => handleSort('name')}
+                      >
+                        <div className="flex items-center">
+                          Name
+                          <SortArrow columnKey="name" />
+                        </div>
+                      </th>
+                      <th
+                        className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                        onClick={() => handleSort('phone')}
+                      >
+                        <div className="flex items-center">
+                          Contact
+                          <SortArrow columnKey="phone" />
+                        </div>
+                      </th>
+                      <th
+                        className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                        onClick={() => handleSort('visits_per_month')}
+                      >
+                        <div className="flex items-center">
+                          Visits per Month
+                          <SortArrow columnKey="visits_per_month" />
+                        </div>
+                      </th>
+                      <th
+                        className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                        onClick={() => handleSort('pending_visits')}
+                      >
+                        <div className="flex items-center">
+                          Visit Pending
+                          <SortArrow columnKey="pending_visits" />
+                        </div>
+                      </th>
+                      <th
+                        className="w-[16%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                        onClick={() => handleSort('validity_upto')}
+                      >
+                        <div className="flex items-center">
+                          Days Left
+                          <SortArrow columnKey="validity_upto" />
+                        </div>
+                      </th>
+                      <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">
+                        AMC Status
+                      </th>
                       {userRole !== "technician" && (
                         <th className="py-4 px-4 font-medium text-gray-700 text-right">Action</th>
                       )}
@@ -134,32 +275,8 @@ export default function UserTable() {
                   </thead>
                   <tbody>
                     {currentUsers.map((user) => {
-                      const getAMCStatus = (validity_upto) => {
-                        const validityDate = new Date(validity_upto);
-                        const today = new Date();
-
-                        validityDate.setHours(0, 0, 0, 0);
-                        today.setHours(0, 0, 0, 0);
-
-                        const diffTime = validityDate - today;
-                        const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        console.log("daysLeft=", daysLeft);
-
-                        if (daysLeft > 10) {
-                          
-                          return "Active";
-                        } else if (daysLeft > 6 && daysLeft < 10) {
-                          return "Renew Soon";
-                        } else {
-                          return "Expired";
-                        }
-                      };
-
-                      // return row...
-                    
-
-
-                    {/* console.log('getAMCStatus=', getAMCStatus(2025-11-25)); */}
+                      const daysLeft = Math.ceil((new Date(user.validity_upto) - new Date()) / (1000 * 60 * 60 * 24));
+                      const status = getAMCStatus(user.validity_upto);
 
                       return (
                         <tr
@@ -184,48 +301,45 @@ export default function UserTable() {
                               {user.phone}
                             </a>
                           </td>
-                          
-                          {/* Email — moved up before Status */}
+
+                          {/* Visits per Month */}
                           <td className="py-4 px-4 text-gray-700 text-left truncate">
-                              {user.visits_per_month}
+                            {user.visits_per_month}
                           </td>
 
-                          {<td className="py-4 px-4 text-gray-700 text-left truncate">
-                              {user.pending_visits}
-                          </td>}
+                          {/* Pending Visits */}
+                          <td className="py-4 px-4 text-gray-700 text-left truncate">
+                            {user.pending_visits}
+                          </td>
 
+                          {/* Days Left */}
                           <td className="py-4 px-4 text-gray-700 truncate">
                             <p>
-                              {Math.ceil((new Date(user.validity_upto) - new Date()) / (1000 * 60 * 60 * 24))} Days
+                              {daysLeft} Days
                             </p>
-
                             <em
                               className={`small-text py-1 rounded 
-                                ${getAMCStatus(user.validity_upto) === "Active" ? " text-green-400" : ""}
-                                ${getAMCStatus(user.validity_upto) === "Renew Soon" ? "text-red-300" : ""}
-                                ${getAMCStatus(user.validity_upto) === "Expired" ? " text-red-600" : ""}
+                                ${status === "Active" ? " text-green-400" : ""}
+                                ${status === "Renew Soon" ? "text-red-300" : ""}
+                                ${status === "Expired" ? " text-red-600" : ""}
                               `}
                             >
                               ({formatDate(user.validity_upto)})
                             </em>
                           </td>
 
-
+                          {/* Status */}
                           <td className="py-4 px-4 text-gray-700 truncate">
                             <span
                               className={`px-3 py-1 rounded-lg text-sm font-medium cust-status-label
-                                ${getAMCStatus(user.validity_upto) === "Active" ? "bg-green-400 text-white" : ""}
-                                ${getAMCStatus(user.validity_upto) === "Renew Soon" ? "bg-red-300 text-white" : ""}
-                                ${getAMCStatus(user.validity_upto) === "Expired" ? "bg-red-600 text-white" : ""}
+                                ${status === "Active" ? "bg-green-400 text-white" : ""}
+                                ${status === "Renew Soon" ? "bg-red-300 text-white" : ""}
+                                ${status === "Expired" ? "bg-red-600 text-white" : ""}
                               `}
                             >
-                              {getAMCStatus(user.validity_upto)}
+                              {status}
                             </span>
                           </td>
-
-
-                          {/* Status — moved down after Email */}
-                          
 
                           {/* Action */}
                           {userRole !== "technician" && (
@@ -248,25 +362,10 @@ export default function UserTable() {
               {/* Mobile View */}
               <div className="block lg:hidden space-y-5">
                 {currentUsers.map((user) => {
-                  
-                  const getAMCStatus = (validity_upto) => {
-                    const validityDate = new Date(validity_upto);
-                    const today = new Date();
-
-                    validityDate.setHours(0, 0, 0, 0);
-                    today.setHours(0, 0, 0, 0);
-
-                    const diffTime = validityDate - today;
-                    const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                    if (daysLeft > 10) return "Active";
-                    if (daysLeft > 6) return "Renew Soon";
-                    return "Expired";
-                  };
-
                   const daysLeft = Math.ceil(
                     (new Date(user.validity_upto) - new Date()) / (1000 * 60 * 60 * 24)
                   );
+                  const status = getAMCStatus(user.validity_upto);
 
                   return (
                     <div
@@ -278,7 +377,6 @@ export default function UserTable() {
                       </h3>
 
                       <div className="space-y-3 mb-5">
-
                         {/* Phone */}
                         <div className="flex flex-col">
                           <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
@@ -299,6 +397,16 @@ export default function UserTable() {
                           </span>
                           <span className="text-sm text-gray-700">
                             {user.visits_per_month}
+                          </span>
+                        </div>
+
+                        {/* Pending Visits */}
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                            Pending Visits
+                          </span>
+                          <span className="text-sm text-gray-700">
+                            {user.pending_visits}
                           </span>
                         </div>
 
@@ -329,31 +437,31 @@ export default function UserTable() {
                           </span>
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-bold w-fit
-                              ${
-                                getAMCStatus(user.validity_upto) === "Active"
-                                  ? "bg-green-600 text-white"
-                                  : getAMCStatus(user.validity_upto) === "Renew Soon"
+                              ${status === "Active"
+                                ? "bg-green-600 text-white"
+                                : status === "Renew Soon"
                                   ? "bg-orange-500 text-white"
                                   : "bg-red-600 text-white"
                               }
                             `}
                           >
-                            {getAMCStatus(user.validity_upto)}
+                            {status}
                           </span>
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleEdit(user.id)}
-                        className="w-full px-4 py-2.5 btn-primary"
-                      >
-                        Edit
-                      </button>
+                      {userRole !== "technician" && (
+                        <button
+                          onClick={() => handleEdit(user.amc_id)}
+                          className="w-full px-4 py-2.5 btn-primary"
+                        >
+                          Edit
+                        </button>
+                      )}
                     </div>
                   );
                 })}
               </div>
-
             </>
           )}
         </div>

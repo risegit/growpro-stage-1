@@ -262,7 +262,7 @@ export default function CustomerVisitForm() {
               <div className="w-full min-h-screen bg-gray-100 mt-10">
             <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
                 <div className="px-6 py-4 border-b">
-                    <h1 className="text-2xl font-bold mb-6 text-gray-800">Schedule Visit</h1>
+                    <h2 className="text-2xl font-bold mb-6 text-gray-800">Schedule Visit</h2>
                 </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6 [&_input]:h-[42px] [&_select]:h-[42px]">
 
