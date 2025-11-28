@@ -91,11 +91,11 @@ export default function UserTable() {
         {/* Header with Search */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 sm:px-6 py-5 sm:py-4 border-b">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-              Manage Visits
-            </h1>
+            <h2 className="text-2xl font-bold mb-2 text-gray-800">
+              Manage Obeservation
+            </h2>
             <p className="text-sm sm:text-base text-gray-600">
-              View and manage Visits
+              View and manage Obeservation
             </p>
           </div>
 

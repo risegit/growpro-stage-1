@@ -8,6 +8,7 @@ import {
   MapPinIcon,
   ServerStackIcon,
   ArrowRightOnRectangleIcon,
+  EyeIcon 
 
 } from "@heroicons/react/24/solid";
 
@@ -43,6 +44,7 @@ import { SignIn } from "@/pages/auth";
 import LogoutButton from "./Components/LogoutButton";
 
 import RoleProtectedRoute from "@/components/RoleProtectedRoute";
+import { Eye } from "lucide-react";
 
 const icon = { className: "w-5 h-5 text-inherit" };
 
@@ -179,7 +181,7 @@ const routes = [
       },
       {
         icon: <MapPinIcon {...icon} />,
-        name: "Site Visits",
+        name: "Schedule Site Visits",
         allowedRoles: ["admin", "manager", "technician"],
         collapse: [
           {
@@ -215,9 +217,17 @@ const routes = [
               />
             ),
             hidden: true,
-          },
+          }
+        ],
+      },
+      {
+        icon: <Eye {...icon} />,
+        name: "Site Observation Visits",
+        allowedRoles: ["admin", "manager", "technician"],
+        collapse: [
+          
           {
-            name: "Create Visits",
+            name: "Create Observation Visits",
             path: "/sitevisits/createvisits",
             allowedRoles: ["admin", "manager", "technician"],
             element: (
@@ -228,7 +238,7 @@ const routes = [
             ),
           },
           {
-            name: "Manage Visits",
+            name: "Manage Observation Visits",
             path: "/sitevisits/viewvisits",
             allowedRoles: ["admin", "manager", "technician"],
             element: (
@@ -252,18 +262,6 @@ const routes = [
           },
         ],
       },
-      // {
-      //   icon: <IdentificationIcon {...icon} />,
-      //   name: "Profile",
-      //   path: "/profile",
-      //   allowedRoles: ["admin", "manager", "technician"],
-      //   element: (
-      //     <RoleProtectedRoute
-      //       element={<Profile />}
-      //       allowedRoles={["admin", "manager", "technician"]}
-      //     />
-      //   ),
-      // },
     ],
   },
   {

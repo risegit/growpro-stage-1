@@ -1,20 +1,17 @@
 // src/pages/auth/SignIn.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Input, Button, Typography } from "@material-tailwind/react";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 
 export function SignIn() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-
-  // useEffect(() => {
-  //   localStorage.removeItem("user");
-  //   localStorage.removeItem("loggedIn");
-  // }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,12 +25,10 @@ export function SignIn() {
     setLoading(true);
 
     try {
-      // Prepare POST Body
       const formData = new FormData();
       formData.append("username", username);
       formData.append("password", password);
 
-      // 🔥 SEND TO API
       const res = await fetch(`${import.meta.env.VITE_API_URL}api/signin-out.php`, {
         method: "POST",
         body: formData
@@ -48,12 +43,10 @@ export function SignIn() {
         return;
       }
 
-      // Save logged-in user info
       localStorage.setItem("user", JSON.stringify(data.data));
       localStorage.setItem("token", data.token);
       localStorage.setItem("loggedIn", "true");
-      
-      // Redirect
+
       navigate("/dashboard/home", { replace: true });
     } catch (err) {
       console.error("Login Error:", err);
@@ -89,13 +82,26 @@ export function SignIn() {
             />
 
             <Typography variant="small">Password</Typography>
-            <Input
-              type="password"
-              size="lg"
-              placeholder="********"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+
+            {/* Password Input With Eye Icon */}
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                size="lg"
+                placeholder="********"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pr-12"
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
 
           {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
