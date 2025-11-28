@@ -51,7 +51,7 @@ export default function UserTable() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?view-schedule-visit='viewScheduleVisit'&user_code=${user_code}&techId=${user?.id}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/schedule-site-visit.php?view-schedule-visit='viewScheduleVisit'&user_code=${user_code}&techId=${user?.id}`, {
           method: "GET",
         });
         const data = await response.json();
@@ -79,7 +79,7 @@ export default function UserTable() {
           user.customer_name.toLowerCase().includes(query) ||
           user.customer_phone.includes(query) ||
           user.technician_name.toLowerCase().includes(query) ||
-          user.visit_date.toLowerCase().includes(query) ||
+          formatDate(user.visit_date).toLowerCase().includes(query) ||
           user.visit_time.toLowerCase().includes(query)
       );
     }
