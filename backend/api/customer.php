@@ -184,14 +184,14 @@ switch ($method) {
 
                                 $sql5 = "INSERT INTO customer_plants(customer_id, grower_id, plant_id, other_plant, date, time) VALUES ('$user_id', '$grower_id', '$plant_id', '', '$date', '$time')";
                                 // $queryPlant.='growerId='.$grower_id.'___'.$sql4;
-                                $conn->query($sql5);
+                                $conn->query($sql5);        
                             }
                                 
                         }
 
                         echo json_encode(["status" => "success", "message" => "Customer Details Saved Successfully!"]);
                     }
-                }
+                }                          
             }else{
                 echo json_encode(["status" => "error", "message" => "Customer Already Exist"]);    
             }

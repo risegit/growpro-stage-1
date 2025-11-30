@@ -11,10 +11,7 @@ $userId = $_GET['id'] ?? null;
 $emailId = $_GET['email'] ?? null;
 $viewVisit = $_GET['view-visit'] ?? null;
 $userCode = $_GET['user_code'] ?? null;
-$scheduleVisit = $_GET['schedule_visit'] ?? null;
-$chkScheduleVisit = $_GET['chkScheduleVisit'] ?? null;
 $techId = $_GET['techId'] ?? null;
-$viewScheduleVisit = $_GET['view-schedule-visit'] ?? null;
 $editSiteVisit = $_GET['editSiteVisit'] ?? null;
 $schId = $_GET['schId'] ?? null;
 
@@ -53,21 +50,6 @@ switch ($method) {
                 "status" => "success",
                 "data" => $userId ? ($data[0] ?? null) : $data
             ]);
-        }elseif ($viewScheduleVisit) {
-            if (!empty($userCode)) {
-                if (str_starts_with($userCode, 'TC')) {
-                    $whereClause = "WHERE sch.technician_id= '$techId'";
-                } elseif (str_starts_with($userCode, 'AD') || str_starts_with($userCode, 'MN')) {
-                    $whereClause = '';
-                }
-            }
-            $result = $conn->query("SELECT sch.id,sch.visit_date,sch.visit_time,sch.status,u.id customer_id,u.name as customer_name,u.phone customer_phone,t.name technician_name FROM site_visit_schedule sch INNER JOIN users u ON sch.customer_id=u.id INNER JOIN users t ON sch.technician_id=t.id $whereClause order by sch.id DESC");
-            $data = [];
-            while ($row = $result->fetch_assoc()) {
-                $data[] = $row;
-            }
-            echo json_encode(["status" => "success","data" => $data]);
-
         }elseif ($viewVisit) {
             if (!empty($userCode)) {
                 if (str_starts_with($userCode, 'TC')) {
@@ -78,26 +60,6 @@ switch ($method) {
             }
 
             $sql1 = "SELECT u.id AS customer_id, u.name AS customer_name, u.profile_pic, u.phone, tech.id AS technician_id, tech.name AS technician_name,sv.id site_visit_id,sv.visited_by, sv.created_date FROM site_visit sv INNER JOIN users u ON sv.customer_id = u.id LEFT JOIN users tech ON sv.visited_by = tech.user_code $whereClause Order By sv.id DESC;";
-            $result = $conn->query($sql1);
-            $data = [];
-            while ($row = $result->fetch_assoc()) {
-                $data[] = $row;
-            }
-
-            echo json_encode([
-                "status" => "success",
-                "data" => $data
-            ]);
-        }elseif ($chkScheduleVisit) {
-            if (!empty($userCode)) {
-                if (str_starts_with($userCode, 'TC')) {
-                    $whereClause = "WHERE sch.technician_id = '$techId' and sch.status='scheduled'";
-                } elseif (str_starts_with($userCode, 'AD') || str_starts_with($userCode, 'MN')) {
-                    $whereClause = 'WHERE sch.status="scheduled"';
-                }
-            }
-
-            $sql1 = "SELECT u.id as customer_id,u.name,u.phone,sch.id schedule_id,sch.technician_id,sch.visit_time,t.name AS technician_name,t.user_code AS tech_code FROM site_visit_schedule sch INNER JOIN users u ON sch.customer_id=u.id INNER JOIN users t ON sch.technician_id = t.id $whereClause Order By sch.id DESC;";
             $result = $conn->query($sql1);
             $data = [];
             while ($row = $result->fetch_assoc()) {
@@ -213,7 +175,6 @@ switch ($method) {
 
 
     case 'POST':
-        if(empty($scheduleVisit)){
             //Visual Observation
             $scheduleId = $_POST['schedule_id'] ?? '';
             $plantsWater = $_POST['plantsWater'] ?? '';
@@ -457,33 +418,18 @@ switch ($method) {
                 
             }
             echo json_encode(["status" => "success", "message" => "Site visit recorded successfully"]);
-        }else{
-            $customerId = $_POST['customers'] ?? '';
-            $technicianId = $_POST['technicians'] ?? '';
-            $visitDate = $_POST['visitDate'] ?? '';
-            $visitTime = $_POST['visitTime'] ?? '';
-            $data = $customerId.','.$technicianId.','.$visitDate.','.$visitTime;
-            $sql = "SELECT * FROM `site_visit_schedule` WHERE customer_id='$customerId' AND technician_id='$technicianId' AND visit_date='$visitDate' AND visit_time='$visitTime'";
-
-            if($conn->query($sql)->num_rows > 0){
-                echo json_encode(["status" => "error", "message" => "This visit is already scheduled. Please choose a different date/time."]);
-                exit;
-            }
-
-            $sql1 = "INSERT INTO `site_visit_schedule`(`customer_id`, `technician_id`, `visit_date`, `visit_time`, `created_by`, `created_date`, `created_time`) VALUES ('$customerId','$technicianId','$visitDate','$visitTime','$userId','$date','$time')";
-            $conn->query($sql1);
-
-            echo json_encode(["status" => "success", "message" => "Site visit scheduled successfully"]);
-        }
-
-        
+               
 
         break;
 
     
     case 'PUT':
-            //Visual Observation
-            $scheduleId = $_POST['schedule_id'] ?? '';
+        $visitId = $_POST['visit_id'] ?? '';
+        $isUpdate = !empty($visitId);
+        if (!$isUpdate) {
+            echo json_encode(["status" => "error", "message" => "Visit ID missing"]);
+            exit;
+        }
             $plantsWater = $_POST['plantsWater'] ?? '';
             $waterAbovePump = $_POST['waterAbovePump'] ?? '';
             $timerWorking = $_POST['timerWorking'] ?? '';
@@ -563,9 +509,24 @@ switch ($method) {
                 $jsonMaterialNeedNutrientsData = isset($_POST['material_need_nutrientsData']) ? $_POST['material_need_nutrientsData'] : '';
                 $material_need_nutrients_data = json_decode($jsonMaterialNeedNutrientsData, true);
 
-                $jsonMaterialNeedChargeableItemsDelivered = isset($_POST['material_need_chargeable_items']) ? $_POST['material_supplied_chargeable_items'] : '';
+                $jsonMaterialNeedChargeableItemsDelivered = isset($_POST['material_need_chargeable_items']) ? $_POST['material_need_chargeable_items'] : '';
                 $material_chargeable_Item_delivered = json_decode($jsonMaterialNeedChargeableItemsDelivered, true);
             }
+
+            
+
+
+            // photos
+            if (!empty($_FILES['added']['name'][0])) {
+                $conn->query("DELETE FROM site_visit_photos WHERE visit_id='$visitId'");
+            }
+
+            // material need delivery group
+            if (!empty($materialNeedsDelivery)) {
+
+                
+            }
+
 
             function compressImage($source, $destination, $quality = 80) {
                 $info = getimagesize($source);
@@ -586,70 +547,101 @@ switch ($method) {
                 return true;
             }
 
-            // $profilePic = $_FILES['setupPhotos_0'] ?? null;
-            // $uploadDir = dirname(__DIR__) . '/uploads/site-visit/';
-            // if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-            // $originalName = $profilePic['name'];
-            // $cleanName = str_replace(' ', '_', $originalName);
-            // $profilePicName = uniqid() . '_' . basename($cleanName);
-            // $profilePicPath = 'uploads/site-visit/' . $profilePicName;
-            // $destination = dirname(__DIR__) . '/' . $profilePicPath;
-            // compressImage($profilePic['tmp_name'], $destination, 80);
-            $sqlSchedule = "SELECT * FROM `site_visit_schedule` WHERE id='$scheduleId'";
-            $scheduleResult = $conn->query($sqlSchedule);
-
-            if ($scheduleResult && $scheduleResult->num_rows > 0) {
-                $scheduleRow = $scheduleResult->fetch_assoc();
-                $customerId = $scheduleRow['customer_id'];
-            }else{
-                echo json_encode(["status" => "error", "message" => "Invalid schedule ID"]);
-                exit;
+            
+            if ($isUpdate) {
+                $sql = "UPDATE site_visit SET are_plants_getting_water='$plantsWater',water_above_pump='$waterAbovePump',timer_working='$timerWorking',timer_issue='$timerIssue',motor_working='$motorWorking',motor_issue='$motorIssue',light_working='$lightsWorking',light_issue='$lightsIssue',equipment_damaged='$equipmentDamaged',damaged_items='$equipmentDamageDetails',any_leaks='$anyLeaks',clean_equipment='$cleanEnvironment',electric_connections_secured='$electricSecured',initial_ph='$initialPh',corrected_ph='$correctedPh',initial_tds='$initialTds',corrected_tds='$correctedTds',presence_of_pests='$pestsPresent',nutrient_deficiency='$nutrientDeficiency',deficiency_details='$deficiencyDetails',which_crop='$cropNames',client_training_harvest='$harvestTraining',pest_management='$pestManagement',equipment_cleaning='$equipmentCleaning',plant_maintenance='$plantMaintenance',scope_of_improvement='$scopesOfImprovement',material_supplied_neemoil='$material_supplied_neemoil',material_needs_delivery='$materialNeedsDelivery' WHERE id='$visitId'";
+                $conn->query($sql);
             }
-            $sql = "INSERT INTO `site_visit`(`schedule_id`,`customer_id`, `visited_by`, `are_plants_getting_water`, `water_above_pump`, `timer_working`,`timer_issue`, `motor_working`, `motor_issue`, `light_working`, `light_issue`, `equipment_damaged`, `damaged_items`, `any_leaks`, `clean_equipment`, `electric_connections_secured`, `initial_ph`, `corrected_ph`, `initial_tds`, `corrected_tds`, `presence_of_pests`, `nutrient_deficiency`, `deficiency_details`, `which_crop`, `client_training_harvest`, `pest_management`, `equipment_cleaning`, `plant_maintenance`, `scope_of_improvement`, `material_supplied_neemoil`, `material_needs_delivery`, `created_date`, `created_time`) VALUES ('$scheduleId','$customerId','$userCode','$plantsWater','$waterAbovePump','$timerWorking','$timerIssue','$motorWorking','$motorIssue','$lightsWorking','$lightsIssue','$equipmentDamaged','$equipmentDamageDetails','$anyLeaks','$cleanEnvironment','$electricSecured','$initialPh','$correctedPh','$initialTds','$correctedTds','$pestsPresent','$nutrientDeficiency','$deficiencyDetails','$cropNames','$harvestTraining','$pestManagement','$equipmentCleaning','$plantMaintenance','$scopesOfImprovement','$material_supplied_neemoil','$materialNeedsDelivery','$date','$time')";
+
             // echo json_encode(["status" => "success", "message" => $sql]);
             if ($conn->query($sql)) {
-                $visit_id = $conn->insert_id;
-                foreach ($pest_types as $pest_type) {
-                    if($pest_type=='Others'){
-                        $sql2 = "INSERT INTO `site_visit_presence_of_pests`(`visit_id`, `pest_name`, `other_pest_name`) VALUES ('$visit_id','Others','$pestOther')";
-                    }else{
-                        $sql2 = "INSERT INTO `site_visit_presence_of_pests`(`visit_id`, `pest_name`, `other_pest_name`) VALUES ('$visit_id','$pest_type','')";
+                // presence of pests
+                if (!empty($pest_types) && is_array($pest_types)) {
+                    $conn->query("DELETE FROM site_visit_presence_of_pests WHERE visit_id='$visitId'");
+                    foreach ($pest_types as $pest_type) {
+                        if($pest_type=='Others'){
+                            $sql2 = "INSERT INTO `site_visit_presence_of_pests`(`visit_id`, `pest_name`, `other_pest_name`) VALUES ('$visitId','Others','$pestOther')";
+                        }else{
+                            $sql2 = "INSERT INTO `site_visit_presence_of_pests`(`visit_id`, `pest_name`, `other_pest_name`) VALUES ('$visitId','$pest_type','')";
+                        }
+                        // echo json_encode(["status" => "success", "message" => $sql2]);
+                        $conn->query($sql2);
                     }
-                    $conn->query($sql2);
                 }
-                // echo json_encode(["status" => "success", "message" => $sql2]);
-                foreach ($plant_problems as $plantProblem) {
-                    $sql3 = "INSERT INTO `site_visit_plant_problems`(`visit_id`, `problem_name`, `other_problem_name`) VALUES ('$visit_id','$plantProblem','')";
-                    $conn->query($sql3);
-                }
-                // echo json_encode(["status" => "success", "message" => $sql3]);
-                foreach ($material_plants_supplied as $plantName => $qty) {
-                    if($plantName === "Others"){
-                        $sql4 = "INSERT INTO `site_visit_material_supplied_plants`(`visit_id`, `plant_name`, `other_plant_name`,`quantity`) VALUES ('$visit_id','$plantName','$materialsSuppliedPlantData','$qty')";    
-                    }else{
-                        $sql4 = "INSERT INTO `site_visit_material_supplied_plants`(`visit_id`, `plant_name`, `other_plant_name`,`quantity`) VALUES ('$visit_id','$plantName','Others','$qty')";    
+                
+                // plant problems
+                if (!empty($plant_problems) && is_array($plant_problems)) {
+                    $conn->query("DELETE FROM site_visit_plant_problems WHERE visit_id='$visitId'");
+                    foreach ($plant_problems as $plantProblem) {
+                        $sql3 = "INSERT INTO `site_visit_plant_problems`(`visit_id`, `problem_name`, `other_problem_name`) VALUES ('$visitId','$plantProblem','')";
+                        $conn->query($sql3);
                     }
-                    $conn->query($sql4);
                 }
-                foreach ($material_nutrients_data_supplied as $nutrientInfo) {
-                    if($nutrientInfo['nutrients'] === "Others"){
-                        $sql5 = "INSERT INTO `site_visit_material_supplied_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visit_id','','{$nutrientInfo['tankCapacity']}','{$nutrientInfo['numberOfTopups']}','Others','')";
-                    }elseif($nutrientInfo['tankCapacity'] === "Others"){
-                        $sql5 = "INSERT INTO `site_visit_material_supplied_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visit_id','{$nutrientInfo['nutrients']}','','{$nutrientInfo['numberOfTopups']}','','Others')";
-                    }else{
-                        $sql5 = "INSERT INTO `site_visit_material_supplied_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visit_id','{$nutrientInfo['nutrients']}','{$nutrientInfo['tankCapacity']}','{$nutrientInfo['numberOfTopups']}','','')";
+                
+                // material supplied - plants
+                if (!empty($material_plants_supplied) && is_array($material_plants_supplied)) {
+                    // Delete old records
+                    $conn->query("DELETE FROM site_visit_material_supplied_plants WHERE visit_id='$visitId'");
+
+                    foreach ($material_plants_supplied as $plantName => $qty) {
+
+                        $sql4 = ""; // reset each loop
+
+                        if ($plantName === "Others") {
+
+                            // Insert only if other plant name exists
+                            if (!empty($materialsSuppliedPlantData)) {
+                                $sql4 = "INSERT INTO site_visit_material_supplied_plants 
+                                        (visit_id, plant_name, other_plant_name, quantity) 
+                                        VALUES ('$visitId', 'Others', '$materialsSuppliedPlantData', '$qty')";
+                            }
+
+                        } else {
+
+                            $sql4 = "INSERT INTO site_visit_material_supplied_plants 
+                                    (visit_id, plant_name, other_plant_name, quantity) 
+                                    VALUES ('$visitId', '$plantName', '', '$qty')";
+                        }
+
+                        // Execute only if query exists
+                        if (!empty($sql4)) {
+                            $conn->query($sql4);
+                        }
                     }
-                    $conn->query($sql5);
                 }
+
+                
+                
+                // material supplied - nutrients
+                if (!empty($material_nutrients_data_supplied) && is_array($material_nutrients_data_supplied)) {
+                    $conn->query("DELETE FROM site_visit_material_supplied_nutrients WHERE visit_id='$visitId'");
+                    foreach ($material_nutrients_data_supplied as $nutrientInfo) {
+                        if($nutrientInfo['nutrients'] === "Others"){
+                            $sql5 = "INSERT INTO `site_visit_material_supplied_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visitId','','{$nutrientInfo['tankCapacity']}','{$nutrientInfo['numberOfTopups']}','Others','')";
+                        }elseif($nutrientInfo['tankCapacity'] === "Others"){
+                            $sql5 = "INSERT INTO `site_visit_material_supplied_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visitId','{$nutrientInfo['nutrients']}','','{$nutrientInfo['numberOfTopups']}','','Others')";
+                        }else{
+                            $sql5 = "INSERT INTO `site_visit_material_supplied_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visitId','{$nutrientInfo['nutrients']}','{$nutrientInfo['tankCapacity']}','{$nutrientInfo['numberOfTopups']}','','')";
+                        }
+                        $conn->query($sql5);
+                    }
+                }
+                
+                // chargeable items
+                if (!empty($material_chargeable_Item_supplied) && is_array($material_chargeable_Item_supplied)) {
+                    $conn->query("DELETE FROM site_visit_material_supplied_chargeable_items WHERE visit_id='$visitId'");
+                    foreach ($material_chargeable_Item_supplied as $materialSChargeableItems) {
+                        if($materialSChargeableItems === "Others"){
+                            $sql6 = "INSERT INTO `site_visit_material_supplied_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visitId','$materialSChargeableItems','$materialschargeableItemsOptionsother')";    
+                        }else{
+                            $sql6 = "INSERT INTO `site_visit_material_supplied_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visitId','$materialSChargeableItems','')";
+                        }
+                        $conn->query($sql6);
+                    }
+                }
+                
                 // echo json_encode(["status" => "success", "message" => $sql5]);
-                foreach ($material_chargeable_Item_supplied as $materialSChargeableItems) {
-                    if($materialSChargeableItems === "Others"){
-                        $sql6 = "INSERT INTO `site_visit_material_supplied_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visit_id','$materialSChargeableItems','$materialschargeableItemsOptionsother')";    
-                    }else{
-                        $sql6 = "INSERT INTO `site_visit_material_supplied_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visit_id','$materialSChargeableItems','')";
-                    }
-                    $conn->query($sql6);
-                }
+                
 
                 $uploadDir = dirname(__DIR__) . '/uploads/site-visit/';
                 if (!is_dir($uploadDir)) {
@@ -668,11 +660,18 @@ switch ($method) {
 
                             if (move_uploaded_file($file['tmp_name'], $targetPath)) {
                                 $savedFiles[] = $filename;
-                                $sql7 = "INSERT INTO `site_visit_photos`(`visit_id`, `image_url`) VALUES ('$visit_id','$filename')";
+                                $sql7 = "INSERT INTO `site_visit_photos`(`visit_id`, `image_url`) VALUES ('$visitId','$filename')";
                                 $conn->query($sql7);
                             }
                         }
                     }
+                }
+                $sqlSchedule = "SELECT * FROM `site_visit` WHERE id='$visitId'";
+                $scheduleResult = $conn->query($sqlSchedule);
+
+                if ($scheduleResult && $scheduleResult->num_rows > 0) {
+                    $scheduleRow = $scheduleResult->fetch_assoc();
+                    $scheduleId = $scheduleRow['schedule_id'];
                 }
                 $updateScheduleStatus = "UPDATE `site_visit_schedule` SET `status`='completed' WHERE id='$scheduleId'";
                 $conn->query($updateScheduleStatus);
@@ -680,48 +679,82 @@ switch ($method) {
                 $chk=!empty($materialNeedsDelivery);
                 // echo json_encode(["status" => "success", "message" => $chk]);
                 if(!empty($materialNeedsDelivery)){
-                    $sql8 = "UPDATE `site_visit` SET `material_delivered_neemoil`='$material_need_neemoil' WHERE id='$visit_id'";
+                    $sql8 = "UPDATE `site_visit` SET `material_delivered_neemoil`='$material_need_neemoil' WHERE id='$visitId'";
                     // echo json_encode(["status" => "success", "sql8" => $sql8]);
                     if ($conn->query($sql8)){
-                        foreach ($material_plants_delivered as $plantName => $qty) {
-                            if($plantName === "Others"){
-                                $sql9 = "INSERT INTO `site_visit_material_need_plants`(`visit_id`, `plant_name`, `other_plant_name`,`quantity`) VALUES ('$visit_id','$plantName','$materialsDeliveredPlantData','$qty')";    
-                            }else{
-                                $sql9 = "INSERT INTO `site_visit_material_need_plants`(`visit_id`, `plant_name`, `other_plant_name`,`quantity`) VALUES ('$visit_id','$plantName','Others','$qty')";    
+                        // if (!empty($material_plants_delivered) && is_array($material_plants_delivered)) {
+                        //     $conn->query("DELETE FROM site_visit_material_need_plants WHERE visit_id='$visitId'");
+                        //     foreach ($material_plants_delivered as $plantName => $qty) {
+                        //         if($plantName === "Others"){
+                        //             $sql9 = "INSERT INTO `site_visit_material_need_plants`(`visit_id`, `plant_name`, `other_plant_name`,`quantity`) VALUES ('$visitId','$plantName','$materialsDeliveredPlantData','$qty')";    
+                        //         }else{
+                        //             $sql9 = "INSERT INTO `site_visit_material_need_plants`(`visit_id`, `plant_name`, `other_plant_name`,`quantity`) VALUES ('$visitId','$plantName','Others','$qty')";    
+                        //         }
+                        //         $conn->query($sql9);
+                        //     }
+                        // }
+
+                        if (!empty($material_plants_delivered) && is_array($material_plants_delivered)) {
+                            // Delete old records
+                            $conn->query("DELETE FROM site_visit_material_need_plants WHERE visit_id='$visitId'");
+
+                            foreach ($material_plants_delivered as $plantName => $qty) {
+
+                                $sql4 = ""; // reset each loop
+
+                                if ($plantName === "Others") {
+
+                                    // Insert only if other plant name exists
+                                    if (!empty($materialsSuppliedPlantData)) {
+                                        $sql4 = "INSERT INTO site_visit_material_need_plants 
+                                                (visit_id, plant_name, other_plant_name, quantity) 
+                                                VALUES ('$visitId', 'Others', '$materialsSuppliedPlantData', '$qty')";
+                                    }
+
+                                } else {
+
+                                    $sql4 = "INSERT INTO site_visit_material_need_plants 
+                                            (visit_id, plant_name, other_plant_name, quantity) 
+                                            VALUES ('$visitId', '$plantName', '', '$qty')";
+                                }
+
+                                // Execute only if query exists
+                                if (!empty($sql4)) {
+                                    $conn->query($sql4);
+                                }
                             }
-                            $conn->query($sql9);
                         }
-                        foreach ($material_need_nutrients_data as $needNutrientInfo) {
-                            if($needNutrientInfo['nutrients'] === "Others"){
-                                $sql10 = "INSERT INTO `site_visit_material_need_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visit_id','','{$needNutrientInfo['tankCapacity']}','{$needNutrientInfo['numberOfTopups']}','Others','')";
-                            }elseif($needNutrientInfo['tankCapacity'] === "Others"){
-                                $sql10 = "INSERT INTO `site_visit_material_need_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visit_id','{$needNutrientInfo['nutrients']}','','{$needNutrientInfo['numberOfTopups']}','','Others')";
-                            }else{
-                                $sql10 = "INSERT INTO `site_visit_material_need_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visit_id','{$needNutrientInfo['nutrients']}','{$needNutrientInfo['tankCapacity']}','{$needNutrientInfo['numberOfTopups']}','','')";
+
+                        if (!empty($material_need_nutrients_data) && is_array($material_need_nutrients_data)) {
+                            $conn->query("DELETE FROM site_visit_material_need_nutrients WHERE visit_id='$visitId'");
+                            foreach ($material_need_nutrients_data as $needNutrientInfo) {
+                                if($needNutrientInfo['nutrients'] === "Others"){
+                                    $sql10 = "INSERT INTO `site_visit_material_need_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visitId','','{$needNutrientInfo['tankCapacity']}','{$needNutrientInfo['numberOfTopups']}','Others','')";
+                                }elseif($needNutrientInfo['tankCapacity'] === "Others"){
+                                    $sql10 = "INSERT INTO `site_visit_material_need_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visitId','{$needNutrientInfo['nutrients']}','','{$needNutrientInfo['numberOfTopups']}','','Others')";
+                                }else{
+                                    $sql10 = "INSERT INTO `site_visit_material_need_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visitId','{$needNutrientInfo['nutrients']}','{$needNutrientInfo['tankCapacity']}','{$needNutrientInfo['numberOfTopups']}','','')";
+                                }
+                                $conn->query($sql10);
                             }
-                            $conn->query($sql10);
                         }
-                        foreach ($material_chargeable_Item_delivered as $materialDChargeableItems) {
-                            if($materialDChargeableItems === "Others"){
-                                $sql11 = "INSERT INTO `site_visit_material_need_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visit_id','$materialDChargeableItems','$materialsNeedChargeableItemsOptionsother')";    
-                            }else{
-                                $sql11 = "INSERT INTO `site_visit_material_need_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visit_id','$materialDChargeableItems','')";
+
+                        if (!empty($material_chargeable_Item_delivered) && is_array($material_chargeable_Item_delivered)) {
+                            $conn->query("DELETE FROM site_visit_material_need_chargeable_items WHERE visit_id='$visitId'");
+                            foreach ($material_chargeable_Item_delivered as $materialDChargeableItems) {
+                                if($materialDChargeableItems === "Others"){
+                                    $sql11 = "INSERT INTO `site_visit_material_need_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visitId','$materialDChargeableItems','$materialsNeedChargeableItemsOptionsother')";    
+                                }else{
+                                    $sql11 = "INSERT INTO `site_visit_material_need_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visitId','$materialDChargeableItems','')";
+                                }
+                                $conn->query($sql11);
                             }
-                            $conn->query($sql11);
                         }
+                        
+                        
+                        
                     }
                 }
-                // $sql2 = "INSERT INTO `site_visit_material_needs`(`site_visit_id`, `neem_oil`) VALUES ('$visit_id','$neemOil')";
-                // if ($conn->query($sql)) {
-                //     $material_need_id = $conn->insert_id;    
-                //     foreach ($material_plants_supplied as $plantName => $qty) {
-                //         if($plantName === "Others"){
-                //             $sql2 = "INSERT INTO `site_visit_plants_supplied`(`visit_id`, `plant_name`, `quantity`, `other_plant_name`) VALUES ('$material_need_id','Others','$qty','$materialsSuppliedPlantData')";
-                //         }else{
-                //             $sql2 = "INSERT INTO `site_visit_plants_supplied`(`visit_id`, `plant_name`, `quantity`, `other_plant_name`) VALUES ('$visit_id','$plantName','$qty','other')";
-                //         }
-                //     }
-                // }
                 
             }
             echo json_encode(["status" => "success", "message" => "Site visit recorded successfully"]);

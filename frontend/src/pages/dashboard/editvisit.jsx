@@ -11,9 +11,12 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
     const user = JSON.parse(localStorage.getItem("user"));
     const user_code = user?.user_code;
+    const [originalData, setOriginalData] = useState(null);
+    
+
 
     const { id } = useParams(); // "id" matches the param name in your route
-    console.log("Visit ID:", id);
+    // console.log("Visit ID:", id);
 
     const addDynamicRow = () => {
         setFormData((prevFormData) => ({
@@ -216,9 +219,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         { label: "200", value: "200" }
     ];
 
-    useEffect(() => {
-        let mounted = true;
-        const loadCustomers = async () => {
+     const loadCustomers = async () => {
             setLoadingCustomers(true);
             try {
                 let selectedPlantProblems = [];
@@ -237,20 +238,20 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                 let selectedNeedNutrientsData = [];
                 let selectedNeedChargeableItem = [];
                 const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?editSiteVisit='active'&user_code=${user_code}&schId=${id}`);
-
+    
                 const data = await res.json();
                 console.log("Fetched user data:", data);
-
+    
                 if (data.status === "success" && data.data) {
                     const user = data.data[0];
-
+    
                     if (Array.isArray(data.plantProblems)) {
                         selectedPlantProblems = data.plantProblems.map(p => ({
                             value: p.problem_name,
                             label: p.problem_name
                         }));
                     }
-                   if (Array.isArray(data.pestTypes)) {
+                    if (Array.isArray(data.pestTypes)) {
                         selectedPestTypes = data.pestTypes.map(p => {
                             if (p.pest_name === "Others") {
                                 selectedOtherPest = p.other_pest_name || "";
@@ -270,24 +271,24 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                         selectedsuppliedPlants = data.suppliedPlants.map(p => {
                             if (p.plant_name === "Others") {
                                 selectedOtherSuppliedPlant = p.other_plant_name || "";
-
+    
                                 selectedSuppliedQuantities["Others"] = p.quantity || "";
-
+    
                                 return {
                                     value: "Others",
                                     label: "Others"
                                 };
                             }
-
+    
                             selectedSuppliedQuantities[p.plant_name] = p.quantity || "";
-
+    
                             return {
                                 value: p.plant_name,
                                 label: p.plant_name
                             };
                         });
                     }
-
+    
                     if (Array.isArray(data.suppliedChargeableItem)) {
                         selectedSuppliedChargeableItem = data.suppliedChargeableItem.map(p => {
                             if (p.item_name === "Others") {
@@ -303,64 +304,67 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             };
                         });
                     }
-
+    
                     if (Array.isArray(data.suppliedNutrients)) {
                         selectedNutrientsData = data.suppliedNutrients.map(n => ({
                             nutrients: n.nutrient_type === "Others"
                                 ? "Others"
                                 : n.nutrient_type,
-
+    
                             tankCapacity: n.tank_capacity || "",
                             numberOfTopups: n.topups || "",
-
+    
                             // Only needed if you want to show "Other" text field
                             otherNutrient: n.other_nutrient_name || "",
                         }));
                     }
-
+    
                     if (Array.isArray(data.suppliedPhotoSetup)) {
                         selectedSuppliedPhotoSetup = data.suppliedPhotoSetup.map(p => ({
-                            preview: `${import.meta.env.VITE_API_URL}uploads/site-visit/${p.image_url}`, // required for preview
-                            file: null // because these are not newly uploaded files
+                            id: p.id,                                  // ← required for delete
+                            image_url: p.image_url,                    // ← actual file name
+                            preview: `${import.meta.env.VITE_API_URL}uploads/site-visit/${p.image_url}`,
+                            file: null
                         }));
                     }
-
+    
+    
                     if (Array.isArray(data.needPlants)) {
                         selectedNeedPlants = data.needPlants.map(p => {
                             if (p.plant_name === "Others") {
                                 selectedOtherNeedPlant = p.other_plant_name || "";
-
+    
                                 selectedNeedQuantities["Others"] = p.quantity || "";
-
+    
                                 return {
                                     value: "Others",
                                     label: "Others"
                                 };
                             }
-
+    
                             selectedNeedQuantities[p.plant_name] = p.quantity || "";
-
+    
                             return {
                                 value: p.plant_name,
                                 label: p.plant_name
                             };
                         });
                     }
-
+    
                     if (Array.isArray(data.needNutrients)) {
                         selectedNeedNutrientsData = data.needNutrients.map(n => ({
                             nutrients: n.nutrient_type === "Others"
                                 ? "Others"
                                 : n.nutrient_type,
-
+    
                             tankCapacity: n.tank_capacity || "",
                             numberOfTopups: n.topups || "",
-
+    
                             // Only needed if you want to show "Other" text field
                             otherNutrient: n.other_nutrient_name || "",
                         }));
                     }
-
+    
                     if (Array.isArray(data.needChargeableItem)) {
                         selectedNeedChargeableItem = data.needChargeableItem.map(p => {
                             if (p.item_name === "Others") {
@@ -376,9 +380,9 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             };
                         });
                     }
-
-
-                    setFormData({
+    
+    
+                    const finalFormData = {
                         customer_name: user.customer_name || '',
                         plantsWater: user.are_plants_getting_water || "",
                         waterAbovePump: user.water_above_pump || "",
@@ -415,7 +419,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                         plantQuantities: selectedSuppliedQuantities,
                         material_supplied_neemoil: user.material_supplied_neemoil || "",
                         material_supplied_chargeable_items: selectedSuppliedChargeableItem,
-                        materialNeedsDelivery: user.material_needs_delivery || "",
+                        materialNeedsDelivery: user.material_needs_delivery === "true" || "",
                         nutrientsData: selectedNutrientsData.length > 0 ? selectedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
                         setupPhotos: selectedSuppliedPhotoSetup,
                         step5Plants: selectedNeedPlants,
@@ -424,22 +428,101 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                         material_need_nutrientsData: selectedNeedNutrientsData.length > 0 ? selectedNeedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
                         material_need_neemoil: user.material_delivered_neemoil || "",
                         material_need_chargeable_items: selectedNeedChargeableItem,
-
-                    });
+    
+                    };
+    
+                    setFormData(finalFormData);
+                    setOriginalData(JSON.parse(JSON.stringify(finalFormData)));
+    
                 }
                 
             } catch (err) {
                 console.error('Error loading customers:', err);
             } finally {
-                if (mounted) setLoadingCustomers(false);
+                setLoadingCustomers(false);
+            }
+        };
+    
+        useEffect(() => {
+            let mounted = true;
+            if (mounted) loadCustomers();
+            return () => {
+                mounted = false;
+            };
+        }, []);
+
+    function getChangedFields(original, current) {
+        const changes = {};
+
+        const isObject = (v) => v && typeof v === "object" && !Array.isArray(v);
+        const isArray = Array.isArray;
+
+        const deepCompare = (orig, curr, keyPath = "") => {
+
+            // CASE 1: simple primitive comparisons
+            if (!isObject(orig) && !isArray(orig)) {
+                if (orig !== curr) {
+                    changes[keyPath] = curr;
+                }
+                return;
+            }
+
+            // CASE 2: array comparison
+            if (isArray(orig) && isArray(curr)) {
+
+                // If length changed → update whole array
+                if (orig.length !== curr.length) {
+                    changes[keyPath] = curr;
+                    return;
+                }
+
+                // Compare each item in array
+                curr.forEach((item, i) => {
+                    const subKey = `${keyPath}[${i}]`;
+
+                    if (typeof item === "object") {
+                        if (JSON.stringify(orig[i]) !== JSON.stringify(item)) {
+                            changes[keyPath] = curr;
+                        }
+                    } else {
+                        if (orig[i] !== item) {
+                            changes[keyPath] = curr;
+                        }
+                    }
+                });
+
+                return;
+            }
+
+            // CASE 3: objects (deep compare)
+            if (isObject(orig) && isObject(curr)) {
+                Object.keys(curr).forEach(key => {
+                    const fullKey = keyPath ? `${keyPath}.${key}` : key;
+
+                    if (!(key in orig)) {
+                        changes[fullKey] = curr[key];
+                        return;
+                    }
+
+                    // recursion
+                    if (typeof curr[key] === "object") {
+                        deepCompare(orig[key], curr[key], fullKey);
+                    } else {
+                        if (orig[key] !== curr[key]) {
+                            changes[fullKey] = curr[key];
+                        }
+                    }
+                });
+
+                return;
             }
         };
 
-        loadCustomers();
-        return () => {
-            mounted = false;
-        };
-    }, []);
+        deepCompare(original, current);
+
+        return changes;
+    }
+
 
     const resetForm = () => {
         setFormData(initialFormState);
@@ -455,11 +538,47 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         }
     };
 
+    function getImageChanges(originalImages, currentImages) {
+    const added = [];
+    const removed = [];
+
+    const originalUrls = originalImages.map(img => img.preview);
+    const currentUrls = currentImages.map(img => img.preview);
+
+    // NEW images (blob URLs)
+    currentImages.forEach(img => {
+        if (!originalUrls.includes(img.preview)) {
+            added.push(img);
+        }
+    });
+
+    // REMOVED images
+    originalImages.forEach(img => {
+        if (!currentUrls.includes(img.preview)) {
+            removed.push(img);
+        }
+    });
+
+    return { added, removed };
+}
+
+
     const handleSubmit = async () => {
         setSubmitting(true);
 
         try {
             await new Promise(resolve => setTimeout(resolve, 800));
+             // 1️⃣ Generate changed fields
+            const changedFields = getChangedFields(originalData, formData);
+            changedFields.materialNeedsDelivery = formData.materialNeedsDelivery;
+            // 2️⃣ Handle image diff
+            const imageDiff = getImageChanges(originalData.setupPhotos, formData.setupPhotos);
+
+            if (imageDiff.added.length > 0 || imageDiff.removed.length > 0) {
+                changedFields.setupPhotos = imageDiff;
+            }
+
+            console.log("Final data to send:", changedFields);
 
             const formPayload = new FormData();
 
@@ -529,6 +648,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             if (user_code) {
                 formPayload.append("user_code", user_code);
             }
+            formPayload.append("visit_id", id);
+            formPayload.append("_method", "PUT");
 
             const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php`, {
                 method: "POST",
@@ -559,6 +680,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             if (result.status === "success") {
                 toast.success(result.message || "Form submitted successfully!");
                 resetForm();
+                await loadCustomers();
             } else {
                 toast.error(result.error || result.message || "Something went wrong");
             }
