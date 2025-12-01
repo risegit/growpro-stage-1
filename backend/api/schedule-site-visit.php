@@ -19,6 +19,9 @@ if ($method === 'POST' && isset($_POST['_method'])) {
     $method = strtoupper($_POST['_method']);
 }
 
+$date = date("Y-m-d");
+$time = date("H:i:s");
+
 switch ($method) {
 
     case 'GET':
@@ -68,28 +71,21 @@ switch ($method) {
     break;
 
     case 'POST':
-        $editSchId = $_GET['editSchId'] ?? null;
-
         // Get POST data
         $customerId = $_POST['customers'] ?? null;
         $technicianId = $_POST['technicians'] ?? null;
         $visitDate = $_POST['visitDate'] ?? null;
         $visitTime = $_POST['visitTime'] ?? null;
 
-        if ($editSchId) {
-            // Update existing schedule
-            $updateSql = "UPDATE site_visit_schedule SET customer_id = ?, technician_id = ?, visit_date = ?, visit_time = ? WHERE id = ?";
-            $stmt = $conn->prepare($updateSql);
-            $stmt->bind_param("iissi", $customerId, $technicianId, $visitDate, $visitTime, $editSchId);
+        // Update existing schedule
+        $insertSql = "INSERT INTO `site_visit_schedule`(`customer_id`, `technician_id`, `visit_date`, `visit_time`, `status`, `created_by`, `created_date`, `created_time`) VALUES ('$customerId','$technicianId','$visitDate','$visitTime','scheduled','$userId','$date','$time')";
+        $stmt = $conn->query($insertSql);
+        // $stmt->bind_param("iissi", $customerId, $technicianId, $visitDate, $visitTime, $editSchId);
 
-            if ($stmt->execute()) {
-                echo json_encode(["status" => "success", "message" => "Schedule updated successfully"]);
-            } else {
-                echo json_encode(["status" => "error", "message" => "Failed to update schedule"]);
-            }
-            $stmt->close();
+        if ($stmt) {
+                echo json_encode(["status" => "success", "message" => "Site visit scheduled successfully"]);
         } else {
-            echo json_encode(["status" => "error", "message" => "Schedule ID is required for editing"]);
+            echo json_encode(["status" => "error", "message" => "Failed to schedule site visit"]);
         }
         break;
 
