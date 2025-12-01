@@ -39,12 +39,14 @@ import Createvisits from "@/pages/dashboard/createvisits";
 import Viewvisits from "@/pages/dashboard/viewvisits";
 import Editvisit from "@/pages/dashboard/editvisit";
 import Schedulevisit from "@/pages/dashboard/schedulevisit";
+import Reports from "@/pages/dashboard/reports";
 
 import { SignIn } from "@/pages/auth";
 import LogoutButton from "./Components/LogoutButton";
 
 import RoleProtectedRoute from "@/components/RoleProtectedRoute";
-import { Eye } from "lucide-react";
+import { Eye, FileText  } from "lucide-react";
+
 
 const icon = { className: "w-5 h-5 text-inherit" };
 
@@ -261,6 +263,18 @@ const routes = [
             hidden: true,
           },
         ],
+      },
+       {
+        icon: <FileText {...icon} />,
+        name: "Reports",
+        path: "/reports",
+        allowedRoles: ["admin", "manager", "technician"],
+        element: (
+          <RoleProtectedRoute
+            element={<Reports />}
+            allowedRoles={["admin", "manager", "technician"]}
+          />
+        ),
       },
     ],
   },
