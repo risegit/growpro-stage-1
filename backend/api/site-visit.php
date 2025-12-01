@@ -14,6 +14,8 @@ $userCode = $_GET['user_code'] ?? null;
 $techId = $_GET['techId'] ?? null;
 $editSiteVisit = $_GET['editSiteVisit'] ?? null;
 $schId = $_GET['schId'] ?? null;
+$chkScheduleVisit = $_GET['chkScheduleVisit'] ?? null;
+
 
 if ($method === 'POST' && isset($_POST['_method'])) {
     $method = strtoupper($_POST['_method']);
@@ -49,6 +51,26 @@ switch ($method) {
             echo json_encode([
                 "status" => "success",
                 "data" => $userId ? ($data[0] ?? null) : $data
+            ]);
+        }elseif ($chkScheduleVisit) {
+            if (!empty($userCode)) {
+                if (str_starts_with($userCode, 'TC')) {
+                    $whereClause = "WHERE sch.technician_id = '$techId' and sch.status='scheduled'";
+                } elseif (str_starts_with($userCode, 'AD') || str_starts_with($userCode, 'MN')) {
+                    $whereClause = 'WHERE sch.status="scheduled"';
+                }
+            }
+
+            $sql1 = "SELECT u.id as customer_id,u.name,u.phone,sch.id schedule_id,sch.technician_id,sch.visit_time,t.name AS technician_name,t.user_code AS tech_code FROM site_visit_schedule sch INNER JOIN users u ON sch.customer_id=u.id INNER JOIN users t ON sch.technician_id = t.id $whereClause Order By sch.id DESC;";
+            $result = $conn->query($sql1);
+            $data = [];
+            while ($row = $result->fetch_assoc()) {
+                $data[] = $row;
+            }
+
+            echo json_encode([
+                "status" => "success",
+                "data" => $data
             ]);
         }elseif ($viewVisit) {
             if (!empty($userCode)) {
