@@ -109,7 +109,7 @@ export default function CustomerVisitForm() {
                 console.log(pair[0] + ": ", pair[1]);
             }
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}api/schedule-site-visit.php?schedule_visit='scheduleVisit'&id=${user_id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}api/schedule-site-visit.php?id=${user_id}`, {
                 method: 'POST',
                 body: form,
             });

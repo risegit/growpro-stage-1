@@ -145,7 +145,7 @@ export default function UserTable() {
 
     if (daysLeft > 10) {
       return "Active";
-    } else if (daysLeft > 6 && daysLeft <= 10) {
+    } else if (daysLeft > 0 && daysLeft <= 10) {
       return "Renew Soon";
     } else {
       return "Expired";

@@ -308,12 +308,32 @@ export default function UserTable() {
                           {/* Action */}
                           <td className="py-2 px-0 text-right">
                             {userRole !== "technician" ? (
+                              <>
+                              {user.status === "scheduled" && (
                               <button
                                 onClick={() => handleEdit(user.id)}
                                 className="px-2 py-0 btn-primary"
                               >
                                 Edit
                               </button>
+                              )}
+                              {user.status === "completed" && (
+                                  <button
+                                    disabled
+                                    className="px-2 py-2 btn-success cursor-not-allowed"
+                                  >
+                                    Completed
+                                  </button>
+                                )}
+                                {user.status === "cancelled" && (
+                                  <button
+                                    disabled
+                                    className="px-2 py-2 btn-danger text-white cursor-not-allowed"
+                                  >
+                                    Cancelled
+                                  </button>
+                                )}
+                              </>
                             ) : (
                               <>
                                 {user.status === "scheduled" && (
