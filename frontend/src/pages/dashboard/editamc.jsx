@@ -33,6 +33,7 @@ const [formData, setFormData] = useState({
 
   const [addonFormData, setAddonFormData] = useState({
     grower: '',
+    systemQty: '',
     validityFrom: '',
     validityUpto: '',
     duration: '',
@@ -46,6 +47,7 @@ const [formData, setFormData] = useState({
     total: ''
   });
 
+  const [systemQty, setSystemQty] = useState({});
   const [showAddon, setShowAddon] = useState(false);
   const [consumableData, setConsumableData] = useState({
     id: '',
@@ -96,6 +98,7 @@ useEffect(() => {
   const fetchUser = async () => {
     if (!id) return;
     setLoading(true);
+    setSystemQty({});
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?id=${id}`);
@@ -121,6 +124,7 @@ useEffect(() => {
         setFormData(prev => ({
           ...prev,
           customer: amc.name || "",
+          systemQty: amc.grower_qty || "",
           duration: amc.duration || "",
           otherDuration: amc.duration_other || "",
           validityFrom: amc.validity_from || "",
@@ -134,38 +138,13 @@ useEffect(() => {
           total: amc.total || ""
         }));
       }
-
-      // ------------------------------------
-      // SET SYSTEM TYPE VALUES
-      // ------------------------------------
-      // if (grower_data) {
-      //   let { system_type, system_type_other } = grower_data;
-
-      //   let parsedSystemTypes = [];
-
-      //   if (system_type_other && system_type_other.trim() !== "") {
-      //     parsedSystemTypes = ["Other"];
-      //   } else if (typeof system_type === "string" && system_type.trim() !== "") {
-      //     parsedSystemTypes = system_type.split(",").map(v => v.trim());
-      //   }
-
-      //   const systemTypeSelectData = parsedSystemTypes.map(g => ({
-      //     value: g,
-      //     label: g
-      //   }));
-
-      //   setFormData(prev => ({
-      //     ...prev,
-      //     systemType: systemTypeSelectData,
-      //     systemTypeOther: system_type_other || ""
-      //   }));
-      // }
       
       const opts = Array.isArray(data.grower_data)
       ? data.grower_data.map((g) => ({
-          value: g.id,
+          value: g.grower_id,
           label: g.system_type,
-          other: g.system_type_other   // <-- VERY IMPORTANT
+          other: g.system_type_other ,  // <-- VERY IMPORTANT
+          qty: g.grower_qty ?? "", // qty from PHP
         }))
       : [];
 
@@ -188,6 +167,30 @@ useEffect(() => {
           : "";
 
         setGrowers(opts);
+
+        // ⭐ PRESERVE OLD QTY, FILL NEW API QTY
+        setSystemQty((prevQty) => {
+          const updatedQty = { ...prevQty };
+
+          opts.forEach((g) => {
+            if (updatedQty[g.value] === undefined) {
+              updatedQty[g.value] = g.qty ?? "";
+            }
+          });
+
+          // Remove qty if grower removed
+          Object.keys(updatedQty).forEach((key) => {
+            if (!opts.some((g) => g.value == key)) {
+              delete updatedQty[key];
+            }
+          });
+
+          // 🟦 Log the cleaned qty map as well
+          // console.log("🟢 updated systemQty (after clean):", updatedQty);
+
+          return updatedQty;
+        });
+
         setFormData((prev) => ({
           ...prev,
           grower: opts,
@@ -208,49 +211,60 @@ useEffect(() => {
 
 
   useEffect(() => {
-    const fetchConsumable = async () => {
-      try {
-        setLoadingConsumable(true);
-        const response = await fetch(`${import.meta.env.VITE_API_URL}api/consum-grower.php?amc_id=${id}`)
-        const data = await response.json();
+  const fetchConsumable = async () => {
+    try {
+      setLoadingConsumable(true);
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}api/consum-grower.php?amc_id=${id}`
+      );
+      const data = await response.json();
 
-        console.log("✅ API Response:", data);
+      console.log("✅ API Response:", data);
 
-        if (data.status === "success" && data.data?.length > 0) {
-          // const grower_opts = Array.isArray(data.grower_data)
-          //   ? data.grower_data.map((c) => ({
-          //     value: c.grower_id,
-          //     label: `${c.system_type}`,
-          //   }))
-          //   : [];
-             const grower_opts = Array.isArray(data.grower_data)
-              ? data.grower_data.map((g) => ({
-                  value: g.id,
-                  label: g.system_type,
-                  other: g.system_type_other   // <-- VERY IMPORTANT
-                }))
-              : [];
+      if (data.status === "success") {
+        const grower_opts = Array.isArray(data.grower_data)
+          ? data.grower_data.map((g) => ({
+              value: g.grower_id,
+              label: g.system_type,
+              other: g.system_type_other
+            }))
+          : [];
 
-            const opts = Array.isArray(data.data)
-            ? data.data.map((c) => ({
+        const opts = Array.isArray(data.data)
+          ? data.data.map((c) => ({
               value: c.id,
               label: formatName(c.name),
             }))
-            : [];
+          : [];
 
-          setGrowers(grower_opts);
-          setConsumable(opts);
-        }
-      } catch (error) {
-        console.error("Error fetching consumables:", error);
-      } finally {
-        setLoadingConsumable(false);
+        // console.log("🔵 grower_opts (from API):", grower_opts);
+        // console.log("🔵 existing systemQty:", systemQty);
+        // console.log("🔵 existing formData.grower:", formData.grower);
+
+        // ⭐ PRE-FILL GROWERS IN DROPDOWN
+        setGrowers(grower_opts);
+
+        // ⭐ PRE-FILL SELECTED GROWERS SO QTY INPUTS SHOW
+        setFormData((prev) => ({
+          ...prev,
+          grower: grower_opts,
+        }));
+
+        
+
+        setConsumable(opts);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching consumables:", error);
+    } finally {
+      setLoadingConsumable(false);
+    }
+  };
 
-    fetchConsumable();
+  fetchConsumable();
+}, []);
 
-  }, []);
+
 
   // const handleInputChange = (e) => {
   //   const { name, value } = e.target;
@@ -683,9 +697,9 @@ const handleSubmit = async () => {
           </div>
 
           <div className="flex flex-col">
-        <label className="mb-1 font-medium text-gray-700">
-          System Type <span className="text-red-500">*</span>
-        </label>
+            <label className="mb-1 font-medium text-gray-700">
+              System Type <span className="text-red-500">*</span>
+            </label>
 
         {isNoGrowers ? (
           <div className="px-3 py-4 border rounded-lg bg-gray-100 text-gray-700">
@@ -697,12 +711,12 @@ const handleSubmit = async () => {
               isMulti
               options={growers}
               value={formData.grower}
-              isDisabled={true}
+              isDisabled={false}
               classNamePrefix="react-select"
               styles={{
                 menu: (provided) => ({ ...provided, zIndex: 9999 }),
               }}
-              components={{ MultiValueRemove: NoRemove }}
+              // components={{ MultiValueRemove: NoRemove }}
             />
 
             {growerHasOther && (
@@ -721,6 +735,46 @@ const handleSubmit = async () => {
           <span className="text-red-500 text-sm mt-1">{errors.grower}</span>
         )}
       </div>
+
+      {/* Grower Quantities Section */}
+          {formData.grower && formData.grower.length > 0 && (
+            <div className="md:col-span-2 mt-4">
+              <h3 className="text-gray-800 font-semibold mb-2">Grower Quantities</h3>
+              
+              {errors.systemQty && (
+                <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded">
+                  <span className="text-red-500 text-sm">{errors.systemQty}</span>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {formData.grower.map((grower) => (
+                  <div className="flex flex-col" key={grower.value}>
+                    <label className="mb-1 font-medium text-gray-700">
+                      {grower.label} Qty: <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={systemQty[grower.value] || ''}
+                      onChange={(e) =>
+                        setSystemQty({
+                          ...systemQty,
+                          [grower.value]: e.target.value,
+                        })
+                      }
+                      className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                        errors.systemQty && (!systemQty[grower.value] || parseInt(systemQty[grower.value]) <= 0)
+                          ? 'border-red-500 focus:ring-red-400'
+                          : 'border-gray-300 focus:ring-blue-400'
+                      }`}
+                      placeholder={`Enter ${grower.label} quantity`}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Duration */}
           <div className="flex flex-col">
