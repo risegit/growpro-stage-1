@@ -12,6 +12,7 @@ export default function UserTable() {
 
   const user = JSON.parse(localStorage.getItem("user"));
   const userRole = user?.role;
+  const isAdmin = userRole === "admin"; // Check if user is admin
 
   const formatDate = (dateString) => {
     if (!dateString) return "-";
@@ -252,19 +253,22 @@ export default function UserTable() {
                         onClick={() => handleSort('pending_visits')}
                       >
                         <div className="flex items-center">
-                          Visit Pending
+                          Visit Pending This Month
                           <SortArrow columnKey="pending_visits" />
                         </div>
                       </th>
-                      <th
-                        className="w-[16%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
-                        onClick={() => handleSort('validity_upto')}
-                      >
-                        <div className="flex items-center">
-                          Days Left
-                          <SortArrow columnKey="validity_upto" />
-                        </div>
-                      </th>
+                      {/* Show Days Left column only for admin */}
+                      {isAdmin && (
+                        <th
+                          className="w-[16%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                          onClick={() => handleSort('validity_upto')}
+                        >
+                          <div className="flex items-center">
+                            Days Left
+                            <SortArrow columnKey="validity_upto" />
+                          </div>
+                        </th>
+                      )}
                       <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">
                         AMC Status
                       </th>
@@ -312,21 +316,23 @@ export default function UserTable() {
                             {user.pending_visits}
                           </td>
 
-                          {/* Days Left */}
-                          <td className="py-4 px-4 text-gray-700 truncate">
-                            <p>
-                              {daysLeft} Days
-                            </p>
-                            <em
-                              className={`small-text py-1 rounded 
-                                ${status === "Active" ? " text-green-400" : ""}
-                                ${status === "Renew Soon" ? "text-red-300" : ""}
-                                ${status === "Expired" ? " text-red-600" : ""}
-                              `}
-                            >
-                              ({formatDate(user.validity_upto)})
-                            </em>
-                          </td>
+                          {/* Days Left - Only show for admin */}
+                          {isAdmin && (
+                            <td className="py-4 px-4 text-gray-700 truncate">
+                              <p>
+                                {daysLeft} Days
+                              </p>
+                              <em
+                                className={`small-text py-1 rounded 
+                                  ${status === "Active" ? " text-green-400" : ""}
+                                  ${status === "Renew Soon" ? "text-red-300" : ""}
+                                  ${status === "Expired" ? " text-red-600" : ""}
+                                `}
+                              >
+                                ({formatDate(user.validity_upto)})
+                              </em>
+                            </td>
+                          )}
 
                           {/* Status */}
                           <td className="py-4 px-4 text-gray-700 truncate">
@@ -410,25 +416,29 @@ export default function UserTable() {
                           </span>
                         </div>
 
-                        {/* Days Left */}
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Days Left
-                          </span>
-                          <span className="text-sm text-gray-700">
-                            {daysLeft} days
-                          </span>
-                        </div>
+                        {/* Days Left - Only show for admin */}
+                        {isAdmin && (
+                          <>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                                Days Left
+                              </span>
+                              <span className="text-sm text-gray-700">
+                                {daysLeft} days
+                              </span>
+                            </div>
 
-                        {/* Expiry date */}
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Expiry Date
-                          </span>
-                          <span className="text-sm text-gray-700">
-                            {formatDate(user.validity_upto)}
-                          </span>
-                        </div>
+                            {/* Expiry date */}
+                            <div className="flex flex-col">
+                              <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                                Expiry Date
+                              </span>
+                              <span className="text-sm text-gray-700">
+                                {formatDate(user.validity_upto)}
+                              </span>
+                            </div>
+                          </>
+                        )}
 
                         {/* Status */}
                         <div className="flex flex-col">

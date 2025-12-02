@@ -27,7 +27,7 @@ switch ($method) {
                 $amc_data[] = $row;
             }
             // $customerId = $amc_detail['customer_id'];
-            $grower_detail = $conn->query("SELECT amc_growers.grower_id,growers.system_type,growers.system_type_other FROM amc_growers INNER JOIN growers ON amc_growers.grower_id=growers.id where amc_growers.amc_id='$amcId'");
+            $grower_detail = $conn->query("SELECT amc_growers.grower_id,growers.system_type,growers.system_type_other,amc_growers.grower_qty FROM amc_growers INNER JOIN growers ON amc_growers.grower_id=growers.id where amc_growers.amc_id='$amcId'");
             $grower_data = [];
             while ($row = $grower_detail->fetch_assoc()) {
                 $grower_data[] = $row;
@@ -47,7 +47,7 @@ switch ($method) {
             echo json_encode(["status" => "success", "amc_data" => $amc_data, "grower_data" => $grower_data, "consumable_data" => $consumable_data]);
         }elseif ($customerId) {
             // $growerResult = $conn->query("SELECT growers.id,growers.system_type,growers.system_type_other FROM users INNER JOIN growers ON users.id=growers.customer_id where growers.customer_id='$customerId'");
-            $growerResult = $conn->query("SELECT growers.id,growers.system_type,growers.system_type_other FROM growers LEFT JOIN amc_growers on amc_growers.grower_id=growers.id where growers.customer_id='$customerId' and amc_growers.id IS NULL");
+            $growerResult = $conn->query("SELECT g.id, g.system_type, g.system_type_other, g.grower_qty AS total_grower_qty, IFNULL(SUM(ag.grower_qty), 0) AS used_grower_qty, (g.grower_qty - IFNULL(SUM(ag.grower_qty), 0)) AS remaining_grower_qty FROM growers g LEFT JOIN amc_growers ag ON ag.grower_id = g.id WHERE g.customer_id = '$customerId' GROUP BY g.id, g.system_type,g.system_type_other,g.grower_qty HAVING remaining_grower_qty > 0");
             $growerData = [];
             while ($row1 = $growerResult->fetch_assoc()) {
                 $growerData[] = $row1;
@@ -63,7 +63,7 @@ switch ($method) {
             }
             echo json_encode(["status" => "success", "data" => $data]);
         }else{
-            $result = $conn->query("SELECT g.id AS grower_id, g.customer_id, g.system_type, u.name, u.phone FROM growers g LEFT JOIN amc_growers ag ON ag.grower_id = g.id INNER JOIN users u ON g.customer_id = u.id WHERE u.status='active' and ag.id IS NULL GROUP BY u.name");
+            $result = $conn->query("SELECT g.id AS grower_id, g.customer_id, g.system_type, g.grower_qty, u.name, u.phone FROM growers g LEFT JOIN amc_growers ag ON ag.grower_id = g.id INNER JOIN users u ON g.customer_id = u.id WHERE u.status='active' and ag.id IS NULL GROUP BY u.name");
             $data = [];
 
             while ($row = $result->fetch_assoc()) {
@@ -86,8 +86,8 @@ switch ($method) {
         $gst = $_POST['gst'] ?? '';
         $other_consumable=$_POST['otherConsumable'] ?? '';
 
-        $jsonGrowers = isset($_POST['growers']) ? $_POST['growers'] : '';
-        $growers = json_decode($jsonGrowers, true);
+        $jsonGrowersQuantities = isset($_POST['grower_quantities']) ? $_POST['grower_quantities'] : '';
+        $growers = json_decode($jsonGrowersQuantities, true);
         // $growerdata=var_dump($growers);
         
         $jsonConsumables = isset($_POST['consumables']) ? $_POST['consumables'] : '';
@@ -99,8 +99,8 @@ switch ($method) {
         $sql = "INSERT INTO amc_details (`customer_id`, `duration`, `other_duration`, `visits_per_month`, `validity_from`, `validity_upto`, `pricing`, `transport`, `gst`,`total`, `updated_by`, `created_date`, `created_time`) VALUES ('$customerId', '$duration', '$other_duration', '$visitsPerMonth', '$validityFrom', '$validityUpto', '$pricing', '$transport', '$gst', '$total', '1', '$date', '$time')";
         if ($conn->query($sql)) {
             $amc_id = $conn->insert_id;
-            foreach ($growers as $index => $grower) {
-                $sql1 = "INSERT INTO `amc_growers`(`amc_id`, `grower_id`) VALUES ('$amc_id','$grower')";
+            foreach ($growers as $growerId => $qty) {
+                $sql1 = "INSERT INTO `amc_growers`(`amc_id`, `grower_id`, `grower_qty`) VALUES ('$amc_id','$growerId','$qty')";
                 $conn->query($sql1);
             }
             foreach ($consumables as $index => $consumable) {

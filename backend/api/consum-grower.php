@@ -26,7 +26,7 @@ switch ($method) {
             $data[] = $row;
         }
         if($amcId){
-            $grower_result = $conn->query("SELECT amc_growers.grower_id,growers.system_type,growers.system_type_other FROM amc_growers INNER JOIN growers ON amc_growers.grower_id=growers.id where amc_growers.amc_id='$amcId'");
+            $grower_result = $conn->query("SELECT amc_growers.grower_id,growers.system_type,growers.system_type_other,growers.grower_qty FROM amc_growers INNER JOIN growers ON amc_growers.grower_id=growers.id where amc_growers.amc_id='$amcId'");
             while ($row = $grower_result->fetch_assoc()) {
                 $grower_data[] = $row;
             }

@@ -68,6 +68,7 @@ const StepperCustomerForm = () => {
   const [growers, setGrowers] = useState([{
     systemType: '',
     systemTypeOther: '',
+    growerQuantity: '',
     numPlants: '',
     numLevels: '',
     setupDimension: '',
@@ -95,7 +96,7 @@ const StepperCustomerForm = () => {
   const timerOptions = ['Digital', 'Cyclic-15 mins', 'TS1W1', '800XC', 'Other'];
   const modelOfLight = ['Nx1.1', 'Nx4', 'Other'];
   const lengthOfLight = ['2ft', '3ft', '4ft', 'Other'];
-  const tankCapacity = ['20L', '40L', '100L', '150L', '200L', 'Other'];
+  const tankCapacity = ['20', '40', '100', '150', '200', 'Other'];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -189,6 +190,7 @@ const StepperCustomerForm = () => {
     setGrowers([...growers, {
       systemType: '',
       systemTypeOther: '',
+      growerQuantity: '',
       numPlants: '',
       numLevels: '',
       setupDimension: '',
@@ -255,6 +257,7 @@ const StepperCustomerForm = () => {
       growers.forEach((grower, index) => {
         if (!grower.systemType) stepErrors[`systemType_${index}`] = 'System type is required';
         if (grower.systemType === 'Other' && !grower.systemTypeOther.trim()) stepErrors[`systemTypeOther_${index}`] = 'Please specify other system type';
+        if (!grower.growerQuantity) stepErrors[`growerQuantity_${index}`] = 'Grower Quantity is required';
         if (!grower.numPlants) stepErrors[`numPlants_${index}`] = 'Number of plants is required';
         else if (parseInt(grower.numPlants) < 0) stepErrors[`numPlants_${index}`] = 'Number of plants cannot be negative';
         if (!grower.numLevels) stepErrors[`numLevels_${index}`] = 'Number of levels is required';
@@ -366,46 +369,47 @@ const StepperCustomerForm = () => {
         setErrors({});
         
         // Reset form after successful submission
-        setFormData({
-          name: '',
-          email: '',
-          phoneNumber: '',
-          staffPhoneNumber: '',
-          profilePic: null,
-          address: '',
-          state: '',
-          city: '',
-          locality: '',
-          landmark: '',
-          pincode: '',
-          isActive: true
-        });
-        setGrowers([{
-          systemType: '',
-          systemTypeOther: '',
-          numPlants: '',
-          numLevels: '',
-          setupDimension: '',
-          motorType: '',
-          motorTypeOther: '',
-          timerUsed: '',
-          timerUsedOther: '',
-          numLights: "",
-          modelOfLight: "",
-          modelOfLightOther: "",
-          lengthOfLight: "",
-          lengthOfLightOther: "",
-          tankCapacity: "",
-          tankCapacityOther: "",
-          nutritionGiven: "",
-          otherSpecifications: "",
-          photoAtInstallation: null,
-          selectedPlants: [],
-          selectedPlantsOther: '',
-        }]);
-        setCurrentStep(1);
-        setProfilePreview(null);
-        setPreviews([]);
+        // setFormData({
+        //   name: '',
+        //   email: '',
+        //   phoneNumber: '',
+        //   staffPhoneNumber: '',
+        //   profilePic: null,
+        //   address: '',
+        //   state: '',
+        //   city: '',
+        //   locality: '',
+        //   landmark: '',
+        //   pincode: '',
+        //   isActive: true
+        // });
+        // setGrowers([{
+        //   systemType: '',
+        //   systemTypeOther: '',
+        //   growerQuantity: '',
+        //   numPlants: '',
+        //   numLevels: '',
+        //   setupDimension: '',
+        //   motorType: '',
+        //   motorTypeOther: '',
+        //   timerUsed: '',
+        //   timerUsedOther: '',
+        //   numLights: "",
+        //   modelOfLight: "",
+        //   modelOfLightOther: "",
+        //   lengthOfLight: "",
+        //   lengthOfLightOther: "",
+        //   tankCapacity: "",
+        //   tankCapacityOther: "",
+        //   nutritionGiven: "",
+        //   otherSpecifications: "",
+        //   photoAtInstallation: null,
+        //   selectedPlants: [],
+        //   selectedPlantsOther: '',
+        // }]);
+        // setCurrentStep(1);
+        // setProfilePreview(null);
+        // setPreviews([]);
         
       } else {
         toast.error(result.message || "Something went wrong");
@@ -783,6 +787,21 @@ const StepperCustomerForm = () => {
                     )}
                     {errors[`systemTypeOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`systemTypeOther_${index}`]}</span>}
                   </div>
+                  
+                  <div className="flex flex-col">
+                    <label className="mb-1 font-medium text-gray-700">
+                      Quantity of Grower (उत्पादक की मात्रा) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="growerQuantity"
+                      value={grower.growerQuantity}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      min="1"
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`growerQuantity_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    />
+                    {errors[`growerQuantity_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`growerQuantity_${index}`]}</span>}
+                  </div>
 
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
@@ -954,7 +973,7 @@ const StepperCustomerForm = () => {
 
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
-                      Tank Capacity<span className="text-red-500">*</span>
+                      Tank Capacity in Litre<span className="text-red-500">*</span>
                     </label>
                     <select
                       name="tankCapacity"
@@ -1199,6 +1218,12 @@ const StepperCustomerForm = () => {
                         <p className="text-gray-800">
                           <span className="font-medium text-gray-600">System Type: </span>
                           {grower.systemType === 'Other' ? grower.systemTypeOther : grower.systemType}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">Grower Quantity: </span>
+                          {grower.growerQuantity}
                         </p>
                       </div>
                       <div>

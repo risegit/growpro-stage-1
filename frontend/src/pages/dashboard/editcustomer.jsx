@@ -68,6 +68,7 @@ const StepperCustomerForm = () => {
     growerId: '',
     systemType: '',
     systemTypeOther: '',
+    growerQuantity: '',
     numPlants: '',
     numLevels: '',
     setupDimension: '',
@@ -123,6 +124,7 @@ const StepperCustomerForm = () => {
     setGrowers([...growers, {
       systemType: '',
       systemTypeOther: '',
+      growerQuantity: '',
       numPlants: '',
       numLevels: '',
       setupDimension: '',
@@ -219,6 +221,7 @@ const StepperCustomerForm = () => {
               growerId: g.id || g.grower_id || '',
               systemType: g.system_type || '',
               systemTypeOther: g.system_type_other || '',
+              growerQuantity: g.grower_qty || '',
               numPlants: g.no_of_plants || '',
               numLevels: g.no_of_levels || '',
               setupDimension: g.setup_dimension || '',
@@ -302,6 +305,7 @@ const StepperCustomerForm = () => {
       growers.forEach((grower, index) => {
         if (!grower.systemType) stepErrors[`systemType_${index}`] = 'System type is required';
         if (grower.systemType === 'Other' && !grower.systemTypeOther.trim()) stepErrors[`systemTypeOther_${index}`] = 'Please specify other system type';
+        if (!grower.growerQuantity) stepErrors[`growerQuantity_${index}`] = 'Grower Quantity is required';
         if (!grower.numPlants) stepErrors[`numPlants_${index}`] = 'Number of plants is required';
         else if (parseInt(grower.numPlants) < 0) stepErrors[`numPlants_${index}`] = 'Number of plants cannot be negative';
         if (!grower.numLevels) stepErrors[`numLevels_${index}`] = 'Number of levels is required';
@@ -808,6 +812,21 @@ const StepperCustomerForm = () => {
                       className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                     />
                     {errors[`systemTypeOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`systemTypeOther_${index}`]}</span>}
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className="mb-1 font-medium text-gray-700">
+                      Quantity of Grower (उत्पादक की मात्रा) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="growerQuantity"
+                      value={grower.growerQuantity}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      min="1"
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`growerQuantity_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    />
+                    {errors[`growerQuantity_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`growerQuantity_${index}`]}</span>}
                   </div>
 
                   <div className="flex flex-col">

@@ -5,14 +5,15 @@ import { toast } from "react-toastify";
 
 export default function AMCForm() {
   const [formData, setFormData] = useState({
-    customer: null, // will be an object from react-select { value, label }
+    customer: null,
     grower: null,
+    systemQty: '',
     validityFrom: '',
     validityUpto: '',
     duration: '',
     otherDuration: '',
     visitsPerMonth: '',
-    consumables: [], // array of {value,label}
+    consumables: [],
     otherConsumable: '',
     pricing: '',
     transport: '',
@@ -20,32 +21,17 @@ export default function AMCForm() {
     total: ''
   });
 
+  // Change systemQty to store with ID as key
+  const [systemQty, setSystemQty] = useState({});
   const [errors, setErrors] = useState({});
-  const [customers, setCustomers] = useState([]); // options for react-select
+  const [customers, setCustomers] = useState([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  // const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-  // const toastTimerRef = useRef(null);
-  const [growers, setGrowers] = useState([]); // list of growers for selected customer
+  const [growers, setGrowers] = useState([]);
   const [consumableoptions, setConsumable] = useState([]);
   const [loadingGrowers, setLoadingGrowers] = useState(false);
   const [loadingConsumable, setLoadingConsumable] = useState(false);
   const [isNoGrowers, setIsNoGrowers] = useState(false);
-  const NoRemove = (props) => null;
-
-
-  // Consumable options including "Other"
-  // const consumableOptions = [
-  //   { value: 'germinated-plants', label: 'Germinated Plants in Jiffy Bags' },
-  //   { value: 'seeds', label: 'Seeds' },
-  //   { value: 'jiffy-bags', label: 'Jiffy Bags' },
-  //   { value: 'leafy-nutrients', label: 'Leafy Nutrients' },
-  //   { value: 'fruiting-nutrients', label: 'Fruiting Nutrients' },
-  //   { value: 'neem-oil', label: 'Neem Oil' },
-  //   { value: 'ph-updown', label: 'PH up/down' },
-  //   { value: 'organic-pesticide', label: 'Organic Pesticide' },
-  //   { value: 'other', label: 'Other (Specify Below)' }
-  // ];
 
   const durationOptions = [
     { value: '30', label: 'Monthly' },
@@ -57,9 +43,9 @@ export default function AMCForm() {
 
   const formatName = (str) => {
     return str
-      .replace(/-/g, " ")                // replace hyphens with space
-      .toLowerCase()                     // convert all to lowercase
-      .replace(/\b\w/g, (c) => c.toUpperCase()); // capitalize each word
+      .replace(/-/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
   useEffect(() => {
@@ -70,7 +56,6 @@ export default function AMCForm() {
         const res = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?status=active`);
         if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
         const data = await res.json();
-        console.log("Fetched customers:", data);
         const opts = Array.isArray(data.data)
           ? data.data.map((c) => ({
             value: c.customer_id,
@@ -88,7 +73,6 @@ export default function AMCForm() {
     loadCustomers();
     return () => {
       mounted = false;
-      // if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, []);
 
@@ -99,62 +83,24 @@ export default function AMCForm() {
         const response = await fetch(`${import.meta.env.VITE_API_URL}api/consum-grower.php`);
         const data = await response.json();
 
-        console.log("✅ API Response:", data);
-
         if (data.status === "success" && data.data?.length > 0) {
           const opts = Array.isArray(data.data)
             ? [...data.data.map((c) => ({
               value: c.id,
               label: formatName(c.name),
-            }))
-            ]
+            }))]
             : [];
           setConsumable(opts);
-        } else {
-
         }
       } catch (error) {
         console.error("Error fetching consumables:", error);
-
       } finally {
         setLoadingConsumable(false);
       }
     };
 
     fetchConsumable();
-
-    return () => {
-      // if (toastTimerRef?.current) clearTimeout(toastTimerRef.current);
-    };
   }, []);
-
-
-
-  const showToast = (message, type = 'success', duration = 3000) => {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToast({ show: true, message, type });
-    toastTimerRef.current = setTimeout(() => {
-      setToast({ show: false, message: '', type: 'success' });
-    }, duration);
-  };
-  // const handleInputChange = (e) => {
-  //   const { name, value } = e.target;
-
-  //   // If user types into numeric fields, keep them as string until parse
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     [name]: value,
-  //   }));
-
-  //   if (errors[name]) {
-  //     setErrors((prev) => ({ ...prev, [name]: '' }));
-  //   }
-
-
-  //   if (name === 'pricing' || name === 'transport' || name === 'gst') {
-  //     calculateTotal(name, value);
-  //   }
-  // };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -164,34 +110,26 @@ export default function AMCForm() {
       [name]: value,
     }));
 
-    // Clear error for this field
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
 
-    // ==============================
-    // CASE 1: DURATION DROPDOWN CHANGED
-    // ==============================
     if (name === "duration") {
-      // If user chooses OTHER
       if (value === "other") {
         setFormData((prev) => ({
           ...prev,
           duration: value,
           validityFrom: "",
           validityUpto: "",
-          otherDuration: "" // Allow user to type
+          otherDuration: ""
         }));
         return;
       }
 
-      // If user selects predefined values (30, 60, 90…)
       if (value !== "") {
         const days = parseInt(value, 10);
         const today = new Date();
-
         const validityFrom = today.toISOString().split("T")[0];
-
         const validityUptoDate = new Date();
         validityUptoDate.setDate(validityUptoDate.getDate() + days);
         const validityUpto = validityUptoDate.toISOString().split("T")[0];
@@ -201,21 +139,16 @@ export default function AMCForm() {
           duration: value,
           validityFrom: validityFrom,
           validityUpto: validityUpto,
-          otherDuration: "" // clear text field
+          otherDuration: ""
         }));
       }
     }
 
-    // ==============================
-    // CASE 2: USER TYPING IN "OTHER DURATION"
-    // ==============================
     if (name === "otherDuration") {
       if (!isNaN(value) && value !== "") {
         const days = parseInt(value, 10);
         const today = new Date();
-
         const validityFrom = today.toISOString().split("T")[0];
-
         const validityUptoDate = new Date();
         validityUptoDate.setDate(validityUptoDate.getDate() + days);
         const validityUpto = validityUptoDate.toISOString().split("T")[0];
@@ -229,95 +162,109 @@ export default function AMCForm() {
       }
     }
 
-    // ==============================
-    // PRICE RELATED FIELDS
-    // ==============================
     if (name === "pricing" || name === "transport" || name === "gst") {
       calculateTotal(name, value);
     }
   };
 
-
-
   const growerHasOther = Array.isArray(formData.grower) && formData.grower.some((g) => g.label === "Other");
 
-  // react-select customer change (single select)
   const handleCustomerChange = async (selected) => {
-    // If customer cleared → reset grower and growers list
-    if (!selected) {
-      setFormData((prev) => ({ ...prev, customer: null, grower: null }));
+  if (!selected) {
+    setFormData((prev) => ({ ...prev, customer: null, grower: null }));
+    setGrowers([]);
+    setIsNoGrowers(false);
+    setSystemQty({});
+    return;
+  }
+
+  if (formData.customer && formData.customer.value === selected.value) return;
+
+  setFormData((prev) => ({ ...prev, customer: selected }));
+
+  if (errors.customer) {
+    setErrors((prev) => ({ ...prev, customer: "" }));
+  }
+
+  setLoadingGrowers(true);
+  try {
+    const res = await fetch(
+      `${import.meta.env.VITE_API_URL}api/amc.php?customer_id=${selected.value}`
+    );
+    if (!res.ok) throw new Error("Failed to fetch growers");
+
+    const data = await res.json();
+
+    // ⭐ MAP GROWERS + INCLUDE qty FROM PHP
+    const opts = Array.isArray(data.data)
+      ? data.data.map((g) => ({
+          value: g.id,
+          label: g.system_type,
+          other: g.system_type_other,
+          qty: g.remaining_grower_qty ?? "", // qty from PHP
+        }))
+      : [];
+
+    const isEmptyGrowers = opts.length === 0;
+    setIsNoGrowers(isEmptyGrowers);
+
+    if (isEmptyGrowers) {
       setGrowers([]);
-      setIsNoGrowers(false);
+      setFormData((prev) => ({
+        ...prev,
+        grower: [],
+        systemTypeOther: "",
+      }));
+      setSystemQty({});
       return;
     }
 
-    // If same customer is re-selected, do nothing
-    if (formData.customer && formData.customer.value === selected.value) return;
+    const hasOther = opts.some((g) => g.other && g.other.trim() !== "");
+    const otherValue = hasOther
+      ? opts.find((g) => g.other && g.other.trim() !== "")?.other
+      : "";
 
-    // Set only the customer (don’t clear grower yet)
-    setFormData((prev) => ({ ...prev, customer: selected }));
+    setGrowers(opts);
+    setFormData((prev) => ({
+      ...prev,
+      grower: opts,
+      systemTypeOther: otherValue,
+    }));
 
-    if (errors.customer) {
-      setErrors((prev) => ({ ...prev, customer: '' }));
-    }
+    // ⭐ PRESERVE OLD QTY, FILL NEW QTY ONLY IF NOT EXISTS
+    setSystemQty((prevQty) => {
+      const updatedQty = { ...prevQty };
 
-    // Now fetch growers for the selected customer
-    setLoadingGrowers(true);
-    try {
-      console.log('customerId=', selected.value);
-      const res = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php?customer_id=${selected.value}`);
-      if (!res.ok) throw new Error('Failed to fetch growers');
+      // Keep existing qty OR set qty from API
+      opts.forEach((g) => {
+        if (updatedQty[g.value] === undefined) {
+          updatedQty[g.value] = g.qty ?? "";
+        }
+      });
 
-      const data = await res.json();
+      // Remove qty for removed growers
+      Object.keys(updatedQty).forEach((key) => {
+        if (!opts.some((g) => g.value === key)) {
+          delete updatedQty[key];
+        }
+      });
 
-      const opts = Array.isArray(data.data)
-        ? data.data.map((g) => ({
-          value: g.id,
-          label: g.system_type,
-          other: g.system_type_other   // <-- VERY IMPORTANT
-        }))
-        : [];
+      return updatedQty;
+    });
+  } catch (err) {
+    console.error("Error fetching growers:", err);
+    setGrowers([]);
+    setFormData((prev) => ({ ...prev, grower: null }));
+    setSystemQty({});
+  } finally {
+    setLoadingGrowers(false);
+  }
+};
 
-      const isEmptyGrowers = opts.length === 0;
-      setIsNoGrowers(isEmptyGrowers);
-      if (isEmptyGrowers) {
-        // No growers available for customer → AMC for all growers
-        setGrowers([]);
-        setFormData((prev) => ({
-          ...prev,
-          grower: [],
-          systemTypeOther: "",
-        }));
-        return;
-      }
-
-      const hasOther = opts.some((g) => g.other && g.other.trim() !== "");
-      const otherValue = hasOther
-        ? opts.find((g) => g.other && g.other.trim() !== "")?.other
-        : "";
-
-      setGrowers(opts);
-
-      setFormData((prev) => ({
-        ...prev,
-        grower: opts,
-        systemTypeOther: otherValue,
-      }));
-    } catch (err) {
-      console.error('Error fetching growers:', err);
-      setGrowers([]);
-      setFormData((prev) => ({ ...prev, grower: null }));
-    } finally {
-      setLoadingGrowers(false);
-    }
-  };
 
 
 
   const handleGrowerChange = (selected) => {
-
-    console.log("Selected Grower:", selected);   // <-- ADD HERE
-
     setFormData(prev => ({
       ...prev,
       grower: selected,
@@ -331,9 +278,6 @@ export default function AMCForm() {
     }
   };
 
-
-
-  // react-select consumables (multi)
   const handleConsumableChange = (selected) => {
     setFormData((prev) => ({
       ...prev,
@@ -357,12 +301,27 @@ export default function AMCForm() {
     setFormData((prev) => ({ ...prev, total: total.toFixed(2) }));
   };
 
-  // Validate form before submit
   const validateForm = () => {
     const newErrors = {};
 
     if (!formData.customer || !formData.customer.value) {
       newErrors.customer = 'Please select a customer';
+    }
+
+    // Validate grower quantities using ID as key
+    if (formData.grower && formData.grower.length > 0) {
+      const missingQuantities = [];
+      
+      formData.grower.forEach((grower) => {
+        const qty = systemQty[grower.value]; // Use ID to get quantity
+        if (!qty || qty.trim() === '' || isNaN(parseInt(qty)) || parseInt(qty) <= 0) {
+          missingQuantities.push(grower.label); // Show label in error message
+        }
+      });
+      
+      if (missingQuantities.length > 0) {
+        newErrors.systemQty = `Please enter valid quantities for: ${missingQuantities.join(', ')}`;
+      }
     }
 
     if (!formData.validityFrom) newErrors.validityFrom = 'Validity From date is required';
@@ -380,7 +339,7 @@ export default function AMCForm() {
     else if (formData.visitsPerMonth !== '' && Number(formData.visitsPerMonth) < 0) newErrors.visitsPerMonth = 'Visits cannot be negative';
 
     if (!formData.consumables || formData.consumables.length === 0) newErrors.consumables = 'Select at least one consumable';
-    else if (formData.consumables.some((c) => c.value === 'other') && !formData.otherConsumable.trim()) {
+    else if (formData.consumables.some((c) => c.value === '9') && !formData.otherConsumable.trim()) {
       newErrors.otherConsumable = 'Please specify the other consumable';
     }
 
@@ -399,123 +358,26 @@ export default function AMCForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Submit handler - POSTs to /api/amc (replace with your real endpoint)
-  // const handleSubmit = async () => {
-  //   if (!validateForm()) {
-  //     // showToast('Please fix form errors before submitting', 'error');
-  //     // toast.error('Please fix form errors before submitting');
-  //     return;
-  //   }
-
-  //   setSubmitting(true);
-  //   try {
-  //     // Build payload
-  //     const formPayload = new FormData();
-
-  //     // Append main form fields
-  //     Object.keys(formData).forEach((key) => {
-  //       if (!["consumables", "grower", "customer"].includes(key)) {
-  //         formPayload.append(key, formData[key]);
-  //       }
-  //     });
-
-  //     if (formData.customer) {
-  //       formPayload.append("customer_id", formData.customer.value || "");
-  //     }
-
-  //     // Properly append multi-select arrays
-  //     formPayload.append(
-  //       "consumables",
-  //       JSON.stringify(formData.consumables?.map((c) => c.value) || [])
-  //     );
-  //     formPayload.append(
-  //       "growers",
-  //       JSON.stringify(formData.grower?.map((g) => g.value) || [])
-  //     );
-
-  //     // ✅ Optional: log for debugging
-  //     console.log("Form Payload Data:");
-  //     for (let [key, value] of formPayload.entries()) {
-  //       console.log(`${key}: ${value}`);
-  //     }
-
-  //     // ✅ Send the request
-  //     const res = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php`, {
-  //       method: "POST",
-  //       body: formPayload,
-  //     });
-  //     const result = await res.json();
-  //     if (result.status === "success") {
-  //       toast.success(result.message);
-  //       setErrors({});
-  //     } else {
-  //       toast.error(result.error);
-  //       // alert("Something went wrong. Please try again.");
-  //     }
-
-  //     // if (!res.ok) {
-  //     //   const text = await res.text().catch(() => null);
-  //     //   throw new Error(`Server error: ${res.status} ${text ?? ''}`);
-  //     // }
-
-  //     // const respJson = await res.json().catch(() => ({}));
-
-  //     // Success
-  //     // showToast('AMC submitted successfully', 'success');
-
-  //     // Reset form
-  //     setFormData({
-  //       customer: null,
-  //       validityFrom: '',
-  //       validityUpto: '',
-  //       duration: '',
-  //       otherDuration: '',
-  //       visitsPerMonth: '',
-  //       consumables: [],
-  //       otherConsumable: '',
-  //       pricing: '',
-  //       transport: '',
-  //       gst: '',
-  //       total: ''
-  //     });
-  //     // setErrors({});
-  //     // console.log('Submitted payload:', formPayload, 'server response:', respJson);
-  //   } catch (err) {
-  //     console.error('Submit failed:', err);
-  //     // showToast('Submission failed. See console for details.', 'error');
-  //     toast.error('Submission failed. See console for details.');
-  //   } finally {
-  //     setSubmitting(false);
-  //   }
-  // };
-
   const handleSubmit = async () => {
     if (!validateForm()) {
       return;
     }
 
-    setSubmitting(true); // 🔥 Disable button + show "Submitting..."
+    setSubmitting(true);
 
     try {
-      // ⏳ Optional Delay (1 sec) — remove if not needed
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Build payload
       const formPayload = new FormData();
 
-      // Append main form fields except these
       Object.keys(formData).forEach((key) => {
         if (!["consumables", "grower", "customer"].includes(key)) {
           formPayload.append(key, formData[key]);
         }
       });
 
-      // Append customer
       if (formData.customer) {
         formPayload.append("customer_id", formData.customer.value || "");
       }
 
-      // Append multi-select arrays as JSON
       formPayload.append(
         "consumables",
         JSON.stringify(formData.consumables?.map((c) => c.value) || [])
@@ -526,12 +388,20 @@ export default function AMCForm() {
         JSON.stringify(formData.grower?.map((g) => g.value) || [])
       );
 
+      // ⭐ Append grower quantities with ID as key
+      const filteredGrowerQty = {};
+      (formData.grower || []).forEach((g) => {
+          filteredGrowerQty[g.value] = systemQty[g.value];
+      });
+
+      formPayload.append("grower_quantities", JSON.stringify(filteredGrowerQty));
+
+
       console.log("Form Payload Data:");
       for (let [key, value] of formPayload.entries()) {
         console.log(`${key}: ${value}`);
       }
 
-      // API Request
       const res = await fetch(`${import.meta.env.VITE_API_URL}api/amc.php`, {
         method: "POST",
         body: formPayload,
@@ -543,55 +413,47 @@ export default function AMCForm() {
       if (result.status === "success") {
         toast.success(result.message);
         setErrors({});
+        setFormData({
+          customer: null,
+          grower: null,
+          systemQty: '',
+          validityFrom: '',
+          validityUpto: '',
+          duration: '',
+          otherDuration: '',
+          visitsPerMonth: '',
+          consumables: [],
+          otherConsumable: '',
+          pricing: '',
+          transport: '',
+          gst: '',
+          total: ''
+        });
+        setSystemQty({});
       } else {
         toast.error(result.error || "Something went wrong");
       }
-
-      // Reset form
-      setFormData({
-        customer: null,
-        validityFrom: '',
-        validityUpto: '',
-        duration: '',
-        otherDuration: '',
-        visitsPerMonth: '',
-        consumables: [],
-        otherConsumable: '',
-        pricing: '',
-        transport: '',
-        gst: '',
-        total: ''
-      });
 
     } catch (err) {
       console.error("Submit failed:", err);
       toast.error("Submission failed. See console for details.");
     } finally {
-      setSubmitting(false); // 🔥 Re-enable button
+      setSubmitting(false);
     }
   };
 
-
   const today = new Date().toISOString().split("T")[0];
-
-  // Small helper to derive whether consumables include 'other'
   const consumablesHasOther = formData.consumables.some((c) => c.value === '9');
 
   return (
     <div className="w-full min-h-screen bg-gray-100 mt-10">
-      {/* Toast */}
-
-
       <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
-        {/* Header */}
         <div className="px-2 py-4 border-b">
           <h2 className="text-2xl font-bold mb-2 text-gray-800">Add AMC Contract</h2>
           <p className="text-sm text-gray-600">Annual Maintenance Contract Details</p>
         </div>
 
-        {/* Form */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 py-6 [&_input]:h-[44px] [&_select]:h-[44px]">
-          {/* Customer - react-select single */}
           <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">Select Customer <span className="text-red-500">*</span></label>
             <Select
@@ -624,12 +486,30 @@ export default function AMCForm() {
                   isMulti
                   options={growers}
                   value={formData.grower}
-                  isDisabled={true}
+                  onChange={(selected) => {
+                    setFormData({ ...formData, grower: selected });
+
+                    setSystemQty((prev) => {
+                      const updated = { ...prev };
+
+                      // Ensure new growers get default qty (from API)
+                      selected.forEach((g) => {
+                        if (updated[g.value] === undefined) {
+                          updated[g.value] = g.qty ?? "";
+                        }
+                      });
+
+                      // ❗ DO NOT DELETE removed growers' qty
+                      // We simply won't display them in UI
+
+                      return updated;
+                    });
+                  }}
+
                   classNamePrefix="react-select"
                   styles={{
                     menu: (provided) => ({ ...provided, zIndex: 9999 }),
                   }}
-                  components={{ MultiValueRemove: NoRemove }}
                 />
 
                 {growerHasOther && (
@@ -649,8 +529,46 @@ export default function AMCForm() {
             )}
           </div>
 
+          {/* Grower Quantities Section */}
+          {formData.grower && formData.grower.length > 0 && (
+            <div className="md:col-span-2 mt-4">
+              <h3 className="text-gray-800 font-semibold mb-2">Grower Quantities</h3>
+              
+              {errors.systemQty && (
+                <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded">
+                  <span className="text-red-500 text-sm">{errors.systemQty}</span>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {formData.grower.map((grower) => (
+                  <div className="flex flex-col" key={grower.value}>
+                    <label className="mb-1 font-medium text-gray-700">
+                      {grower.label} Qty: <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={systemQty[grower.value] || ''}
+                      onChange={(e) =>
+                        setSystemQty({
+                          ...systemQty,
+                          [grower.value]: e.target.value,
+                        })
+                      }
+                      className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                        errors.systemQty && (!systemQty[grower.value] || parseInt(systemQty[grower.value]) <= 0)
+                          ? 'border-red-500 focus:ring-red-400'
+                          : 'border-gray-300 focus:ring-blue-400'
+                      }`}
+                      placeholder={`Enter ${grower.label} quantity`}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-          {/* Duration */}
           <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">Duration of AMC <span className="text-red-500">*</span></label>
             <select
@@ -676,7 +594,6 @@ export default function AMCForm() {
             {errors.otherDuration && <span className="text-red-500 text-sm mt-1">{errors.otherDuration}</span>}
           </div>
 
-          {/* Visits per Month (number input) */}
           <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700"> Visits per Month <span className="text-red-500">*</span></label>
             <input
@@ -691,31 +608,26 @@ export default function AMCForm() {
             {errors.visitsPerMonth && <span className="text-red-500 text-sm mt-1">{errors.visitsPerMonth}</span>}
           </div>
 
-          {/* Validity From */}
           <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">
               Validity From <span className="text-red-500">*</span>
             </label>
-
             <input
               type="date"
               name="validityFrom"
               value={formData.validityFrom}
               onChange={handleInputChange}
-              min={today}   // <-- PREVENT PAST DATES
+              min={today}
               className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityFrom
-                  ? "border-red-500 focus:ring-red-400"
-                  : "border-gray-300 focus:ring-blue-400"
+                ? "border-red-500 focus:ring-red-400"
+                : "border-gray-300 focus:ring-blue-400"
                 }`}
             />
-
             {errors.validityFrom && (
               <span className="text-red-500 text-sm mt-1">{errors.validityFrom}</span>
             )}
           </div>
 
-
-          {/* Validity Upto */}
           <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">
               Validity Upto <span className="text-red-500">*</span>
@@ -736,8 +648,6 @@ export default function AMCForm() {
             )}
           </div>
 
-
-          {/* Consumables - multi select with Other */}
           <div className="flex flex-col md:col-span-2">
             <label className="mb-2 font-medium text-gray-700">Consumables Included in the AMC <span className="text-red-500">*</span></label>
             <Select
@@ -765,7 +675,6 @@ export default function AMCForm() {
             {errors.otherConsumable && <span className="text-red-500 text-sm mt-1">{errors.otherConsumable}</span>}
           </div>
 
-          {/* Pricing */}
           <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">Pricing (₹) <span className="text-red-500">*</span></label>
             <input
@@ -781,7 +690,6 @@ export default function AMCForm() {
             {errors.pricing && <span className="text-red-500 text-sm mt-1">{errors.pricing}</span>}
           </div>
 
-          {/* Transport */}
           <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">Transport (₹) <span className="text-red-500">*</span></label>
             <input
@@ -797,7 +705,6 @@ export default function AMCForm() {
             {errors.transport && <span className="text-red-500 text-sm mt-1">{errors.transport}</span>}
           </div>
 
-          {/* GST */}
           <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">GST (%) <span className="text-red-500">*</span></label>
             <input
@@ -814,7 +721,6 @@ export default function AMCForm() {
             {errors.gst && <span className="text-red-500 text-sm mt-1">{errors.gst}</span>}
           </div>
 
-          {/* Total */}
           <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">Total (₹)</label>
             <input
@@ -829,9 +735,7 @@ export default function AMCForm() {
           </div>
         </div>
 
-        {/* Submit */}
         <div className="flex items-center justify-end px-4 py-4 border-t">
-
           <button
             onClick={handleSubmit}
             disabled={submitting}
@@ -840,8 +744,6 @@ export default function AMCForm() {
           >
             {submitting ? 'Please Wait...' : 'Submit'}
           </button>
-
-
         </div>
       </div>
     </div>
