@@ -54,18 +54,18 @@ export default function CustomerVisitForm() {
             setLoadingtechnicians(true);
 
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}api/schedule-site-visit.php?schVisitId=${id}`);
+                const res = await fetch(`${import.meta.env.VITE_API_URL}api/schedule-site-visit.php?edit_schedule_view=editScheduleView&schVisitId=${id}`);
                 if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
 
                 const data = await res.json();
-                
+                console.log("Server Response:", data);
                 // -----------------------------------
                 // 1) Map all customers
                 // -----------------------------------
                 const customerOptions = Array.isArray(data.data)
                     ? data.data.map(c => ({
-                        value: c.customer_id,
-                        label: `${c.name} - ${c.phone}`
+                        value: c.amc_id,
+                        label: `${c.name} - ${c.phone} - ${c.amc_free_paid}`
                     }))
                     : [];
 
@@ -91,11 +91,11 @@ export default function CustomerVisitForm() {
                     : null;
 
                 
-                const selectedTechnician = data.custTech?.[0];
+                const selectedTechnician = data.data?.[0];
                 const selectedTechnicianOption = selectedTechnician
                     ? {
                         value: selectedTechnician.technician_id,
-                        label: `${selectedTechnician.technician_name} - ${selectedTechnician.user_code}`
+                        label: `${selectedTechnician.name} - ${selectedTechnician.user_code}`
                     }
                     : null;
 
@@ -216,7 +216,7 @@ export default function CustomerVisitForm() {
             form.append('schid', id);
             form.append('_method', 'PUT');
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}api/schedule-site-visit.php?edit_schedule_visit='scheduleVisit'&editSchId=${id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}api/schedule-site-visit.php?editSchId=${id}`, {
                 method: 'POST',
                 body: form,
             });
@@ -276,6 +276,7 @@ export default function CustomerVisitForm() {
                         value={formData.customers}
                         isClearable
                         isLoading={loadingCustomers}
+                        isDisabled={true}
                         placeholder={loadingCustomers ? 'Loading customers...' : 'Select customer...'}
                         classNamePrefix="react-select"
                         styles={{ menu: (provided) => ({ ...provided, zIndex: 9999 }) }}

@@ -8,6 +8,7 @@ export default function AMCForm() {
     customer: null,
     grower: null,
     systemQty: '',
+    amc_free_paid: '',
     validityFrom: '',
     validityUpto: '',
     duration: '',
@@ -101,6 +102,44 @@ export default function AMCForm() {
 
     fetchConsumable();
   }, []);
+
+
+  const handlePriceChange = (e) => {
+  const { name, value } = e.target;
+
+  if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+  }
+
+  setFormData((prev) => {
+    if (value === "Free") {
+      return {
+        ...prev,
+        [name]: value,
+        pricing: "0",
+        transport: "0",
+        gst: "0",
+        total: "0",
+      };
+    }
+
+    
+    // If Paid → clear values (but not null)
+    if (value === "Paid") {
+
+      return {
+        ...prev,
+        [name]: value,
+        pricing: "",
+        transport: "",
+        gst: "",
+        total: "",
+      };
+    }
+
+    return { ...prev, [name]: value };
+  });
+};
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -314,9 +353,15 @@ export default function AMCForm() {
       
       formData.grower.forEach((grower) => {
         const qty = systemQty[grower.value]; // Use ID to get quantity
-        if (!qty || qty.trim() === '' || isNaN(parseInt(qty)) || parseInt(qty) <= 0) {
-          missingQuantities.push(grower.label); // Show label in error message
+        const qtyStr = qty !== undefined && qty !== null ? String(qty) : "";
+        if (
+          qtyStr.trim() === "" ||
+          isNaN(parseInt(qtyStr)) ||
+          parseInt(qtyStr) <= 0
+        ) {
+          missingQuantities.push(grower.label);
         }
+
       });
       
       if (missingQuantities.length > 0) {
@@ -329,6 +374,8 @@ export default function AMCForm() {
     else if (formData.validityFrom && new Date(formData.validityUpto) <= new Date(formData.validityFrom)) {
       newErrors.validityUpto = 'Validity Upto must be after Validity From';
     }
+
+    if (!formData.amc_free_paid) newErrors.amc_free_paid = 'AMC Free or Paid is required';
 
     if (!formData.duration) newErrors.duration = 'Duration of AMC is required';
     else if (formData.duration === 'other' && !formData.otherDuration.trim()) {
@@ -419,6 +466,7 @@ export default function AMCForm() {
           systemQty: '',
           validityFrom: '',
           validityUpto: '',
+          amc_free_paid : '',
           duration: '',
           otherDuration: '',
           visitsPerMonth: '',
@@ -549,15 +597,25 @@ export default function AMCForm() {
                     <input
                       type="number"
                       min="1"
+                      max={grower.qty}
                       value={systemQty[grower.value] || ''}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        let val = Number(e.target.value);
+
+                        // ⬅️ Enforce max limit
+                        if (grower.qty && val > grower.qty) {
+                          val = grower.qty;
+                        }
+
                         setSystemQty({
                           ...systemQty,
-                          [grower.value]: e.target.value,
-                        })
-                      }
+                          [grower.value]: val,
+                        });
+                      }}
                       className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
-                        errors.systemQty && (!systemQty[grower.value] || parseInt(systemQty[grower.value]) <= 0)
+                        errors.systemQty &&
+                        (!systemQty[grower.value] ||
+                          parseInt(systemQty[grower.value]) <= 0)
                           ? 'border-red-500 focus:ring-red-400'
                           : 'border-gray-300 focus:ring-blue-400'
                       }`}
@@ -568,6 +626,21 @@ export default function AMCForm() {
               </div>
             </div>
           )}
+
+          <div className="flex flex-col">
+            <label className="mb-1 font-medium text-gray-700">AMC Free or Paid ?<span className="text-red-500">*</span></label>
+            <select
+              name="amc_free_paid"
+              value={formData.amc_free_paid}
+              onChange={handlePriceChange}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.amc_free_paid ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+            >
+              <option value="" disabled>Select Free or Paid</option>
+              <option value="Paid">Paid</option>
+              <option value="Free">Free</option>
+            </select>
+            {errors.amc_free_paid && <span className="text-red-500 text-sm mt-1">{errors.amc_free_paid}</span>}
+          </div>
 
           <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">Duration of AMC <span className="text-red-500">*</span></label>
@@ -648,7 +721,7 @@ export default function AMCForm() {
             )}
           </div>
 
-          <div className="flex flex-col md:col-span-2">
+          <div className="flex flex-col">
             <label className="mb-2 font-medium text-gray-700">Consumables Included in the AMC <span className="text-red-500">*</span></label>
             <Select
               isMulti

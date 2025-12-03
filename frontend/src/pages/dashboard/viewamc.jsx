@@ -291,7 +291,7 @@ export default function UserTable() {
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-3">
                               <span className="font-medium text-gray-800 truncate">
-                                {user.name}
+                                {user.name}<br/>({user.amc_free_paid})
                               </span>
                             </div>
                           </td>
