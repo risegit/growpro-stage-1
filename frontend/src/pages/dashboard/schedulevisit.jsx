@@ -7,7 +7,7 @@ const user_id = user?.id;
 
 export default function CustomerVisitForm() {
     const [formData, setFormData] = useState({
-        customers: null,
+        amc_id: null,
         technicians: null,
         visitDate: "",
         visitTime: "",
@@ -15,7 +15,7 @@ export default function CustomerVisitForm() {
 
     const [errors, setErrors] = useState({});
     const [submitted, setSubmitted] = useState(false);
-    const [customers, setCustomers] = useState([]);
+    const [amc_id, setCustomers] = useState([]);
     const [technicians, setTechnician] = useState([]);
     const [loadingCustomers, setLoadingCustomers] = useState(false);
     const [loadingtechnicians, setLoadingtechnicians] = useState(false);
@@ -35,7 +35,7 @@ export default function CustomerVisitForm() {
     const validateForm = () => {
         let newErrors = {};
 
-        if (!formData.customers) newErrors.customers = "Customer name is required.";
+        if (!formData.amc_id) newErrors.amc_id = "Customer name is required.";
         if (!formData.technicians) newErrors.technicians = "Technician selection is required.";
         if (!formData.visitDate) newErrors.visitDate = "Visit date is required.";
         if (!formData.visitTime) newErrors.visitTime = "Visit time is required.";
@@ -55,8 +55,8 @@ export default function CustomerVisitForm() {
                 const data = await res.json();
                 const opts = Array.isArray(data.data)
                     ? data.data.map((c) => ({
-                        value: c.customer_id,
-                        label: `${c.name} - ${c.phone}`,
+                        value: c.amc_id,
+                        label: `${c.name} - ${c.phone} - ${c.amc_free_paid} Visits`,
                     }))
                     : [];
 
@@ -165,8 +165,8 @@ export default function CustomerVisitForm() {
                         Customer Name <span className="text-red-500">*</span>
                     </label>
                     <Select
-                        options={customers}
-                        value={formData.customers}
+                        options={amc_id}
+                        value={formData.amc_id}
                         isClearable
                         isLoading={loadingCustomers}
                         placeholder={loadingCustomers ? 'Loading customers...' : 'Select customer...'}
@@ -175,12 +175,12 @@ export default function CustomerVisitForm() {
                         onChange={(selectedOption) => {
                             setFormData((prev) => ({
                                 ...prev,
-                                customers: selectedOption,
+                                amc_id: selectedOption,
                             }));
 
                             setErrors((prev) => ({
                                 ...prev,
-                                customers: "",   // ✅ Clear error here
+                                amc_id: "",   // ✅ Clear error here
                             }));
                         }}
 

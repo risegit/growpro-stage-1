@@ -21,7 +21,7 @@ switch ($method) {
 
     case 'GET':
         if ($amcId) {
-            $amc_detail = $conn->query("SELECT amc.id,amc.duration,amc.validity_from,amc.validity_upto,amc.other_duration,amc.visits_per_month,amc.pricing,amc.transport,amc.gst,amc.total,users.name,amc.customer_id FROM amc_details as amc INNER JOIN users ON amc.customer_id=users.id WHERE amc.id='$amcId'");
+            $amc_detail = $conn->query("SELECT amc.id,amc.amc_free_paid,amc.duration,amc.validity_from,amc.validity_upto,amc.other_duration,amc.visits_per_month,amc.pricing,amc.transport,amc.gst,amc.total,users.name,amc.customer_id FROM amc_details as amc INNER JOIN users ON amc.customer_id=users.id WHERE amc.id='$amcId'");
             $amc_data = [];
             while ($row = $amc_detail->fetch_assoc()) {
                 $amc_data[] = $row;
@@ -55,7 +55,7 @@ switch ($method) {
             echo json_encode(["status" => "success", "data" => $growerData]);
         }elseif ($viewAMC){
             // $result = $conn->query("SELECT users.name,users.phone,amc.id,amc.validity_upto,amc.visits_per_month FROM amc_details as amc INNER JOIN users ON users.id=amc.customer_id");
-            $result = $conn->query("SELECT u.id AS customer_id, u.name, u.phone, a.id as amc_id, a.visits_per_month, a.validity_from, a.validity_upto, COUNT(s.id) AS total_visits_done, (a.visits_per_month - COUNT(s.id)) AS pending_visits FROM users u INNER JOIN amc_details a ON u.id = a.customer_id LEFT JOIN site_visit s ON s.customer_id = u.id AND s.created_date BETWEEN a.validity_from AND a.validity_upto WHERE u.status = 'active' AND CURRENT_DATE <= a.validity_upto GROUP BY u.id, u.name, u.phone, a.visits_per_month, a.validity_from, a.validity_upto");
+            $result = $conn->query("SELECT u.id AS customer_id, u.name, u.phone, a.id as amc_id,a.amc_free_paid, a.visits_per_month, a.validity_from, a.validity_upto, COUNT(s.id) AS total_visits_done, (a.visits_per_month - COUNT(s.id)) AS pending_visits FROM users u INNER JOIN amc_details a ON u.id = a.customer_id LEFT JOIN site_visit s ON s.customer_id = u.id AND s.created_date BETWEEN a.validity_from AND a.validity_upto WHERE u.status = 'active' AND CURRENT_DATE <= a.validity_upto GROUP BY u.id, u.name, u.phone, a.visits_per_month, a.validity_from, a.validity_upto");
             $data = [];
 
             while ($row = $result->fetch_assoc()) {
@@ -63,7 +63,8 @@ switch ($method) {
             }
             echo json_encode(["status" => "success", "data" => $data]);
         }else{
-            $result = $conn->query("SELECT g.id AS grower_id, g.customer_id, g.system_type, g.grower_qty, u.name, u.phone FROM growers g LEFT JOIN amc_growers ag ON ag.grower_id = g.id INNER JOIN users u ON g.customer_id = u.id WHERE u.status='active' and ag.id IS NULL GROUP BY u.name");
+            // $result = $conn->query("SELECT g.id AS grower_id, g.customer_id, g.system_type, g.grower_qty, u.name, u.phone FROM growers g LEFT JOIN amc_growers ag ON ag.grower_id = g.id INNER JOIN users u ON g.customer_id = u.id WHERE u.status='active' and ag.id IS NULL GROUP BY u.name");
+            $result = $conn->query("SELECT u.id AS customer_id, u.name, u.phone, SUM(g.grower_qty) AS total_grower_qty, IFNULL(SUM(ag.used_qty), 0) AS used_grower_qty, (SUM(g.grower_qty) - IFNULL(SUM(ag.used_qty), 0)) AS remaining_grower_qty FROM users u INNER JOIN growers g ON g.customer_id = u.id LEFT JOIN ( SELECT grower_id, SUM(grower_qty) AS used_qty FROM amc_growers GROUP BY grower_id ) ag ON ag.grower_id = g.id WHERE u.status = 'active' GROUP BY u.id, u.name, u.phone HAVING remaining_grower_qty > 0;");
             $data = [];
 
             while ($row = $result->fetch_assoc()) {
@@ -76,6 +77,7 @@ switch ($method) {
     
     case 'POST':
         $customerId = $_POST['customer_id'] ?? '';
+        $amcFreePaid = $_POST['amc_free_paid'] ?? '';
         $duration = $_POST['duration'] ?? '';
         $other_duration=$_POST['otherDuration'] ?? '';
         $visitsPerMonth = $_POST['visitsPerMonth'] ?? '';
@@ -96,7 +98,7 @@ switch ($method) {
         $subtotal = $pricing+$transport;
         $gstAmount = ($subtotal * $gst) / 100;
         $total = round($subtotal + $gstAmount);
-        $sql = "INSERT INTO amc_details (`customer_id`, `duration`, `other_duration`, `visits_per_month`, `validity_from`, `validity_upto`, `pricing`, `transport`, `gst`,`total`, `updated_by`, `created_date`, `created_time`) VALUES ('$customerId', '$duration', '$other_duration', '$visitsPerMonth', '$validityFrom', '$validityUpto', '$pricing', '$transport', '$gst', '$total', '1', '$date', '$time')";
+        $sql = "INSERT INTO amc_details (`customer_id`, `amc_free_paid`, `duration`, `other_duration`, `visits_per_month`, `validity_from`, `validity_upto`, `pricing`, `transport`, `gst`,`total`, `updated_by`, `created_date`, `created_time`) VALUES ('$customerId', '$amcFreePaid', '$duration', '$other_duration', '$visitsPerMonth', '$validityFrom', '$validityUpto', '$pricing', '$transport', '$gst', '$total', '1', '$date', '$time')";
         if ($conn->query($sql)) {
             $amc_id = $conn->insert_id;
             foreach ($growers as $growerId => $qty) {
@@ -120,6 +122,7 @@ switch ($method) {
         break;
 
     case 'PUT':
+        $amcFreePaid = $_POST['amc_free_paid'] ?? '';
         $duration = $_POST['duration'] ?? '';
         $other_duration = $_POST['otherDuration'] ?? '';
         $visitsPerMonth = $_POST['visitsPerMonth'] ?? '';
@@ -130,6 +133,8 @@ switch ($method) {
         $gst = $_POST['gst'] ?? '';
         $other_consumable = $_POST['otherConsumable'] ?? '';
         $sql1='';
+        $jsonGrowersQuantities = isset($_POST['growerData']) ? $_POST['growerData'] : '';
+        $growers_quantity = json_decode($jsonGrowersQuantities, true);
         // if(!empty($_POST['customDuration'])){
         //     $duration=$_POST['customDuration'];
         // }
@@ -143,8 +148,13 @@ switch ($method) {
         $subtotal = $pricing+$transport;
         $gstAmount = ($subtotal * $gst) / 100;
         $total = round($subtotal + $gstAmount);
-        $sql = "UPDATE `amc_details` SET `duration`='$duration',`other_duration`='$other_duration',`visits_per_month`='$visitsPerMonth',`validity_from`='$validityFrom',`validity_upto`='$validityUpto',`pricing`='$pricing',`transport`='$transport',`gst`='$gst',`total`='$total',`updated_by`='1',`updated_date`='$date',`updated_time`='$time' WHERE id='$amcId'";
+        $sql = "UPDATE `amc_details` SET `amc_free_paid`='$amcFreePaid',`duration`='$duration',`other_duration`='$other_duration',`visits_per_month`='$visitsPerMonth',`validity_from`='$validityFrom',`validity_upto`='$validityUpto',`pricing`='$pricing',`transport`='$transport',`gst`='$gst',`total`='$total',`updated_by`='1',`updated_date`='$date',`updated_time`='$time' WHERE id='$amcId'";
         if ($conn->query($sql)) {
+            foreach ($growers_quantity as $growersQty) {
+                $amc_grower_sql = "UPDATE `amc_growers` SET `grower_qty`='{$growersQty['qty']}' WHERE amc_id='$amcId'";
+                $conn->query($amc_grower_sql);
+            }
+            
             if (!empty($consumables)) {
                 $conn->query("DELETE FROM amc_consumables WHERE amc_id='$amcId'");
             }
