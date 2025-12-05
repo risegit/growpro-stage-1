@@ -146,7 +146,8 @@ export default function AMCForm() {
             value: g.grower_id,
             label: g.system_type,
             other: g.system_type_other,  // <-- VERY IMPORTANT
-            qty: g.grower_qty ?? "", // qty from PHP
+            qty: g.grower_qty ?? "",
+            max_qty: g.max_qty ?? "",
           }))
           : [];
 
@@ -741,13 +742,13 @@ export default function AMCForm() {
                     <input
                       type="number"
                       min="1"
-                      max={grower.qty}
+                      max={grower.max_qty}
                       value={systemQty[grower.value] || ''}
                       onChange={(e) => {
                         let val = Number(e.target.value);
 
                         // ⬅️ Enforce max limit
-                        if (grower.qty && val > grower.qty) {
+                        if (grower.qty && val > grower.max_qty) {
                           val = grower.qty;
                         }
 

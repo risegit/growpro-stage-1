@@ -39,6 +39,7 @@ import Createvisits from "@/pages/dashboard/createvisits";
 import Viewvisits from "@/pages/dashboard/viewvisits";
 import Editvisit from "@/pages/dashboard/editvisit";
 import Schedulevisit from "@/pages/dashboard/schedulevisit";
+import ManageMaterialDeliver from "@/pages/dashboard/manage-material-deliver";
 import Reports from "@/pages/dashboard/reports";
 
 import { SignIn } from "@/pages/auth";
@@ -264,7 +265,31 @@ const routes = [
           },
         ],
       },
-       {
+      {
+        icon: <FileText {...icon} />,
+        name: "Manage Material Deliver",
+        path: "/manage-material-deliver",
+        allowedRoles: ["admin", "manager", "technician"],
+        element: (
+          <RoleProtectedRoute
+            element={<ManageMaterialDeliver />}
+            allowedRoles={["admin", "manager", "technician"]}
+          />
+        ),
+      },
+      {
+            name: "Edit Material Deliver",
+            path: "/editmaterialdeliver/:id",
+            allowedRoles: ["admin", "manager"],
+            element: (
+              <RoleProtectedRoute
+                element={<EditUserForm />}
+                allowedRoles={["admin", "manager"]}
+              />
+            ),
+            hidden: true,
+      },
+      {
         icon: <FileText {...icon} />,
         name: "Reports",
         path: "/reports",

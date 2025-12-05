@@ -107,6 +107,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         equipmentCleaning: "",
         plantMaintenance: "",
         scopesOfImprovement: "",
+        siteRating: "",
 
         plants: [],
         plantQuantities: {},
@@ -114,6 +115,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         material_supplied_neemoil: "",
         material_supplied_chargeable_items: [],
         materialschargeableItemsOptionsother: "",
+        chargeableOtherName: "",
+        chargeableQuantities: {},
         setupPhotos: [],
         materialNeedsDelivery: false,
         nutrientsData: [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
@@ -122,6 +125,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         materialsDeliveredPlantData: "",
         material_need_chargeable_items: [],
         materialsNeedChargeableItemsOptionsother: "",
+        chargeableNeedQuantities: {},
         material_need_nutrientsData: [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
         material_need_neemoil: "",
         materialNeedPlantQuantities: {},
@@ -155,6 +159,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     ];
 
     const plantProblemOptions = [
+        { label: "No Problem", value: "No Problem" },
         { label: "Light Deficiency", value: "Light Deficiency" },
         { label: "Improper Maintenance", value: "Improper Maintenance" },
         { label: "Overgrown crops", value: "Overgrown crops" },
@@ -207,14 +212,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     const nutrientOptions = [
         { label: "Leafy", value: "Leafy" },
         { label: "Fruiting", value: "Fruiting" }
-    ];
-
-    const tankCapacityOptions = [
-        { label: "20", value: "20" },
-        { label: "40", value: "40" },
-        { label: "100", value: "100" },
-        { label: "150", value: "150" },
-        { label: "200", value: "200" }
     ];
 
     useEffect(() => {
@@ -331,6 +328,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                     case 'material_need_nutrientsData':
                     case 'plantQuantities':
                     case 'materialNeedPlantQuantities':
+                    case 'chargeableQuantities':
+                    case 'chargeableNeedQuantities':
                         formPayload.append(key, JSON.stringify(value || []));
                         break;
 
@@ -343,7 +342,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                 formPayload.append("user_code", user_code);
             }
 
-            const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit123.php`, {
                 method: "POST",
                 body: formPayload,
             });
@@ -358,7 +357,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                 console.error('JSON Parse Error:', parseError);
                 if (responseText.toLowerCase().includes('success') || responseText.toLowerCase().includes('inserted')) {
                     toast.success("Form submitted successfully!");
-                    resetForm();
                     return;
                 } else if (responseText.toLowerCase().includes('error') || responseText.toLowerCase().includes('fail')) {
                     toast.error("Submission failed. Please try again.");
@@ -417,47 +415,48 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         setErrors({ ...errors, setupPhoto: "" });
     };
 
-    const handleStep4MaterialsSelection = (selected) => {
-        const newMaterials = selected || [];
-        const newQuantities = { ...formData.plantQuantities };
-
-        const selectedValues = newMaterials.map(m => m.value);
-        Object.keys(newQuantities).forEach(material => {
-            if (!selectedValues.includes(material)) {
-                delete newQuantities[material];
-            }
-        });
-
-        if (selectedValues.includes("Others")) {
-            newQuantities["Others"] = formData.plantQuantities["Others"] || "";
-        } else {
-            newQuantities["Others"] = "";
+   const handleStep4MaterialsSelection = (selected) => {
+    const newMaterials = selected || [];
+    const newQuantities = {};
+    
+    // Only add quantities for selected materials
+    newMaterials.forEach(material => {
+        const key = material.value;
+        // Preserve existing quantity if it exists
+        if (formData.plantQuantities[key] !== undefined) {
+            newQuantities[key] = formData.plantQuantities[key];
         }
+    });
+    
+    // IMPORTANT: Don't add "Others" if it's not in the selection
+    // No else clause to add empty "Others"
+    
+    setFormData({
+        ...formData,
+        plants: newMaterials,
+        plantQuantities: newQuantities,
+    });
 
-        setFormData({
-            ...formData,
-            plants: newMaterials,
-            plantQuantities: newQuantities,
-        });
-
-        setErrors({ ...errors, plants: "", plantQuantities: "" });
-    };
+    setErrors({ ...errors, plants: "", plantQuantities: "" });
+};
 
     const handleStep5MaterialsSelection = (selected) => {
         const newMaterials = selected || [];
-        const newQuantities = { ...formData.materialNeedPlantQuantities };
+        const newQuantities = {};
 
-        const selectedValues = newMaterials.map(m => m.value);
-        Object.keys(newQuantities).forEach(material => {
-            if (!selectedValues.includes(material)) {
-                delete newQuantities[material];
+        // Only add entries for materials that are selected
+        newMaterials.forEach(material => {
+            const key = material.value;
+            // Preserve existing quantity or use empty string
+            if (formData.materialNeedPlantQuantities[key] !== undefined) {
+                newQuantities[key] = formData.materialNeedPlantQuantities[key];
             }
         });
 
-        if (selectedValues.includes("Others")) {
-            newQuantities["Others"] = formData.materialNeedPlantQuantities["Others"] || "";
-        } else {
-            newQuantities["Others"] = "";
+        // IMPORTANT: If "Others" is not in newMaterials, make sure it's not in newQuantities
+        const hasOthers = newMaterials.some(m => m.value === "Others");
+        if (!hasOthers && newQuantities["Others"] !== undefined) {
+            delete newQuantities["Others"];
         }
 
         setFormData({
@@ -477,15 +476,34 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     };
 
     const handleChargeableItemsChange = (selected) => {
+        const newItems = selected || [];
+        const newQuantities = { ...formData.chargeableQuantities };
+
+        const selectedValues = newItems.map(item => item.value);
+        Object.keys(newQuantities).forEach(key => {
+            if (!selectedValues.includes(key)) {
+                delete newQuantities[key];
+            }
+        });
+
+        newItems.forEach(item => {
+            if (!newQuantities[item.value]) {
+                newQuantities[item.value] = "";
+            }
+        });
+
         setFormData({
             ...formData,
-            material_supplied_chargeable_items: selected || [],
+            material_supplied_chargeable_items: newItems,
+            chargeableQuantities: newQuantities,
         });
 
         setErrors((prevErrors) => ({
             ...prevErrors,
             material_supplied_chargeable_items: "",
-            materialschargeableItemsOptionsother: selected?.some(item => item.value === "Others") ? prevErrors.materialschargeableItemsOptionsother : ""
+            materialschargeableItemsOptionsother: "",
+            chargeableOtherName: "",
+            chargeableQuantities: {}
         }));
     };
 
@@ -512,6 +530,15 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     };
 
     const handleStep5QuantityChange = (plantValue, quantity) => {
+        // Don't allow setting quantity for unselected plants
+        const isPlantSelected = formData.step5Plants.some(plant =>
+            plant.value === plantValue || (plantValue === "Others" && plant.value === "Others")
+        );
+
+        if (!isPlantSelected) {
+            return;
+        }
+
         setFormData({
             ...formData,
             materialNeedPlantQuantities: {
@@ -615,6 +642,10 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         if (!formData.scopesOfImprovement?.trim())
             newErrors.scopesOfImprovement = "Required";
 
+        if (!formData.siteRating || formData.siteRating === "") {
+            newErrors.siteRating = "Please select a site rating";
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -661,12 +692,10 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         formData.nutrientsData.forEach((field, index) => {
             const rowErrors = {};
 
-            if (!field.nutrients) {
-                rowErrors.nutrients = "Required";
-            }
+            if (!field.nutrients) rowErrors.nutrients = "Required";
 
-            if (!field.tankCapacity) {
-                rowErrors.tankCapacity = "Required";
+            if (!field.tankCapacity || isNaN(field.tankCapacity) || Number(field.tankCapacity) <= 0) {
+                rowErrors.tankCapacity = "Enter valid tank capacity";
             }
 
             if (!field.numberOfTopups && field.numberOfTopups !== 0) {
@@ -689,11 +718,29 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             newErrors.material_supplied_chargeable_items = "Select chargeable items supplied";
         }
 
-        if (
-            formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") &&
-            !formData.materialschargeableItemsOptionsother?.trim()
-        ) {
-            newErrors.materialschargeableItemsOptionsother = "Please specify other items";
+        if (formData.material_supplied_chargeable_items?.some((item) => item.value === "Others")) {
+            if (!formData.chargeableOtherName?.trim()) {
+                newErrors.chargeableOtherName = "Please specify other item name";
+            }
+        }
+
+        if (formData.material_supplied_chargeable_items && formData.material_supplied_chargeable_items.length > 0) {
+            const chargeableQtyErrors = {};
+            let hasChargeableQtyErrors = false;
+
+            formData.material_supplied_chargeable_items.forEach((item) => {
+                const qtyKey = item.value;
+                const qty = formData.chargeableQuantities?.[qtyKey];
+
+                if (!qty || qty.trim() === "" || isNaN(qty) || parseInt(qty) <= 0) {
+                    chargeableQtyErrors[qtyKey] = "Quantity is required";
+                    hasChargeableQtyErrors = true;
+                }
+            });
+
+            if (hasChargeableQtyErrors) {
+                newErrors.chargeableQuantities = chargeableQtyErrors;
+            }
         }
 
         if (!formData.setupPhotos || formData.setupPhotos.length === 0) {
@@ -707,7 +754,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     const validateStep5 = () => {
         let newErrors = {};
 
-        // Quantity validation for materials
         if (formData.step5Plants && formData.step5Plants.length > 0) {
             const quantityErrors = {};
             let hasQuantityErrors = false;
@@ -733,7 +779,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             }
         }
 
-        // Nutrients validation - Tank Capacity and Top-ups are required only if Nutrients is selected
         formData.material_need_nutrientsData.forEach((field, index) => {
             if (field.nutrients) {
                 const rowErrors = {};
@@ -753,9 +798,27 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             }
         });
 
-        // Neem Oil validation
         if (!formData.material_need_neemoil) {
             newErrors.material_need_neemoil = "Required";
+        }
+
+        if (formData.material_need_chargeable_items && formData.material_need_chargeable_items.length > 0) {
+            const chargeableQtyErrors = {};
+            let hasChargeableQtyErrors = false;
+
+            formData.material_need_chargeable_items.forEach((item) => {
+                const key = item.value;
+                const qty = formData.chargeableNeedQuantities?.[key];
+
+                if (!qty || qty.trim() === "" || isNaN(qty) || parseInt(qty) <= 0) {
+                    chargeableQtyErrors[key] = "Quantity is required";
+                    hasChargeableQtyErrors = true;
+                }
+            });
+
+            if (hasChargeableQtyErrors) {
+                newErrors.chargeableNeedQuantities = chargeableQtyErrors;
+            }
         }
 
         setErrors(newErrors);
@@ -1038,7 +1101,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             {/* Lights Working */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    Lights Working (Light काम कर रही है) <span className="text-red-500">*</span>
+                                    Lights Working (Light काम कर रही है)
                                 </label>
                                 <div className="flex gap-6">
                                     {["yes", "no"].map((v) => (
@@ -1054,7 +1117,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         </label>
                                     ))}
                                 </div>
-                                {errors.lightsWorking && <span className="text-red-500 text-sm mt-1">{errors.lightsWorking}</span>}
                                 {formData.lightsWorking === "no" && (
                                     <div className="mt-3">
                                         <input
@@ -1345,34 +1407,70 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                     {/* STEP 3 */}
                     {step === 3 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6">
+                            {/* Yes/No fields */}
                             <YesNoSimple name="harvestTraining" label="How & When to Harvest (कटाई कैसे और कब करें)" />
                             <YesNoSimple name="pestManagement" label="Pest Management (कीट प्रबंधन)" />
                             <YesNoSimple name="equipmentCleaning" label="Equipment Cleaning (उपकरण की सफ़ाई)" />
                             <YesNoSimple name="plantMaintenance" label="Plant Maintenance (पौध रखरखाव)" />
 
-                            {/* Scopes of Improvement */}
-                            <div className="flex flex-col md:col-span-2">
-                                <label className="mb-1 font-medium text-gray-700">
-                                    Scopes of Improvement (सुधार की गुंजाइशें) <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="scopesOfImprovement"
-                                    value={formData.scopesOfImprovement}
-                                    onChange={handleChange}
-                                    placeholder="Specify areas for improvement"
-                                    className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.scopesOfImprovement ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                                />
-                                {errors.scopesOfImprovement && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.scopesOfImprovement}</span>
-                                )}
+                            {/* Scopes of Improvement + Site Rating */}
+                            <div className="flex flex-col md:flex-row md:space-x-4 md:col-span-2">
+                                {/* Scopes of Improvement - Half width */}
+                                <div className="flex-1 mb-4 md:mb-0">
+                                    <label className="mb-1 font-medium text-gray-700">
+                                        Scopes of Improvement (सुधार की गुंजाइशें) <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="scopesOfImprovement"
+                                        value={formData.scopesOfImprovement}
+                                        onChange={handleChange}
+                                        placeholder="Specify areas for improvement"
+                                        className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.scopesOfImprovement ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                                            }`}
+                                    />
+                                    {errors.scopesOfImprovement && (
+                                        <span className="text-red-500 text-sm mt-1">{errors.scopesOfImprovement}</span>
+                                    )}
+                                </div>
+
+                                {/* Site Rating - Half width */}
+                                <div className="flex-1">
+                                    <label className="mb-1 font-medium text-gray-700">
+                                        Site Rating (साइट रेटिंग) <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="flex items-center space-x-1 mt-1">
+                                        {[1, 2, 3, 4, 5].map((star) => {
+                                            let color = 'text-red-500';
+                                            if (formData.siteRating === 3) color = 'text-orange-500';
+                                            if (formData.siteRating === 4 || formData.siteRating === 5) color = 'text-green-500';
+
+                                            return (
+                                                <svg
+                                                    key={star}
+                                                    onClick={() => setFormData({ ...formData, siteRating: star })}
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className={`h-8 w-8 cursor-pointer transition duration-200 ${formData.siteRating >= star ? color : 'text-gray-300'
+                                                        }`}
+                                                    fill="currentColor"
+                                                    viewBox="0 0 20 20"
+                                                >
+                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.974a1 1 0 00.95.69h4.175c.969 0 1.371 1.24.588 1.81l-3.374 2.452a1 1 0 00-.364 1.118l1.286 3.974c.3.921-.755 1.688-1.54 1.118l-3.374-2.452a1 1 0 00-1.176 0l-3.374 2.452c-.784.57-1.838-.197-1.539-1.118l1.285-3.974a1 1 0 00-.364-1.118L2.05 9.401c-.783-.57-.38-1.81.588-1.81h4.175a1 1 0 00.951-.69l1.285-3.974z" />
+                                                </svg>
+                                            );
+                                        })}
+                                    </div>
+                                    {errors.siteRating && (
+                                        <span className="text-red-500 text-sm mt-1">{errors.siteRating}</span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
 
                     {/* STEP 4 */}
                     {step === 4 && (
-                        <div className="space-y-6 px-6 py-6 max-w-full overflow-x-hidden">
+                        <div className="space-y-6 px-6 py-6 max-w-full">
                             {/* Materials Supplied */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
@@ -1441,6 +1539,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                                         {errors.plantQuantities && errors.plantQuantities[material.value] && (
                                                             <span className="text-red-500 text-sm">{errors.plantQuantities[material.value]}</span>
                                                         )}
+
                                                     </div>
                                                 ))}
 
@@ -1498,15 +1597,28 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         <label className="mb-1 font-medium text-gray-700">
                                             Tank Capacity in Litre (टैंक क्षमता लीटर में) <span className="text-red-500">*</span>
                                         </label>
-                                        <Select
-                                            options={tankCapacityOptions}
-                                            value={tankCapacityOptions.find(opt => opt.value === field.tankCapacity)}
-                                            onChange={(selected) => handleDynamicFieldChange(index, 'tankCapacity', selected?.value || '')}
-                                            classNamePrefix="react-select"
-                                            placeholder="Select tank capacity..."
+
+                                        <input
+                                            type="number"
+                                            list="tankCapacityOptions"
+                                            value={field.tankCapacity}
+                                            onChange={(e) => handleDynamicFieldChange(index, "tankCapacity", e.target.value)}
+                                            placeholder="Enter tank capacity in litres"
+                                            className="border border-gray-300 rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-400"
                                         />
+
+                                        <datalist id="tankCapacityOptions">
+                                            <option value="20" />
+                                            <option value="40" />
+                                            <option value="100" />
+                                            <option value="150" />
+                                            <option value="200" />
+                                        </datalist>
+
                                         {errors.nutrientsData && errors.nutrientsData[index]?.tankCapacity && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index]?.tankCapacity}</span>
+                                            <span className="text-red-500 text-sm mt-1">
+                                                {errors.nutrientsData[index]?.tankCapacity}
+                                            </span>
                                         )}
                                     </div>
 
@@ -1560,6 +1672,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     <label className="mb-1 font-medium text-gray-700">
                                         Chargeable Items Supplied (जो वस्तुएँ पैसे के लिए दी गई हैं) <span className="text-red-500">*</span>
                                     </label>
+
                                     <Select
                                         isMulti
                                         options={changebleItemsOptions}
@@ -1567,8 +1680,9 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         onChange={handleChargeableItemsChange}
                                         classNamePrefix="react-select"
                                         placeholder="Select items..."
-                                        styles={{ menu: (p) => ({ ...p, zIndex: 9999, overflow: "visible" }) }}
+                                        styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
                                     />
+
                                     {errors.material_supplied_chargeable_items && (
                                         <span className="text-red-500 text-sm mt-1">{errors.material_supplied_chargeable_items}</span>
                                     )}
@@ -1577,21 +1691,119 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         <div className="mt-3">
                                             <input
                                                 type="text"
-                                                name="materialschargeableItemsOptionsother"
-                                                value={formData.materialschargeableItemsOptionsother || ""}
-                                                onChange={handleChange}
                                                 placeholder="Specify other item"
-                                                className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialschargeableItemsOptionsother ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                                value={formData.chargeableOtherName || ""}
+                                                onChange={(e) => setFormData({ ...formData, chargeableOtherName: e.target.value })}
+                                                className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition 
+                    ${errors.chargeableOtherName ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}
+                `}
                                             />
-                                            {errors.materialschargeableItemsOptionsother && (
-                                                <span className="text-red-500 text-sm mt-1">
-                                                    {errors.materialschargeableItemsOptionsother}
-                                                </span>
+                                            {errors.chargeableOtherName && (
+                                                <span className="text-red-500 text-sm mt-1">{errors.chargeableOtherName}</span>
                                             )}
                                         </div>
                                     )}
 
-                                    {/* Checkbox for "Material Needs to be delivered?" */}
+                                    {formData.material_supplied_chargeable_items?.length > 0 && (
+                                        <div className="flex flex-col mt-4">
+                                            <label className="mb-2 font-medium text-gray-700">
+                                                Quantity of Chargeable Items <span className="text-red-500">*</span>
+                                            </label>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                                                {formData.material_supplied_chargeable_items
+                                                    .filter((i) => i.value !== "Others")
+                                                    .map((item) => (
+                                                        <div key={item.value} className="flex flex-col gap-2">
+                                                            <label className="font-medium text-gray-600">{item.label}:</label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                value={formData.chargeableQuantities?.[item.value] || ""}
+                                                                onChange={(e) => {
+                                                                    const value = e.target.value;
+
+                                                                    setFormData({
+                                                                        ...formData,
+                                                                        chargeableQuantities: {
+                                                                            ...formData.chargeableQuantities,
+                                                                            [item.value]: value
+                                                                        }
+                                                                    });
+
+                                                                    if (errors.chargeableQuantities?.[item.value]) {
+                                                                        setErrors(prev => ({
+                                                                            ...prev,
+                                                                            chargeableQuantities: {
+                                                                                ...prev.chargeableQuantities,
+                                                                                [item.value]: undefined
+                                                                            }
+                                                                        }));
+                                                                    }
+                                                                }}
+                                                                placeholder="Qty"
+                                                                className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition 
+    ${errors.chargeableQuantities && errors.chargeableQuantities[item.value]
+                                                                        ? 'border-red-500 focus:ring-red-400'
+                                                                        : 'border-gray-300 focus:ring-blue-400'
+                                                                    }`}
+                                                            />
+
+
+                                                            {errors.chargeableQuantities && errors.chargeableQuantities[item.value] && (
+                                                                <span className="text-red-500 text-sm">{errors.chargeableQuantities[item.value]}</span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+
+                                                {formData.material_supplied_chargeable_items?.some((i) => i.value === "Others") &&
+                                                    formData.chargeableOtherName?.trim() !== "" && (
+                                                        <div className="flex flex-col gap-2">
+                                                            <label className="font-medium text-gray-600">{formData.chargeableOtherName}:</label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                value={formData.chargeableQuantities?.["Others"] || ""}
+                                                                onChange={(e) => {
+                                                                    const value = e.target.value;
+
+                                                                    setFormData({
+                                                                        ...formData,
+                                                                        chargeableQuantities: {
+                                                                            ...formData.chargeableQuantities,
+                                                                            Others: value
+                                                                        }
+                                                                    });
+
+                                                                    if (errors.chargeableQuantities?.["Others"]) {
+                                                                        setErrors(prev => ({
+                                                                            ...prev,
+                                                                            chargeableQuantities: {
+                                                                                ...prev.chargeableQuantities,
+                                                                                Others: undefined
+                                                                            }
+                                                                        }));
+                                                                    }
+                                                                }}
+                                                                placeholder="Qty"
+                                                                className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition 
+    ${errors.chargeableQuantities && errors.chargeableQuantities["Others"]
+                                                                        ? 'border-red-500 focus:ring-red-400'
+                                                                        : 'border-gray-300 focus:ring-blue-400'
+                                                                    }`}
+                                                            />
+
+
+                                                            {errors.chargeableQuantities && errors.chargeableQuantities["Others"] && (
+                                                                <span className="text-red-500 text-sm">{errors.chargeableQuantities["Others"]}</span>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="flex items-center mt-4">
                                         <input
                                             type="checkbox"
@@ -1641,7 +1853,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
                     {/* STEP 5 */}
                     {step === 5 && (
-                        <div className="space-y-6 px-6 py-6 max-w-full overflow-x-hidden">
+                        <div className="space-y-6 px-6 py-6 max-w-full">
                             <h3 className="font-semibold text-lg text-gray-800">Material Need To Deliver</h3>
 
                             {/* Materials Supplied */}
@@ -1677,7 +1889,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         <label className="mb-2 font-medium text-gray-700">
                                             Quantity of Materials <span className="text-red-500">*</span>
                                         </label>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                             {formData.step5Plants
                                                 .filter((item) => item.value !== "Others")
                                                 .map((material) => (
@@ -1695,7 +1907,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                                                 className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialNeedPlantQuantities && errors.materialNeedPlantQuantities[material.value]
                                                                     ? 'border-red-500 focus:ring-red-400'
                                                                     : 'border-gray-300 focus:ring-blue-400'
-                                                                    } flex-1`}
+                                                                    } w-24`}
                                                             />
                                                         </div>
                                                         {errors.materialNeedPlantQuantities && errors.materialNeedPlantQuantities[material.value] && (
@@ -1720,7 +1932,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                                                 className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialNeedPlantQuantities && errors.materialNeedPlantQuantities["Others"]
                                                                     ? 'border-red-500 focus:ring-red-400'
                                                                     : 'border-gray-300 focus:ring-blue-400'
-                                                                    } flex-1`}
+                                                                    } w-24`}
                                                             />
                                                         </div>
                                                         {errors.materialNeedPlantQuantities && errors.materialNeedPlantQuantities["Others"] && (
@@ -1755,16 +1967,23 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         <label className="mb-1 font-medium text-gray-700">
                                             Tank Capacity in Litre (टैंक क्षमता लीटर में) {field.nutrients && <span className="text-red-500">*</span>}
                                         </label>
-                                        <Select
-                                            options={tankCapacityOptions}
-                                            value={tankCapacityOptions.find(opt => opt.value === field.tankCapacity)}
-                                            onChange={(selected) => handleStep5DynamicFieldChange(index, 'tankCapacity', selected?.value || '')}
-                                            classNamePrefix="react-select"
-                                            placeholder="Select tank capacity..."
-                                            className={field.nutrients && errors.material_need_nutrientsData && errors.material_need_nutrientsData[index]?.tankCapacity ? 'border-red-500' : ''}
+
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={field.tankCapacity || ""}
+                                            onChange={(e) => handleStep5DynamicFieldChange(index, 'tankCapacity', e.target.value)}
+                                            placeholder="Enter tank capacity in litres"
+                                            className={`border rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-400 ${field.nutrients && errors.material_need_nutrientsData && errors.material_need_nutrientsData[index]?.tankCapacity
+                                                ? 'border-red-500 focus:ring-red-400'
+                                                : 'border-gray-300 focus:ring-blue-400'
+                                                }`}
                                         />
+
                                         {field.nutrients && errors.material_need_nutrientsData && errors.material_need_nutrientsData[index]?.tankCapacity && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.material_need_nutrientsData[index]?.tankCapacity}</span>
+                                            <span className="text-red-500 text-sm mt-1">
+                                                {errors.material_need_nutrientsData[index]?.tankCapacity}
+                                            </span>
                                         )}
                                     </div>
 
@@ -1855,9 +2074,26 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     options={changebleItemsOptions}
                                     value={formData.material_need_chargeable_items}
                                     onChange={(selected) => {
+                                        const newItems = selected || [];
+                                        const newQuantities = { ...formData.chargeableNeedQuantities };
+
+                                        const selectedValues = newItems.map(item => item.value);
+                                        Object.keys(newQuantities).forEach(key => {
+                                            if (!selectedValues.includes(key)) {
+                                                delete newQuantities[key];
+                                            }
+                                        });
+
+                                        newItems.forEach(item => {
+                                            if (!newQuantities[item.value]) {
+                                                newQuantities[item.value] = "";
+                                            }
+                                        });
+
                                         setFormData({
                                             ...formData,
-                                            material_need_chargeable_items: selected || [],
+                                            material_need_chargeable_items: newItems,
+                                            chargeableNeedQuantities: newQuantities,
                                         });
                                     }}
                                     classNamePrefix="react-select"
@@ -1877,10 +2113,105 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         />
                                     </div>
                                 )}
+
+                                {formData.material_need_chargeable_items?.length > 0 && (
+                                    <div className="flex flex-col mt-4">
+                                        <label className="mb-2 font-medium text-gray-700">
+                                            Quantity of Chargeable Items <span className="text-red-500">*</span>
+                                        </label>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {formData.material_need_chargeable_items
+                                                .filter((i) => i.value !== "Others")
+                                                .map((item) => (
+                                                    <div key={item.value} className="flex flex-col gap-2">
+                                                        <label className="font-medium text-gray-600">{item.label}:</label>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            value={formData.chargeableNeedQuantities?.[item.value] || ""}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value;
+                                                                setFormData({
+                                                                    ...formData,
+                                                                    chargeableNeedQuantities: {
+                                                                        ...formData.chargeableNeedQuantities,
+                                                                        [item.value]: value,
+                                                                    },
+                                                                });
+
+                                                                if (errors.chargeableNeedQuantities?.[item.value]) {
+                                                                    setErrors(prev => ({
+                                                                        ...prev,
+                                                                        chargeableNeedQuantities: {
+                                                                            ...prev.chargeableNeedQuantities,
+                                                                            [item.value]: undefined,
+                                                                        },
+                                                                    }));
+                                                                }
+                                                            }}
+                                                            placeholder="Qty"
+                                                            className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition 
+                                    ${errors.chargeableNeedQuantities && errors.chargeableNeedQuantities[item.value]
+                                                                    ? 'border-red-500 focus:ring-red-400'
+                                                                    : 'border-gray-300 focus:ring-blue-400'
+                                                                }`}
+                                                        />
+                                                        {errors.chargeableNeedQuantities && errors.chargeableNeedQuantities[item.value] && (
+                                                            <span className="text-red-500 text-sm">{errors.chargeableNeedQuantities[item.value]}</span>
+                                                        )}
+                                                    </div>
+                                                ))}
+
+                                            {formData.material_need_chargeable_items?.some((i) => i.value === "Others") &&
+                                                formData.materialsNeedChargeableItemsOptionsother?.trim() !== "" && (
+                                                    <div className="flex flex-col gap-2">
+                                                        <label className="font-medium text-gray-600">{formData.materialsNeedChargeableItemsOptionsother}:</label>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            value={formData.chargeableNeedQuantities?.["Others"] || ""}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value;
+                                                                setFormData({
+                                                                    ...formData,
+                                                                    chargeableNeedQuantities: {
+                                                                        ...formData.chargeableNeedQuantities,
+                                                                        Others: value,
+                                                                    },
+                                                                });
+
+                                                                if (errors.chargeableNeedQuantities?.["Others"]) {
+                                                                    setErrors(prev => ({
+                                                                        ...prev,
+                                                                        chargeableNeedQuantities: {
+                                                                            ...prev.chargeableNeedQuantities,
+                                                                            Others: undefined,
+                                                                        },
+                                                                    }));
+                                                                }
+                                                            }}
+                                                            placeholder="Qty"
+                                                            className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition 
+                                    ${errors.chargeableNeedQuantities && errors.chargeableNeedQuantities["Others"]
+                                                                    ? 'border-red-500 focus:ring-red-400'
+                                                                    : 'border-gray-300 focus:ring-blue-400'
+                                                                }`}
+                                                        />
+                                                        {errors.chargeableNeedQuantities && errors.chargeableNeedQuantities["Others"] && (
+                                                            <span className="text-red-500 text-sm">{errors.chargeableNeedQuantities["Others"]}</span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
+
                         </div>
                     )}
 
+                    {/* BUTTONS */}
                     {/* BUTTONS */}
                     <div className="mt-6 px-6">
                         <div className="flex flex-col md:flex-row justify-end w-full gap-3">
@@ -1896,23 +2227,37 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             <button
                                 type="button"
                                 disabled={submitting}
-                                onClick={() => {
+                                onClick={async () => {
+                                    console.log('Submit button clicked, step:', step);
+                                    console.log('materialNeedsDelivery:', formData.materialNeedsDelivery);
+
                                     if (step === 5 || (step === 4 && !formData.materialNeedsDelivery)) {
+                                        console.log('Should submit form');
                                         let isValid = false;
                                         if (step === 4) {
+                                            console.log('Validating step 4');
                                             isValid = validateStep4();
+                                            console.log('Step 4 validation result:', isValid);
                                         } else if (step === 5) {
+                                            console.log('Validating step 5');
                                             isValid = validateStep5();
+                                            console.log('Step 5 validation result:', isValid);
                                         }
+
                                         if (isValid) {
-                                            handleSubmit();
+                                            console.log('Validation passed, calling handleSubmit');
+                                            await handleSubmit();
+                                        } else {
+                                            console.log('Validation failed, errors:', errors);
+                                            toast.error("Please fix validation errors before submitting");
                                         }
                                     } else {
+                                        console.log('Going to next step');
                                         handleNext();
                                     }
                                 }}
                                 className={`bg-[#9FC762] hover:bg-[#8DB350] text-white font-medium px-6 py-2 rounded-lg w-full md:w-auto transition
-        ${submitting ? "opacity-60 cursor-not-allowed" : ""}`}
+                ${submitting ? "opacity-60 cursor-not-allowed" : ""}`}
                             >
                                 {submitting
                                     ? "Please wait..."

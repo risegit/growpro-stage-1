@@ -27,7 +27,7 @@ switch ($method) {
                 $amc_data[] = $row;
             }
             // $customerId = $amc_detail['customer_id'];
-            $grower_detail = $conn->query("SELECT amc_growers.grower_id,growers.system_type,growers.system_type_other,amc_growers.grower_qty FROM amc_growers INNER JOIN growers ON amc_growers.grower_id=growers.id where amc_growers.amc_id='$amcId'");
+            $grower_detail = $conn->query("SELECT amc_growers.grower_id,growers.system_type,growers.system_type_other,amc_growers.grower_qty,growers.grower_qty max_qty FROM amc_growers INNER JOIN growers ON amc_growers.grower_id=growers.id where amc_growers.amc_id='$amcId'");
             $grower_data = [];
             while ($row = $grower_detail->fetch_assoc()) {
                 $grower_data[] = $row;
@@ -63,8 +63,8 @@ switch ($method) {
             }
             echo json_encode(["status" => "success", "data" => $data]);
         }else{
-            // $result = $conn->query("SELECT g.id AS grower_id, g.customer_id, g.system_type, g.grower_qty, u.name, u.phone FROM growers g LEFT JOIN amc_growers ag ON ag.grower_id = g.id INNER JOIN users u ON g.customer_id = u.id WHERE u.status='active' and ag.id IS NULL GROUP BY u.name");
-            $result = $conn->query("SELECT u.id AS customer_id, u.name, u.phone, SUM(g.grower_qty) AS total_grower_qty, IFNULL(SUM(ag.used_qty), 0) AS used_grower_qty, (SUM(g.grower_qty) - IFNULL(SUM(ag.used_qty), 0)) AS remaining_grower_qty FROM users u INNER JOIN growers g ON g.customer_id = u.id LEFT JOIN ( SELECT grower_id, SUM(grower_qty) AS used_qty FROM amc_growers GROUP BY grower_id ) ag ON ag.grower_id = g.id WHERE u.status = 'active' GROUP BY u.id, u.name, u.phone HAVING remaining_grower_qty > 0;");
+            $result = $conn->query("SELECT g.id AS grower_id, g.customer_id, g.system_type, g.grower_qty, u.name, u.phone FROM growers g LEFT JOIN amc_growers ag ON ag.grower_id = g.id INNER JOIN users u ON g.customer_id = u.id WHERE u.status='active' and ag.id IS NULL GROUP BY u.name");
+            // $result = $conn->query("SELECT u.id AS customer_id, u.name, u.phone, SUM(g.grower_qty) AS total_grower_qty, IFNULL(SUM(ag.used_qty), 0) AS used_grower_qty, (SUM(g.grower_qty) - IFNULL(SUM(ag.used_qty), 0)) AS remaining_grower_qty FROM users u INNER JOIN growers g ON g.customer_id = u.id LEFT JOIN ( SELECT grower_id, SUM(grower_qty) AS used_qty FROM amc_growers GROUP BY grower_id ) ag ON ag.grower_id = g.id WHERE u.status = 'active' GROUP BY u.id, u.name, u.phone HAVING remaining_grower_qty > 0;");
             $data = [];
 
             while ($row = $result->fetch_assoc()) {
@@ -98,6 +98,7 @@ switch ($method) {
         $subtotal = $pricing+$transport;
         $gstAmount = ($subtotal * $gst) / 100;
         $total = round($subtotal + $gstAmount);
+        
         $sql = "INSERT INTO amc_details (`customer_id`, `amc_free_paid`, `duration`, `other_duration`, `visits_per_month`, `validity_from`, `validity_upto`, `pricing`, `transport`, `gst`,`total`, `updated_by`, `created_date`, `created_time`) VALUES ('$customerId', '$amcFreePaid', '$duration', '$other_duration', '$visitsPerMonth', '$validityFrom', '$validityUpto', '$pricing', '$transport', '$gst', '$total', '1', '$date', '$time')";
         if ($conn->query($sql)) {
             $amc_id = $conn->insert_id;
