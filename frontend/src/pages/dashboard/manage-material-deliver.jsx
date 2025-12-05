@@ -128,10 +128,10 @@ export default function UserTable() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 sm:px-6 py-5 sm:py-4 border-b">
           <div>
             <h2 className="text-2xl font-bold mb-2 text-gray-800">
-              Employee Management
+              Manage Material Deliver
             </h2>
             <p className="text-sm sm:text-base text-gray-600">
-              View and manage all employees
+              View and manage deliver material
             </p>
           </div>
 

@@ -40,6 +40,7 @@ import Viewvisits from "@/pages/dashboard/viewvisits";
 import Editvisit from "@/pages/dashboard/editvisit";
 import Schedulevisit from "@/pages/dashboard/schedulevisit";
 import ManageMaterialDeliver from "@/pages/dashboard/manage-material-deliver";
+import EditMaterialDeliver from "@/pages/dashboard/editmaterialdeliver";
 import Reports from "@/pages/dashboard/reports";
 
 import { SignIn } from "@/pages/auth";
@@ -283,7 +284,7 @@ const routes = [
             allowedRoles: ["admin", "manager"],
             element: (
               <RoleProtectedRoute
-                element={<EditUserForm />}
+                element={<EditMaterialDeliver />}
                 allowedRoles={["admin", "manager"]}
               />
             ),
