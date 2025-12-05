@@ -342,7 +342,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                 formPayload.append("user_code", user_code);
             }
 
-            const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit123.php`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php`, {
                 method: "POST",
                 body: formPayload,
             });
