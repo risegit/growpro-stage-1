@@ -12,11 +12,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     const user = JSON.parse(localStorage.getItem("user"));
     const user_code = user?.user_code;
     const [originalData, setOriginalData] = useState(null);
-    
 
-
-    const { id } = useParams(); // "id" matches the param name in your route
-    // console.log("Visit ID:", id);
+    const { id } = useParams();
 
     const addDynamicRow = () => {
         setFormData((prevFormData) => ({
@@ -109,6 +106,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         equipmentCleaning: "",
         plantMaintenance: "",
         scopesOfImprovement: "",
+        siteRating: "",
 
         plants: [],
         plantQuantities: {},
@@ -127,6 +125,10 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         material_need_nutrientsData: [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
         material_need_neemoil: "",
         materialNeedPlantQuantities: {},
+
+        // ADD THIS FOR CHARGEABLE ITEMS QUANTITIES
+        chargeableQuantities: {},
+        needChargeableQuantities: {}
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -157,6 +159,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     ];
 
     const plantProblemOptions = [
+        { label: "No Problem", value: "No Problem" },
         { label: "Light Deficiency", value: "Light Deficiency" },
         { label: "Improper Maintenance", value: "Improper Maintenance" },
         { label: "Overgrown crops", value: "Overgrown crops" },
@@ -219,237 +222,236 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         { label: "200", value: "200" }
     ];
 
-     const loadCustomers = async () => {
-            setLoadingCustomers(true);
-            try {
-                let selectedPlantProblems = [];
-                let selectedPestTypes = [];
-                let selectedOtherPest = "";
-                let selectedsuppliedPlants = [];
-                let selectedSuppliedQuantities = [];
-                let selectedOtherSuppliedPlant = "";
-                let selectedSuppliedChargeableItem = [];
-                let selectedOtherSuppliedChargeableItem = "";
-                let selectedNutrientsData = [];
-                let selectedSuppliedPhotoSetup = [];
-                let selectedNeedPlants = [];
-                let selectedOtherNeedPlant = "";
-                let selectedNeedQuantities = [];
-                let selectedNeedNutrientsData = [];
-                let selectedNeedChargeableItem = [];
-                const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?editSiteVisit='active'&user_code=${user_code}&schId=${id}`);
-    
-                const data = await res.json();
-                console.log("Fetched user data:", data);
-    
-                if (data.status === "success" && data.data) {
-                    const user = data.data[0];
-    
-                    if (Array.isArray(data.plantProblems)) {
-                        selectedPlantProblems = data.plantProblems.map(p => ({
-                            value: p.problem_name,
-                            label: p.problem_name
-                        }));
-                    }
-                    if (Array.isArray(data.pestTypes)) {
-                        selectedPestTypes = data.pestTypes.map(p => {
-                            if (p.pest_name === "Others") {
-                                selectedOtherPest = p.other_pest_name || "";
-                                return {
-                                    value: "Others",
-                                    label: "Others"
-                                };
-                            }
-                            return {
-                                value: p.pest_name,
-                                label: p.pest_name
-                            };
-                        });
-                    }
-                    
-                    if (Array.isArray(data.suppliedPlants)) {
-                        selectedsuppliedPlants = data.suppliedPlants.map(p => {
-                            if (p.plant_name === "Others") {
-                                selectedOtherSuppliedPlant = p.other_plant_name || "";
-    
-                                selectedSuppliedQuantities["Others"] = p.quantity || "";
-    
-                                return {
-                                    value: "Others",
-                                    label: "Others"
-                                };
-                            }
-    
-                            selectedSuppliedQuantities[p.plant_name] = p.quantity || "";
-    
-                            return {
-                                value: p.plant_name,
-                                label: p.plant_name
-                            };
-                        });
-                    }
-    
-                    if (Array.isArray(data.suppliedChargeableItem)) {
-                        selectedSuppliedChargeableItem = data.suppliedChargeableItem.map(p => {
-                            if (p.item_name === "Others") {
-                                selectedOtherPest = p.other_item_name || "";
-                                return {
-                                    value: "Others",
-                                    label: "Others"
-                                };
-                            }
-                            return {
-                                value: p.item_name,
-                                label: p.item_name
-                            };
-                        });
-                    }
-    
-                    if (Array.isArray(data.suppliedNutrients)) {
-                        selectedNutrientsData = data.suppliedNutrients.map(n => ({
-                            nutrients: n.nutrient_type === "Others"
-                                ? "Others"
-                                : n.nutrient_type,
-    
-                            tankCapacity: n.tank_capacity || "",
-                            numberOfTopups: n.topups || "",
-    
-                            // Only needed if you want to show "Other" text field
-                            otherNutrient: n.other_nutrient_name || "",
-                        }));
-                    }
-    
-                    if (Array.isArray(data.suppliedPhotoSetup)) {
-                        selectedSuppliedPhotoSetup = data.suppliedPhotoSetup.map(p => ({
-                            id: p.id,                                  // ← required for delete
-                            image_url: p.image_url,                    // ← actual file name
-                            preview: `${import.meta.env.VITE_API_URL}uploads/site-visit/${p.image_url}`,
-                            file: null
-                        }));
-                    }
-    
-    
-                    if (Array.isArray(data.needPlants)) {
-                        selectedNeedPlants = data.needPlants.map(p => {
-                            if (p.plant_name === "Others") {
-                                selectedOtherNeedPlant = p.other_plant_name || "";
-    
-                                selectedNeedQuantities["Others"] = p.quantity || "";
-    
-                                return {
-                                    value: "Others",
-                                    label: "Others"
-                                };
-                            }
-    
-                            selectedNeedQuantities[p.plant_name] = p.quantity || "";
-    
-                            return {
-                                value: p.plant_name,
-                                label: p.plant_name
-                            };
-                        });
-                    }
-    
-                    if (Array.isArray(data.needNutrients)) {
-                        selectedNeedNutrientsData = data.needNutrients.map(n => ({
-                            nutrients: n.nutrient_type === "Others"
-                                ? "Others"
-                                : n.nutrient_type,
-    
-                            tankCapacity: n.tank_capacity || "",
-                            numberOfTopups: n.topups || "",
-    
-                            // Only needed if you want to show "Other" text field
-                            otherNutrient: n.other_nutrient_name || "",
-                        }));
-                    }
-    
-                    if (Array.isArray(data.needChargeableItem)) {
-                        selectedNeedChargeableItem = data.needChargeableItem.map(p => {
-                            if (p.item_name === "Others") {
-                                selectedOtherPest = p.other_item_name || "";
-                                return {
-                                    value: "Others",
-                                    label: "Others"
-                                };
-                            }
-                            return {
-                                value: p.item_name,
-                                label: p.item_name
-                            };
-                        });
-                    }
-    
-    
-                    const finalFormData = {
-                        customer_name: user.customer_name || '',
-                        plantsWater: user.are_plants_getting_water || "",
-                        waterAbovePump: user.water_above_pump || "",
-                        timerWorking: user.timer_working || "",
-                        timerIssue: user.timer_issue || "",
-                        motorWorking: user.motor_working || "",
-                        motorIssue: user.motor_issue || "",
-                        lightsWorking: user.light_working || "",
-                        lightsIssue: user.light_issue || "",
-                        equipmentDamaged: user.equipment_damaged || "",
-                        equipmentDamageDetails: user.damaged_items || "",
-                        anyLeaks: user.any_leaks || "",
-                        cleanEnvironment: user.clean_equipment || "",
-                        electricSecured: user.electric_connections_secured || "",
-                        initialPh: user.initial_ph || "",
-                        correctedPh: user.corrected_ph || "",
-                        initialTds: user.initial_tds || "",
-                        correctedTds: user.corrected_tds || "",
-                        pestsPresent: user.presence_of_pests || "",
-                        pestOther: user.pest_other || "",
-                        nutrientDeficiency: user.nutrient_deficiency || "",
-                        deficiencyDetails: user.deficiency_details || "",
-                        plantProblems: selectedPlantProblems,
-                        pestTypes: selectedPestTypes,
-                        pestOther: selectedOtherPest,
-                        cropNames: user.which_crop || "",
-                        harvestTraining: user.client_training_harvest || "",
-                        pestManagement: user.pest_management || "",
-                        equipmentCleaning: user.equipment_cleaning || "",
-                        plantMaintenance: user.plant_maintenance || "",
-                        scopesOfImprovement: user.scope_of_improvement || "",
-                        plants: selectedsuppliedPlants,
-                        materialsSuppliedPlantData: selectedOtherSuppliedPlant,
-                        plantQuantities: selectedSuppliedQuantities,
-                        material_supplied_neemoil: user.material_supplied_neemoil || "",
-                        material_supplied_chargeable_items: selectedSuppliedChargeableItem,
-                        materialNeedsDelivery: user.material_needs_delivery === "true" || "",
-                        nutrientsData: selectedNutrientsData.length > 0 ? selectedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
-                        setupPhotos: selectedSuppliedPhotoSetup,
-                        step5Plants: selectedNeedPlants,
-                        materialsDeliveredPlantData: selectedOtherNeedPlant,
-                        materialNeedPlantQuantities: selectedNeedQuantities,
-                        material_need_nutrientsData: selectedNeedNutrientsData.length > 0 ? selectedNeedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
-                        material_need_neemoil: user.material_delivered_neemoil || "",
-                        material_need_chargeable_items: selectedNeedChargeableItem,
-    
-                    };
-    
-                    setFormData(finalFormData);
-                    setOriginalData(JSON.parse(JSON.stringify(finalFormData)));
-    
+    const loadCustomers = async () => {
+        setLoadingCustomers(true);
+        try {
+            let selectedPlantProblems = [];
+            let selectedPestTypes = [];
+            let selectedOtherPest = "";
+            let selectedsuppliedPlants = [];
+            let selectedSuppliedQuantities = [];
+            let selectedOtherSuppliedPlant = "";
+            let selectedSuppliedChargeableItem = [];
+            let selectedNutrientsData = [];
+            let selectedSuppliedPhotoSetup = [];
+            let selectedNeedPlants = [];
+            let selectedOtherNeedPlant = "";
+            let selectedNeedQuantities = [];
+            let selectedNeedNutrientsData = [];
+            let selectedNeedChargeableItem = [];
+
+            // ADD THESE FOR CHARGEABLE ITEMS
+            let selectedChargeableQuantities = {};
+            let selectedNeedChargeableQuantities = {};
+            let selectedOtherSuppliedItemName = "";
+            let selectedOtherNeedItemName = "";
+
+            const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?editSiteVisit='active'&user_code=${user_code}&schId=${id}`);
+
+            const data = await res.json();
+            console.log("Fetched user data:", data);
+
+            if (data.status === "success" && data.data) {
+                const user = data.data[0];
+
+                if (Array.isArray(data.plantProblems)) {
+                    selectedPlantProblems = data.plantProblems.map(p => ({
+                        value: p.problem_name,
+                        label: p.problem_name
+                    }));
                 }
-                
-            } catch (err) {
-                console.error('Error loading customers:', err);
-            } finally {
-                setLoadingCustomers(false);
+                if (Array.isArray(data.pestTypes)) {
+                    selectedPestTypes = data.pestTypes.map(p => {
+                        if (p.pest_name === "Others") {
+                            selectedOtherPest = p.other_pest_name || "";
+                            return {
+                                value: "Others",
+                                label: "Others"
+                            };
+                        }
+                        return {
+                            value: p.pest_name,
+                            label: p.pest_name
+                        };
+                    });
+                }
+
+                if (Array.isArray(data.suppliedPlants)) {
+                    selectedsuppliedPlants = data.suppliedPlants.map(p => {
+                        if (p.plant_name === "Others") {
+                            selectedOtherSuppliedPlant = p.other_plant_name || "";
+                            selectedSuppliedQuantities["Others"] = p.quantity || "";
+                            return {
+                                value: "Others",
+                                label: "Others"
+                            };
+                        }
+                        selectedSuppliedQuantities[p.plant_name] = p.quantity || "";
+                        return {
+                            value: p.plant_name,
+                            label: p.plant_name
+                        };
+                    });
+                }
+
+                // UPDATED THIS SECTION FOR SUPPLIED CHARGEABLE ITEMS
+                if (Array.isArray(data.suppliedChargeableItem)) {
+                    selectedSuppliedChargeableItem = data.suppliedChargeableItem.map(p => {
+                        if (p.item_name === "Others") {
+                            selectedOtherSuppliedItemName = p.other_item_name || "";
+                            selectedChargeableQuantities["Others"] = p.quantity || "";
+                            return {
+                                value: "Others",
+                                label: "Others"
+                            };
+                        }
+                        selectedChargeableQuantities[p.item_name] = p.quantity || "";
+                        return {
+                            value: p.item_name,
+                            label: p.item_name
+                        };
+                    });
+                }
+
+                if (Array.isArray(data.suppliedNutrients)) {
+                    selectedNutrientsData = data.suppliedNutrients.map(n => ({
+                        nutrients: n.nutrient_type === "Others"
+                            ? "Others"
+                            : n.nutrient_type,
+                        tankCapacity: n.tank_capacity || "",
+                        numberOfTopups: n.topups || "",
+                        otherNutrient: n.other_nutrient_name || "",
+                    }));
+                }
+
+                if (Array.isArray(data.suppliedPhotoSetup)) {
+                    selectedSuppliedPhotoSetup = data.suppliedPhotoSetup.map(p => ({
+                        id: p.id,
+                        image_url: p.image_url,
+                        preview: `${import.meta.env.VITE_API_URL}uploads/site-visit/${p.image_url}`,
+                        file: null
+                    }));
+                }
+
+                if (Array.isArray(data.needPlants)) {
+                    selectedNeedPlants = data.needPlants.map(p => {
+                        if (p.plant_name === "Others") {
+                            selectedOtherNeedPlant = p.other_plant_name || "";
+                            selectedNeedQuantities["Others"] = p.quantity || "";
+                            return {
+                                value: "Others",
+                                label: "Others"
+                            };
+                        }
+                        selectedNeedQuantities[p.plant_name] = p.quantity || "";
+                        return {
+                            value: p.plant_name,
+                            label: p.plant_name
+                        };
+                    });
+                }
+
+                if (Array.isArray(data.needNutrients)) {
+                    selectedNeedNutrientsData = data.needNutrients.map(n => ({
+                        nutrients: n.nutrient_type === "Others"
+                            ? "Others"
+                            : n.nutrient_type,
+                        tankCapacity: n.tank_capacity || "",
+                        numberOfTopups: n.topups || "",
+                        otherNutrient: n.other_nutrient_name || "",
+                    }));
+                }
+
+                // UPDATED THIS SECTION FOR NEED CHARGEABLE ITEMS
+                if (Array.isArray(data.needChargeableItem)) {
+                    selectedNeedChargeableItem = data.needChargeableItem.map(p => {
+                        if (p.item_name === "Others") {
+                            selectedOtherNeedItemName = p.other_item_name || "";
+                            selectedNeedChargeableQuantities["Others"] = p.quantity || "";
+                            return {
+                                value: "Others",
+                                label: "Others"
+                            };
+                        }
+                        selectedNeedChargeableQuantities[p.item_name] = p.quantity || "";
+                        return {
+                            value: p.item_name,
+                            label: p.item_name
+                        };
+                    });
+                }
+
+                const finalFormData = {
+                    customer_name: user.customer_name || '',
+                    plantsWater: user.are_plants_getting_water || "",
+                    waterAbovePump: user.water_above_pump || "",
+                    timerWorking: user.timer_working || "",
+                    timerIssue: user.timer_issue || "",
+                    motorWorking: user.motor_working || "",
+                    motorIssue: user.motor_issue || "",
+                    lightsWorking: user.light_working || "",
+                    lightsIssue: user.light_issue || "",
+                    equipmentDamaged: user.equipment_damaged || "",
+                    equipmentDamageDetails: user.damaged_items || "",
+                    anyLeaks: user.any_leaks || "",
+                    cleanEnvironment: user.clean_equipment || "",
+                    electricSecured: user.electric_connections_secured || "",
+                    initialPh: user.initial_ph || "",
+                    correctedPh: user.corrected_ph || "",
+                    initialTds: user.initial_tds || "",
+                    correctedTds: user.corrected_tds || "",
+                    pestsPresent: user.presence_of_pests || "",
+                    pestOther: user.pest_other || "",
+                    nutrientDeficiency: user.nutrient_deficiency || "",
+                    deficiencyDetails: user.deficiency_details || "",
+                    plantProblems: selectedPlantProblems,
+                    pestTypes: selectedPestTypes,
+                    pestOther: selectedOtherPest,
+                    cropNames: user.which_crop || "",
+                    harvestTraining: user.client_training_harvest || "",
+                    pestManagement: user.pest_management || "",
+                    equipmentCleaning: user.equipment_cleaning || "",
+                    plantMaintenance: user.plant_maintenance || "",
+                    scopesOfImprovement: user.scope_of_improvement || "",
+                    siteRating: user.site_rating || "",
+                    plants: selectedsuppliedPlants,
+                    materialsSuppliedPlantData: selectedOtherSuppliedPlant,
+                    plantQuantities: selectedSuppliedQuantities,
+                    material_supplied_neemoil: user.material_supplied_neemoil || "",
+                    material_supplied_chargeable_items: selectedSuppliedChargeableItem,
+                    materialschargeableItemsOptionsother: selectedOtherSuppliedItemName, // ADDED
+                    chargeableQuantities: selectedChargeableQuantities, // ADDED
+                    materialNeedsDelivery: user.material_needs_delivery === "true" || "",
+                    nutrientsData: selectedNutrientsData.length > 0 ? selectedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
+                    setupPhotos: selectedSuppliedPhotoSetup,
+                    step5Plants: selectedNeedPlants,
+                    materialsDeliveredPlantData: selectedOtherNeedPlant,
+                    materialNeedPlantQuantities: selectedNeedQuantities,
+                    material_need_nutrientsData: selectedNeedNutrientsData.length > 0 ? selectedNeedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
+                    material_need_neemoil: user.material_delivered_neemoil || "",
+                    material_need_chargeable_items: selectedNeedChargeableItem,
+                    materialsNeedChargeableItemsOptionsother: selectedOtherNeedItemName, // ADDED
+                    needChargeableQuantities: selectedNeedChargeableQuantities // ADDED
+                };
+
+                setFormData(finalFormData);
+                setOriginalData(JSON.parse(JSON.stringify(finalFormData)));
             }
+
+        } catch (err) {
+            console.error('Error loading customers:', err);
+        } finally {
+            setLoadingCustomers(false);
+        }
+    };
+
+    useEffect(() => {
+        let mounted = true;
+        if (mounted) loadCustomers();
+        return () => {
+            mounted = false;
         };
-    
-        useEffect(() => {
-            let mounted = true;
-            if (mounted) loadCustomers();
-            return () => {
-                mounted = false;
-            };
-        }, []);
+    }, []);
 
     function getChangedFields(original, current) {
         const changes = {};
@@ -458,8 +460,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         const isArray = Array.isArray;
 
         const deepCompare = (orig, curr, keyPath = "") => {
-
-            // CASE 1: simple primitive comparisons
             if (!isObject(orig) && !isArray(orig)) {
                 if (orig !== curr) {
                     changes[keyPath] = curr;
@@ -467,16 +467,12 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                 return;
             }
 
-            // CASE 2: array comparison
             if (isArray(orig) && isArray(curr)) {
-
-                // If length changed → update whole array
                 if (orig.length !== curr.length) {
                     changes[keyPath] = curr;
                     return;
                 }
 
-                // Compare each item in array
                 curr.forEach((item, i) => {
                     const subKey = `${keyPath}[${i}]`;
 
@@ -494,7 +490,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                 return;
             }
 
-            // CASE 3: objects (deep compare)
             if (isObject(orig) && isObject(curr)) {
                 Object.keys(curr).forEach(key => {
                     const fullKey = keyPath ? `${keyPath}.${key}` : key;
@@ -504,7 +499,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                         return;
                     }
 
-                    // recursion
                     if (typeof curr[key] === "object") {
                         deepCompare(orig[key], curr[key], fullKey);
                     } else {
@@ -523,7 +517,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         return changes;
     }
 
-
     const resetForm = () => {
         setFormData(initialFormState);
         setErrors({});
@@ -539,41 +532,36 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     };
 
     function getImageChanges(originalImages, currentImages) {
-    const added = [];
-    const removed = [];
+        const added = [];
+        const removed = [];
 
-    const originalUrls = originalImages.map(img => img.preview);
-    const currentUrls = currentImages.map(img => img.preview);
+        const originalUrls = originalImages.map(img => img.preview);
+        const currentUrls = currentImages.map(img => img.preview);
 
-    // NEW images (blob URLs)
-    currentImages.forEach(img => {
-        if (!originalUrls.includes(img.preview)) {
-            added.push(img);
-        }
-    });
+        currentImages.forEach(img => {
+            if (!originalUrls.includes(img.preview)) {
+                added.push(img);
+            }
+        });
 
-    // REMOVED images
-    originalImages.forEach(img => {
-        if (!currentUrls.includes(img.preview)) {
-            removed.push(img);
-        }
-    });
+        originalImages.forEach(img => {
+            if (!currentUrls.includes(img.preview)) {
+                removed.push(img);
+            }
+        });
 
-    return { added, removed };
-}
-
+        return { added, removed };
+    }
 
     const handleSubmit = async () => {
         setSubmitting(true);
 
         try {
             await new Promise(resolve => setTimeout(resolve, 800));
-             // 1️⃣ Generate changed fields
             const changedFields = getChangedFields(originalData, formData);
             changedFields.materialNeedsDelivery = formData.materialNeedsDelivery;
-            // 2️⃣ Handle image diff
-            const imageDiff = getImageChanges(originalData.setupPhotos, formData.setupPhotos);
 
+            const imageDiff = getImageChanges(originalData.setupPhotos, formData.setupPhotos);
             if (imageDiff.added.length > 0 || imageDiff.removed.length > 0) {
                 changedFields.setupPhotos = imageDiff;
             }
@@ -637,6 +625,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                     case 'material_need_nutrientsData':
                     case 'plantQuantities':
                     case 'materialNeedPlantQuantities':
+                    case 'chargeableQuantities': // ADD THIS
+                    case 'needChargeableQuantities': // ADD THIS
                         formPayload.append(key, JSON.stringify(value || []));
                         break;
 
@@ -726,48 +716,60 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         setErrors({ ...errors, setupPhoto: "" });
     };
 
-    const handleStep4MaterialsSelection = (selected) => {
-        const newMaterials = selected || [];
-        const newQuantities = { ...formData.plantQuantities };
+const handleStep4MaterialsSelection = (selected) => {
+    const newMaterials = selected || [];
 
-        const selectedValues = newMaterials.map(m => m.value);
-        Object.keys(newQuantities).forEach(material => {
-            if (!selectedValues.includes(material)) {
-                delete newQuantities[material];
-            }
-        });
-
-        if (selectedValues.includes("Others")) {
-            newQuantities["Others"] = formData.plantQuantities["Others"] || "";
-        } else {
-            newQuantities["Others"] = "";
-        }
-
+    // CASE 1: User didn’t touch selector → keep old plants & quantities
+    if (newMaterials.length === 0 && originalPlants.length > 0) {
         setFormData({
             ...formData,
-            plants: newMaterials,
-            plantQuantities: newQuantities,
+            plants: originalPlants,
+            plantQuantities: { ...formData.plantQuantities }
         });
+        return;
+    }
 
-        setErrors({ ...errors, plants: "", plantQuantities: "" });
-    };
+    // CASE 2: User actually made a selection → now process normally
+    const newQuantities = { ...formData.plantQuantities };
+    const selectedValues = newMaterials.map((m) => m.value);
+
+    // Remove unselected items
+    Object.keys(newQuantities).forEach((material) => {
+        if (!selectedValues.includes(material)) {
+            delete newQuantities[material];
+        }
+    });
+
+    // Handle "Others"
+    if (selectedValues.includes("Others")) {
+        newQuantities["Others"] = formData.plantQuantities["Others"] || "";
+    } else {
+        delete newQuantities["Others"];
+    }
+
+    setFormData({
+        ...formData,
+        plants: newMaterials,
+        plantQuantities: newQuantities
+    });
+};
+
+
 
     const handleStep5MaterialsSelection = (selected) => {
         const newMaterials = selected || [];
-        const newQuantities = { ...formData.materialNeedPlantQuantities };
+        const newQuantities = {};
 
-        const selectedValues = newMaterials.map(m => m.value);
-        Object.keys(newQuantities).forEach(material => {
-            if (!selectedValues.includes(material)) {
-                delete newQuantities[material];
+        // Only add quantities for selected materials
+        newMaterials.forEach(material => {
+            const key = material.value;
+            // Preserve existing quantity if it exists
+            if (formData.materialNeedPlantQuantities[key] !== undefined) {
+                newQuantities[key] = formData.materialNeedPlantQuantities[key];
             }
         });
 
-        if (selectedValues.includes("Others")) {
-            newQuantities["Others"] = formData.materialNeedPlantQuantities["Others"] || "";
-        } else {
-            newQuantities["Others"] = "";
-        }
+        // IMPORTANT: Don't add "Others" if it's not in the selection
 
         setFormData({
             ...formData,
@@ -930,6 +932,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     const validateStep4 = () => {
         let newErrors = {};
 
+        // Plants validation
         if (!formData.plants || formData.plants.length === 0) {
             newErrors.plants = "Select at least one plant";
         }
@@ -941,6 +944,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             newErrors.materialsSuppliedPlantData = "Please specify the other material";
         }
 
+        // Plants Quantity validation
         if (formData.plants && formData.plants.length > 0) {
             const quantityErrors = {};
             let hasQuantityErrors = false;
@@ -966,6 +970,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             }
         }
 
+        // Nutrients data validation
         formData.nutrientsData.forEach((field, index) => {
             const rowErrors = {};
 
@@ -987,13 +992,17 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             }
         });
 
+        // Neem oil validation
         if (!formData.material_supplied_neemoil) {
             newErrors.material_supplied_neemoil = "Required";
         }
 
-        if (!formData.material_supplied_chargeable_items ||
+        // Chargeable items validation
+        if (
+            !formData.material_supplied_chargeable_items ||
             !Array.isArray(formData.material_supplied_chargeable_items) ||
-            formData.material_supplied_chargeable_items.length === 0) {
+            formData.material_supplied_chargeable_items.length === 0
+        ) {
             newErrors.material_supplied_chargeable_items = "Select chargeable items supplied";
         }
 
@@ -1004,6 +1013,26 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             newErrors.materialschargeableItemsOptionsother = "Please specify other items";
         }
 
+        // Chargeable items quantity validation
+        if (formData.material_supplied_chargeable_items && formData.material_supplied_chargeable_items.length > 0) {
+            const chargeableQuantityErrors = {};
+            let hasChargeableQuantityErrors = false;
+
+            formData.material_supplied_chargeable_items.forEach((item) => {
+                const key = item.value === "Others" ? "Others" : item.value;
+                const quantity = formData.chargeableQuantities?.[key];
+                if (!quantity || quantity.trim() === "" || isNaN(quantity) || parseInt(quantity) <= 0) {
+                    chargeableQuantityErrors[key] = "Quantity is required";
+                    hasChargeableQuantityErrors = true;
+                }
+            });
+
+            if (hasChargeableQuantityErrors) {
+                newErrors.chargeableQuantities = chargeableQuantityErrors;
+            }
+        }
+
+        // Setup photo validation
         if (!formData.setupPhotos || formData.setupPhotos.length === 0) {
             newErrors.setupPhoto = "At least one photo of the setup is required.";
         }
@@ -1064,6 +1093,25 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         // Neem Oil validation
         if (!formData.material_need_neemoil) {
             newErrors.material_need_neemoil = "Required";
+        }
+
+        // Chargeable items quantity validation for step 5
+        if (formData.material_need_chargeable_items && formData.material_need_chargeable_items.length > 0) {
+            const needChargeableQuantityErrors = {};
+            let hasNeedChargeableQuantityErrors = false;
+
+            formData.material_need_chargeable_items.forEach((item) => {
+                const key = item.value === "Others" ? "Others" : item.value;
+                const quantity = formData.needChargeableQuantities?.[key];
+                if (!quantity || quantity.trim() === "" || isNaN(quantity) || parseInt(quantity) <= 0) {
+                    needChargeableQuantityErrors[key] = "Quantity is required";
+                    hasNeedChargeableQuantityErrors = true;
+                }
+            });
+
+            if (hasNeedChargeableQuantityErrors) {
+                newErrors.needChargeableQuantities = needChargeableQuantityErrors;
+            }
         }
 
         setErrors(newErrors);
@@ -1334,7 +1382,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             {/* Lights Working */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    Lights Working (Light काम कर रही है) <span className="text-red-500">*</span>
+                                    Lights Working (Light काम कर रही है)
                                 </label>
                                 <div className="flex gap-6">
                                     {["yes", "no"].map((v) => (
@@ -1350,7 +1398,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         </label>
                                     ))}
                                 </div>
-                                {errors.lightsWorking && <span className="text-red-500 text-sm mt-1">{errors.lightsWorking}</span>}
                                 {formData.lightsWorking === "no" && (
                                     <div className="mt-3">
                                         <input
@@ -1641,27 +1688,63 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                     {/* STEP 3 */}
                     {step === 3 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6">
+                            {/* Yes/No fields */}
                             <YesNoSimple name="harvestTraining" label="How & When to Harvest (कटाई कैसे और कब करें)" />
                             <YesNoSimple name="pestManagement" label="Pest Management (कीट प्रबंधन)" />
                             <YesNoSimple name="equipmentCleaning" label="Equipment Cleaning (उपकरण की सफ़ाई)" />
                             <YesNoSimple name="plantMaintenance" label="Plant Maintenance (पौध रखरखाव)" />
 
-                            {/* Scopes of Improvement */}
-                            <div className="flex flex-col md:col-span-2">
-                                <label className="mb-1 font-medium text-gray-700">
-                                    Scopes of Improvement (सुधार की गुंजाइशें) <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="scopesOfImprovement"
-                                    value={formData.scopesOfImprovement}
-                                    onChange={handleChange}
-                                    placeholder="Specify areas for improvement"
-                                    className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.scopesOfImprovement ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                                />
-                                {errors.scopesOfImprovement && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.scopesOfImprovement}</span>
-                                )}
+                            {/* Scopes of Improvement + Site Rating */}
+                            <div className="flex flex-col md:flex-row md:space-x-4 md:col-span-2">
+                                {/* Scopes of Improvement */}
+                                <div className="flex-1 mb-4 md:mb-0">
+                                    <label className="mb-1 font-medium text-gray-700">
+                                        Scopes of Improvement (सुधार की गुंजाइशें) <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="scopesOfImprovement"
+                                        value={formData.scopesOfImprovement}
+                                        onChange={handleChange}
+                                        placeholder="Specify areas for improvement"
+                                        className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.scopesOfImprovement ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                                            }`}
+                                    />
+                                    {errors.scopesOfImprovement && (
+                                        <span className="text-red-500 text-sm mt-1">{errors.scopesOfImprovement}</span>
+                                    )}
+                                </div>
+
+                                {/* Site Rating */}
+                                <div className="flex-1">
+                                    <label className="mb-1 font-medium text-gray-700">
+                                        Site Rating ({formData.siteRating}) (साइट रेटिंग) <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="flex items-center space-x-1 mt-1">
+                                        {[1, 2, 3, 4, 5].map((star) => {
+                                            let color = 'text-red-500';
+                                            if (formData.siteRating === "3") color = 'text-orange-500';
+                                            if (formData.siteRating === "4" || formData.siteRating === "5") color = 'text-green-500';
+
+                                            return (
+                                                <svg
+                                                    key={star}
+                                                    onClick={() => setFormData({ ...formData, siteRating: star })}
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className={`h-8 w-8 cursor-pointer transition duration-200 ${formData.siteRating >= star ? color : 'text-gray-300'
+                                                        }`}
+                                                    fill="currentColor"
+                                                    viewBox="0 0 20 20"
+                                                >
+                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.974a1 1 0 00.95.69h4.175c.969 0 1.371 1.24.588 1.81l-3.374 2.452a1 1 0 00-.364 1.118l1.286 3.974c.3.921-.755 1.688-1.54 1.118l-3.374-2.452a1 1 0 00-1.176 0l-3.374 2.452c-.784.57-1.838-.197-1.539-1.118l1.285-3.974a1 1 0 00-.364-1.118L2.05 9.401c-.783-.57-.38-1.81.588-1.81h4.175a1 1 0 00.951-.69l1.285-3.974z" />
+                                                </svg>
+                                            );
+                                        })}
+                                    </div>
+                                    {errors.siteRating && (
+                                        <span className="text-red-500 text-sm mt-1">{errors.siteRating}</span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -1794,12 +1877,12 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         <label className="mb-1 font-medium text-gray-700">
                                             Tank Capacity in Litre (टैंक क्षमता लीटर में) <span className="text-red-500">*</span>
                                         </label>
-                                        <Select
-                                            options={tankCapacityOptions}
-                                            value={tankCapacityOptions.find(opt => opt.value === field.tankCapacity)}
-                                            onChange={(selected) => handleDynamicFieldChange(index, 'tankCapacity', selected?.value || '')}
-                                            classNamePrefix="react-select"
-                                            placeholder="Select tank capacity..."
+                                        <input
+                                            type="number"
+                                            value={field.tankCapacity}
+                                            onChange={(e) => handleDynamicFieldChange(index, 'tankCapacity', e.target.value)}
+                                            placeholder="Enter tank capacity in litres"
+                                            className="px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-400"
                                         />
                                         {errors.nutrientsData && errors.nutrientsData[index]?.tankCapacity && (
                                             <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index]?.tankCapacity}</span>
@@ -1860,15 +1943,21 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         isMulti
                                         options={changebleItemsOptions}
                                         value={formData.material_supplied_chargeable_items}
-                                        onChange={handleChargeableItemsChange}
+                                        onChange={(selected) => {
+                                            setFormData({
+                                                ...formData,
+                                                material_supplied_chargeable_items: selected || [],
+                                            });
+                                        }}
                                         classNamePrefix="react-select"
                                         placeholder="Select items..."
-                                        styles={{ menu: (p) => ({ ...p, zIndex: 9999, overflow: "visible" }) }}
+                                        styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
                                     />
                                     {errors.material_supplied_chargeable_items && (
                                         <span className="text-red-500 text-sm mt-1">{errors.material_supplied_chargeable_items}</span>
                                     )}
 
+                                    {/* Input for "Other" item name */}
                                     {formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") && (
                                         <div className="mt-3">
                                             <input
@@ -1877,17 +1966,86 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                                 value={formData.materialschargeableItemsOptionsother || ""}
                                                 onChange={handleChange}
                                                 placeholder="Specify other item"
-                                                className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialschargeableItemsOptionsother ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                                className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialschargeableItemsOptionsother ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                                                    }`}
                                             />
                                             {errors.materialschargeableItemsOptionsother && (
-                                                <span className="text-red-500 text-sm mt-1">
-                                                    {errors.materialschargeableItemsOptionsother}
-                                                </span>
+                                                <span className="text-red-500 text-sm mt-1">{errors.materialschargeableItemsOptionsother}</span>
                                             )}
                                         </div>
                                     )}
 
-                                    {/* Checkbox for "Material Needs to be delivered?" */}
+                                    {/* Quantity inputs for selected items - UPDATED TO USE chargeableQuantities */}
+                                    {formData.material_supplied_chargeable_items?.length > 0 && (
+                                        <div className="flex flex-col mt-4">
+                                            <label className="mb-2 font-medium text-gray-700">
+                                                Quantity of Chargeable Items <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {formData.material_supplied_chargeable_items
+                                                    .filter((item) => item.value !== "Others")
+                                                    .map((item) => (
+                                                        <div key={item.value} className="flex flex-col gap-2">
+                                                            <label className="font-medium text-gray-600">{item.label}:</label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                value={formData.chargeableQuantities?.[item.value] || ""}
+                                                                onChange={(e) =>
+                                                                    setFormData({
+                                                                        ...formData,
+                                                                        chargeableQuantities: {
+                                                                            ...formData.chargeableQuantities,
+                                                                            [item.value]: e.target.value,
+                                                                        },
+                                                                    })
+                                                                }
+                                                                placeholder="Qty"
+                                                                className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition ${errors.chargeableQuantities && errors.chargeableQuantities[item.value]
+                                                                    ? 'border-red-500 focus:ring-red-400'
+                                                                    : 'border-gray-300 focus:ring-blue-400'
+                                                                    }`}
+                                                            />
+                                                            {errors.chargeableQuantities && errors.chargeableQuantities[item.value] && (
+                                                                <span className="text-red-500 text-sm">{errors.chargeableQuantities[item.value]}</span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+
+                                                {/* Quantity input for "Others" */}
+                                                {formData.material_supplied_chargeable_items?.some((i) => i.value === "Others") &&
+                                                    formData.materialschargeableItemsOptionsother?.trim() !== "" && (
+                                                        <div className="flex flex-col gap-2">
+                                                            <label className="font-medium text-gray-600">{formData.materialschargeableItemsOptionsother}:</label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                value={formData.chargeableQuantities?.["Others"] || ""}
+                                                                onChange={(e) =>
+                                                                    setFormData({
+                                                                        ...formData,
+                                                                        chargeableQuantities: {
+                                                                            ...formData.chargeableQuantities,
+                                                                            Others: e.target.value,
+                                                                        },
+                                                                    })
+                                                                }
+                                                                placeholder="Qty"
+                                                                className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition ${errors.chargeableQuantities && errors.chargeableQuantities["Others"]
+                                                                    ? 'border-red-500 focus:ring-red-400'
+                                                                    : 'border-gray-300 focus:ring-blue-400'
+                                                                    }`}
+                                                            />
+                                                            {errors.chargeableQuantities && errors.chargeableQuantities["Others"] && (
+                                                                <span className="text-red-500 text-sm">{errors.chargeableQuantities["Others"]}</span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Checkbox */}
                                     <div className="flex items-center mt-4">
                                         <input
                                             type="checkbox"
@@ -1937,7 +2095,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
                     {/* STEP 5 */}
                     {step === 5 && (
-                        <div className="space-y-6 px-6 py-6 max-w-full overflow-x-hidden">
+                        <div className="space-y-6 px-6 py-6 max-w-full">
                             <h3 className="font-semibold text-lg text-gray-800">Material Need To Deliver</h3>
 
                             {/* Materials Supplied */}
@@ -1973,13 +2131,13 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         <label className="mb-2 font-medium text-gray-700">
                                             Quantity of Materials <span className="text-red-500">*</span>
                                         </label>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                             {formData.step5Plants
                                                 .filter((item) => item.value !== "Others")
                                                 .map((material) => (
                                                     <div key={material.value} className="flex flex-col gap-2">
                                                         <div className="flex items-center gap-3">
-                                                            <label className="font-medium text-gray-600 min-w-[150px]">
+                                                            <label className="font-medium text-gray-600 min-w-[140px]">
                                                                 {material.label}:
                                                             </label>
                                                             <input
@@ -1991,7 +2149,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                                                 className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialNeedPlantQuantities && errors.materialNeedPlantQuantities[material.value]
                                                                     ? 'border-red-500 focus:ring-red-400'
                                                                     : 'border-gray-300 focus:ring-blue-400'
-                                                                    } flex-1`}
+                                                                    } w-24`}
                                                             />
                                                         </div>
                                                         {errors.materialNeedPlantQuantities && errors.materialNeedPlantQuantities[material.value] && (
@@ -2004,7 +2162,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                                 formData.materialsDeliveredPlantData?.trim() !== "" && (
                                                     <div className="flex flex-col gap-2">
                                                         <div className="flex items-center gap-3">
-                                                            <label className="font-medium text-gray-600 min-w-[150px]">
+                                                            <label className="font-medium text-gray-600 min-w-[140px]">
                                                                 {formData.materialsDeliveredPlantData}:
                                                             </label>
                                                             <input
@@ -2016,7 +2174,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                                                 className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialNeedPlantQuantities && errors.materialNeedPlantQuantities["Others"]
                                                                     ? 'border-red-500 focus:ring-red-400'
                                                                     : 'border-gray-300 focus:ring-blue-400'
-                                                                    } flex-1`}
+                                                                    } w-24`}
                                                             />
                                                         </div>
                                                         {errors.materialNeedPlantQuantities && errors.materialNeedPlantQuantities["Others"] && (
@@ -2051,16 +2209,21 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         <label className="mb-1 font-medium text-gray-700">
                                             Tank Capacity in Litre (टैंक क्षमता लीटर में) {field.nutrients && <span className="text-red-500">*</span>}
                                         </label>
-                                        <Select
-                                            options={tankCapacityOptions}
-                                            value={tankCapacityOptions.find(opt => opt.value === field.tankCapacity)}
-                                            onChange={(selected) => handleStep5DynamicFieldChange(index, 'tankCapacity', selected?.value || '')}
-                                            classNamePrefix="react-select"
-                                            placeholder="Select tank capacity..."
-                                            className={field.nutrients && errors.material_need_nutrientsData && errors.material_need_nutrientsData[index]?.tankCapacity ? 'border-red-500' : ''}
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={field.tankCapacity || ""}
+                                            onChange={(e) => handleStep5DynamicFieldChange(index, 'tankCapacity', e.target.value)}
+                                            placeholder="Enter tank capacity in litres"
+                                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${field.nutrients && errors.material_need_nutrientsData && errors.material_need_nutrientsData[index]?.tankCapacity
+                                                ? 'border-red-500 focus:ring-red-400'
+                                                : 'border-gray-300 focus:ring-blue-400'
+                                                }`}
                                         />
                                         {field.nutrients && errors.material_need_nutrientsData && errors.material_need_nutrientsData[index]?.tankCapacity && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.material_need_nutrientsData[index]?.tankCapacity}</span>
+                                            <span className="text-red-500 text-sm mt-1">
+                                                {errors.material_need_nutrientsData[index]?.tankCapacity}
+                                            </span>
                                         )}
                                     </div>
 
@@ -2142,10 +2305,11 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             </div>
 
                             {/* Chargeable Items */}
-                            <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">
+                            <div className="flex flex-col mt-4">
+                                <label className="mb-2 font-medium text-gray-700">
                                     Chargeable Items Supplied (जो वस्तुएँ पैसे के लिए दी गई हैं)
                                 </label>
+
                                 <Select
                                     isMulti
                                     options={changebleItemsOptions}
@@ -2161,6 +2325,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
                                 />
 
+                                {/* Input for "Others" name */}
                                 {formData.material_need_chargeable_items?.some((item) => item.value === "Others") && (
                                     <div className="mt-3">
                                         <input
@@ -2171,6 +2336,57 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                             placeholder="Specify other item"
                                             className="px-3 py-2 border border-gray-300 rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none focus:ring-blue-400 transition"
                                         />
+                                    </div>
+                                )}
+
+                                {/* Dynamic Quantity Inputs - UPDATED TO USE needChargeableQuantities */}
+                                {formData.material_need_chargeable_items?.length > 0 && (
+                                    <div className="flex flex-col mt-4">
+                                        <label className="mb-2 font-medium text-gray-700">
+                                            Quantity of Chargeable Items <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {formData.material_need_chargeable_items.map((item) => {
+                                                const isOther = item.value === "Others";
+                                                const displayName = isOther
+                                                    ? formData.materialsNeedChargeableItemsOptionsother
+                                                    : item.label;
+
+                                                if (isOther && !displayName) return null;
+
+                                                return (
+                                                    <div key={item.value} className="flex flex-col gap-2">
+                                                        <label className="font-medium text-gray-600">{displayName}:</label>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            value={formData.needChargeableQuantities?.[isOther ? "Others" : item.value] || ""}
+                                                            onChange={(e) =>
+                                                                setFormData({
+                                                                    ...formData,
+                                                                    needChargeableQuantities: {
+                                                                        ...formData.needChargeableQuantities,
+                                                                        [isOther ? "Others" : item.value]: e.target.value,
+                                                                    },
+                                                                })
+                                                            }
+                                                            placeholder="Qty"
+                                                            className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition ${errors.needChargeableQuantities &&
+                                                                errors.needChargeableQuantities[isOther ? "Others" : item.value]
+                                                                ? "border-red-500 focus:ring-red-400"
+                                                                : "border-gray-300 focus:ring-blue-400"
+                                                                }`}
+                                                        />
+                                                        {errors.needChargeableQuantities &&
+                                                            errors.needChargeableQuantities[isOther ? "Others" : item.value] && (
+                                                                <span className="text-red-500 text-sm">
+                                                                    {errors.needChargeableQuantities[isOther ? "Others" : item.value]}
+                                                                </span>
+                                                            )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                 )}
                             </div>

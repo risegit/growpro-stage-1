@@ -101,7 +101,7 @@ switch ($method) {
                 }
             }
 
-            $sql1 = "SELECT sv.id,sv.schedule_id,sv.are_plants_getting_water,sv.water_above_pump,sv.timer_working,sv.timer_issue,sv.motor_working,sv.motor_issue,sv.light_working,sv.light_issue,sv.equipment_damaged,sv.damaged_items,sv.any_leaks,sv.clean_equipment,sv.electric_connections_secured,sv.initial_ph,sv.corrected_ph,sv.initial_tds,sv.corrected_tds,sv.presence_of_pests,sv.nutrient_deficiency,sv.deficiency_details,sv.which_crop,sv.client_training_harvest,sv.pest_management,sv.equipment_cleaning,sv.plant_maintenance,sv.scope_of_improvement,sv.material_supplied_neemoil,sv.material_delivered_neemoil,sv.material_needs_delivery,u.name customer_name FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id WHERE sv.id='$schId'";
+            $sql1 = "SELECT sv.id,sv.schedule_id,sv.are_plants_getting_water,sv.water_above_pump,sv.timer_working,sv.timer_issue,sv.motor_working,sv.motor_issue,sv.light_working,sv.light_issue,sv.equipment_damaged,sv.damaged_items,sv.any_leaks,sv.clean_equipment,sv.electric_connections_secured,sv.initial_ph,sv.corrected_ph,sv.initial_tds,sv.corrected_tds,sv.presence_of_pests,sv.nutrient_deficiency,sv.deficiency_details,sv.which_crop,sv.client_training_harvest,sv.pest_management,sv.equipment_cleaning,sv.plant_maintenance,sv.scope_of_improvement,sv.site_rating,sv.material_supplied_neemoil,sv.material_delivered_neemoil,sv.material_needs_delivery,u.name customer_name FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id WHERE sv.id='$schId'";
             $result = $conn->query($sql1);
             $data = [];
             while ($row = $result->fetch_assoc()) {
@@ -239,6 +239,7 @@ switch ($method) {
             $equipmentCleaning = $_POST['equipmentCleaning'] ?? '';
             $plantMaintenance = $_POST['plantMaintenance'] ?? '';
             $scopesOfImprovement = $_POST['scopesOfImprovement'] ?? '';
+            $siteRating = $_POST['siteRating'] ?? '';
 
             //Material Supply
             $otherPlants = $_POST['otherPlants'] ?? '';
@@ -259,10 +260,10 @@ switch ($method) {
             $jsonnutrientsData = isset($_POST['nutrientsData']) ? $_POST['nutrientsData'] : '';
             $material_nutrients_data_supplied = json_decode($jsonnutrientsData, true);
 
-            $jsonChargeableItemsSupplied = isset($_POST['material_supplied_chargeable_items']) ? $_POST['material_supplied_chargeable_items'] : '';
+            $jsonChargeableItemsSupplied = isset($_POST['chargeableQuantities']) ? $_POST['chargeableQuantities'] : '';
             $material_chargeable_Item_supplied = json_decode($jsonChargeableItemsSupplied, true);
-            // $growerdata=var_dump($material_chargeable_Item_supplied);
-
+            $growerdata=var_dump($material_chargeable_Item_supplied);
+            echo json_encode(["status" => "success", "message" => $growerdata]);
             // Material Need To Deliver
             if(!empty($materialNeedsDelivery)){
                 $material_need_neemoil = $_POST['material_need_neemoil'] ?? '';
@@ -278,7 +279,7 @@ switch ($method) {
                 $jsonMaterialNeedNutrientsData = isset($_POST['material_need_nutrientsData']) ? $_POST['material_need_nutrientsData'] : '';
                 $material_need_nutrients_data = json_decode($jsonMaterialNeedNutrientsData, true);
 
-                $jsonMaterialNeedChargeableItemsDelivered = isset($_POST['material_need_chargeable_items']) ? $_POST['material_supplied_chargeable_items'] : '';
+                $jsonMaterialNeedChargeableItemsDelivered = isset($_POST['chargeableNeedQuantities']) ? $_POST['chargeableNeedQuantities'] : '';
                 $material_chargeable_Item_delivered = json_decode($jsonMaterialNeedChargeableItemsDelivered, true);
             }
 
@@ -320,7 +321,7 @@ switch ($method) {
                 echo json_encode(["status" => "error", "message" => "Invalid schedule ID"]);
                 exit;
             }
-            $sql = "INSERT INTO `site_visit`(`schedule_id`,`customer_id`, `visited_by`, `are_plants_getting_water`, `water_above_pump`, `timer_working`,`timer_issue`, `motor_working`, `motor_issue`, `light_working`, `light_issue`, `equipment_damaged`, `damaged_items`, `any_leaks`, `clean_equipment`, `electric_connections_secured`, `initial_ph`, `corrected_ph`, `initial_tds`, `corrected_tds`, `presence_of_pests`, `nutrient_deficiency`, `deficiency_details`, `which_crop`, `client_training_harvest`, `pest_management`, `equipment_cleaning`, `plant_maintenance`, `scope_of_improvement`, `material_supplied_neemoil`, `material_needs_delivery`, `created_date`, `created_time`) VALUES ('$scheduleId','$customerId','$userCode','$plantsWater','$waterAbovePump','$timerWorking','$timerIssue','$motorWorking','$motorIssue','$lightsWorking','$lightsIssue','$equipmentDamaged','$equipmentDamageDetails','$anyLeaks','$cleanEnvironment','$electricSecured','$initialPh','$correctedPh','$initialTds','$correctedTds','$pestsPresent','$nutrientDeficiency','$deficiencyDetails','$cropNames','$harvestTraining','$pestManagement','$equipmentCleaning','$plantMaintenance','$scopesOfImprovement','$material_supplied_neemoil','$materialNeedsDelivery','$date','$time')";
+            $sql = "INSERT INTO `site_visit`(`schedule_id`,`customer_id`, `visited_by`, `are_plants_getting_water`, `water_above_pump`, `timer_working`,`timer_issue`, `motor_working`, `motor_issue`, `light_working`, `light_issue`, `equipment_damaged`, `damaged_items`, `any_leaks`, `clean_equipment`, `electric_connections_secured`, `initial_ph`, `corrected_ph`, `initial_tds`, `corrected_tds`, `presence_of_pests`, `nutrient_deficiency`, `deficiency_details`, `which_crop`, `client_training_harvest`, `pest_management`, `equipment_cleaning`, `plant_maintenance`, `scope_of_improvement`, `site_rating`, `material_supplied_neemoil`, `material_needs_delivery`, `created_date`, `created_time`) VALUES ('$scheduleId','$customerId','$userCode','$plantsWater','$waterAbovePump','$timerWorking','$timerIssue','$motorWorking','$motorIssue','$lightsWorking','$lightsIssue','$equipmentDamaged','$equipmentDamageDetails','$anyLeaks','$cleanEnvironment','$electricSecured','$initialPh','$correctedPh','$initialTds','$correctedTds','$pestsPresent','$nutrientDeficiency','$deficiencyDetails','$cropNames','$harvestTraining','$pestManagement','$equipmentCleaning','$plantMaintenance','$scopesOfImprovement','$siteRating','$material_supplied_neemoil','$materialNeedsDelivery','$date','$time')";
             // echo json_encode(["status" => "success", "message" => $sql]);
             if ($conn->query($sql)) {
                 $visit_id = $conn->insert_id;
@@ -347,23 +348,26 @@ switch ($method) {
                     $conn->query($sql4);
                 }
                 foreach ($material_nutrients_data_supplied as $nutrientInfo) {
-                    if($nutrientInfo['nutrients'] === "Others"){
-                        $sql5 = "INSERT INTO `site_visit_material_supplied_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visit_id','','{$nutrientInfo['tankCapacity']}','{$nutrientInfo['numberOfTopups']}','Others','')";
-                    }elseif($nutrientInfo['tankCapacity'] === "Others"){
-                        $sql5 = "INSERT INTO `site_visit_material_supplied_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visit_id','{$nutrientInfo['nutrients']}','','{$nutrientInfo['numberOfTopups']}','','Others')";
-                    }else{
-                        $sql5 = "INSERT INTO `site_visit_material_supplied_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visit_id','{$nutrientInfo['nutrients']}','{$nutrientInfo['tankCapacity']}','{$nutrientInfo['numberOfTopups']}','','')";
+                    if(!empty($nutrientInfo['nutrients'])){
+                        if($nutrientInfo['nutrients'] === "Others"){
+                            $sql5 = "INSERT INTO `site_visit_material_supplied_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visit_id','','{$nutrientInfo['tankCapacity']}','{$nutrientInfo['numberOfTopups']}','Others','')";
+                        }elseif($nutrientInfo['tankCapacity'] === "Others"){
+                            $sql5 = "INSERT INTO `site_visit_material_supplied_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visit_id','{$nutrientInfo['nutrients']}','','{$nutrientInfo['numberOfTopups']}','','Others')";
+                        }else{
+                            $sql5 = "INSERT INTO `site_visit_material_supplied_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visit_id','{$nutrientInfo['nutrients']}','{$nutrientInfo['tankCapacity']}','{$nutrientInfo['numberOfTopups']}','','')";
+                        }
+                        $conn->query($sql5);
                     }
-                    $conn->query($sql5);
                 }
                 // echo json_encode(["status" => "success", "message" => $sql5]);
-                foreach ($material_chargeable_Item_supplied as $materialSChargeableItems) {
+                foreach ($material_chargeable_Item_supplied as $materialSChargeableItems => $qty) {
                     if($materialSChargeableItems === "Others"){
-                        $sql6 = "INSERT INTO `site_visit_material_supplied_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visit_id','$materialSChargeableItems','$materialschargeableItemsOptionsother')";    
+                        $sql6 = "INSERT INTO `site_visit_material_supplied_chargeable_items`(`visit_id`, `item_name`, `other_item_name`,`quantity`) VALUES ('$visit_id','$materialSChargeableItems','$materialschargeableItemsOptionsother','$qty)";    
                     }else{
-                        $sql6 = "INSERT INTO `site_visit_material_supplied_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visit_id','$materialSChargeableItems','')";
+                        $sql6 = "INSERT INTO `site_visit_material_supplied_chargeable_items`(`visit_id`, `item_name`, `other_item_name`,`quantity`) VALUES ('$visit_id','$materialSChargeableItems','','$qty')";
                     }
                     $conn->query($sql6);
+                    echo json_encode(["status" => "success", "message" => $sql6]);
                 }
 
                 $uploadDir = dirname(__DIR__) . '/uploads/site-visit/';
@@ -415,12 +419,13 @@ switch ($method) {
                                 $sql10 = "INSERT INTO `site_visit_material_need_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visit_id','{$needNutrientInfo['nutrients']}','{$needNutrientInfo['tankCapacity']}','{$needNutrientInfo['numberOfTopups']}','','')";
                             }
                             $conn->query($sql10);
+                            echo json_encode(["status" => "success", "message" => $sql10]);
                         }
-                        foreach ($material_chargeable_Item_delivered as $materialDChargeableItems) {
+                        foreach ($material_chargeable_Item_delivered as $materialDChargeableItems => $qty) {
                             if($materialDChargeableItems === "Others"){
-                                $sql11 = "INSERT INTO `site_visit_material_need_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visit_id','$materialDChargeableItems','$materialsNeedChargeableItemsOptionsother')";    
+                                $sql11 = "INSERT INTO `site_visit_material_need_chargeable_items`(`visit_id`, `item_name`, `other_item_name`,`quantity`) VALUES ('$visit_id','$materialDChargeableItems','$materialsNeedChargeableItemsOptionsother','$qty')";    
                             }else{
-                                $sql11 = "INSERT INTO `site_visit_material_need_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visit_id','$materialDChargeableItems','')";
+                                $sql11 = "INSERT INTO `site_visit_material_need_chargeable_items`(`visit_id`, `item_name`, `other_item_name`,`quantity`) VALUES ('$visit_id','$materialDChargeableItems','','$qty')";
                             }
                             $conn->query($sql11);
                         }
@@ -512,7 +517,7 @@ switch ($method) {
             $jsonnutrientsData = isset($_POST['nutrientsData']) ? $_POST['nutrientsData'] : '';
             $material_nutrients_data_supplied = json_decode($jsonnutrientsData, true);
 
-            $jsonChargeableItemsSupplied = isset($_POST['material_supplied_chargeable_items']) ? $_POST['material_supplied_chargeable_items'] : '';
+            $jsonChargeableItemsSupplied = isset($_POST['chargeableQuantities']) ? $_POST['chargeableQuantities'] : '';
             $material_chargeable_Item_supplied = json_decode($jsonChargeableItemsSupplied, true);
             // $growerdata=var_dump($material_chargeable_Item_supplied);
 
@@ -531,7 +536,7 @@ switch ($method) {
                 $jsonMaterialNeedNutrientsData = isset($_POST['material_need_nutrientsData']) ? $_POST['material_need_nutrientsData'] : '';
                 $material_need_nutrients_data = json_decode($jsonMaterialNeedNutrientsData, true);
 
-                $jsonMaterialNeedChargeableItemsDelivered = isset($_POST['material_need_chargeable_items']) ? $_POST['material_need_chargeable_items'] : '';
+                $jsonMaterialNeedChargeableItemsDelivered = isset($_POST['chargeableNeedQuantities']) ? $_POST['chargeableNeedQuantities'] : '';
                 $material_chargeable_Item_delivered = json_decode($jsonMaterialNeedChargeableItemsDelivered, true);
             }
 
@@ -652,11 +657,11 @@ switch ($method) {
                 // chargeable items
                 if (!empty($material_chargeable_Item_supplied) && is_array($material_chargeable_Item_supplied)) {
                     $conn->query("DELETE FROM site_visit_material_supplied_chargeable_items WHERE visit_id='$visitId'");
-                    foreach ($material_chargeable_Item_supplied as $materialSChargeableItems) {
+                    foreach ($material_chargeable_Item_supplied as $materialSChargeableItems => $qty) {
                         if($materialSChargeableItems === "Others"){
-                            $sql6 = "INSERT INTO `site_visit_material_supplied_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visitId','$materialSChargeableItems','$materialschargeableItemsOptionsother')";    
+                            $sql6 = "INSERT INTO `site_visit_material_supplied_chargeable_items`(`visit_id`, `item_name`, `other_item_name`,`quantity`) VALUES ('$visitId','$materialSChargeableItems','$materialschargeableItemsOptionsother','$qty')";    
                         }else{
-                            $sql6 = "INSERT INTO `site_visit_material_supplied_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visitId','$materialSChargeableItems','')";
+                            $sql6 = "INSERT INTO `site_visit_material_supplied_chargeable_items`(`visit_id`, `item_name`, `other_item_name`,`quantity`) VALUES ('$visitId','$materialSChargeableItems','','$qty')";
                         }
                         $conn->query($sql6);
                     }
