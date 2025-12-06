@@ -78,6 +78,8 @@ export default function UserTable() {
       (user) =>
         user.name.toLowerCase().includes(query) ||
         user.phone.toLowerCase().includes(query) ||
+        user.delivery_status.toLowerCase().includes(query) ||
+        user.plant.toLowerCase().includes(query) ||
         user.tech_name.toLowerCase().includes(query)
     );
   }, [sortedUsers, searchQuery]);
@@ -192,11 +194,11 @@ export default function UserTable() {
                       </th>
                       <th
                         className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
-                        onClick={() => handleSort('user_code')}
+                        onClick={() => handleSort('tech_name')}
                       >
                         <div className="flex items-center">
                           Tech Name
-                          <SortIndicator columnKey="user_code" />
+                          <SortIndicator columnKey="tech_name" />
                         </div>
                       </th>
                       <th
@@ -210,14 +212,23 @@ export default function UserTable() {
                       </th>
                       <th
                         className="w-[25%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
-                        onClick={() => handleSort('user_code')}
+                        onClick={() => handleSort('plant')}
                       >
                         <div className="flex items-center">
                           Material Need To Deliver
-                          <SortIndicator columnKey="user_code" />
+                          <SortIndicator columnKey="plant" />
                         </div>
                       </th>
-                      <th className="w-[15%] py-4 px-4 font-medium text-gray-700 text-right">
+                      <th
+                        className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                        onClick={() => handleSort('delivery_status')}
+                      >
+                        <div className="flex items-center">
+                          Deliver Status
+                          <SortIndicator columnKey="delivery_status" />
+                        </div>
+                      </th>
+                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">
                         Action
                       </th>
                     </tr>
@@ -266,6 +277,10 @@ export default function UserTable() {
 
                           <td className="py-4 px-4 text-gray-700 truncate">
                             {user.plant}{user.nutrients}{user.chargeableItem}
+                          </td>
+
+                          <td className="py-4 px-4 text-gray-700 truncate">
+                            {user.delivery_status?.toUpperCase()}
                           </td>
 
                           {/* Action */}

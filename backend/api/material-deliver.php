@@ -22,7 +22,7 @@ switch ($method) {
 
         case 'GET':
             if($siteVisitId){
-                $sql1 = "SELECT sv.id,u.name,u.phone,u.profile_pic,t.name tech_name FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id INNER JOIN users t ON sv.visited_by=t.user_code";
+                $sql1 = "SELECT sv.id,u.name,u.phone,u.profile_pic,t.name tech_name,mdr.delivery_status delivery_status FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id INNER JOIN users t ON sv.visited_by=t.user_code LEFT JOIN material_delivery_records mdr ON sv.id=mdr.visit_id WHERE sv.id='$siteVisitId'";
                 $result = $conn->query($sql1);
 
                 $data = [];
@@ -30,7 +30,7 @@ switch ($method) {
                     $data[]=$row;
                 }
 
-                $sql2 = "SELECT sv.id, svp.plant_name,svp.quantity,svp.other_plant_name FROM site_visit sv INNER JOIN site_visit_material_need_plants svp ON sv.id=svp.visit_id WHERE sv.id='$siteVisitId';";
+                $sql2 = "SELECT sv.id, svp.plant_name,svp.quantity,svp.other_plant_name FROM site_visit sv INNER JOIN site_visit_material_need_plants svp ON sv.id=svp.visit_id  WHERE sv.id='$siteVisitId';";
                 $result2 = $conn->query($sql2);
                 $plants = [];
                 while ($row = $result2->fetch_assoc()) {
@@ -68,7 +68,7 @@ switch ($method) {
                 ]);
 
             }else{
-                $sql1 = "SELECT sv.id,u.name,u.phone,u.profile_pic,t.name tech_name FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id INNER JOIN users t ON sv.visited_by=t.user_code";
+                $sql1 = "SELECT sv.id,u.name,u.phone,u.profile_pic,t.name tech_name,COALESCE(mdr.delivery_status, 'No') AS delivery_status FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id INNER JOIN users t ON sv.visited_by=t.user_code LEFT JOIN material_delivery_records mdr ON sv.id=mdr.visit_id";
                 $result = $conn->query($sql1);
 
                 $data = [];
@@ -113,7 +113,21 @@ switch ($method) {
         if($conn->query($sql)){
             echo json_encode(["status" => "success", "message" => "Material Delivery Status Updated Successfully"]);
         }else{
-            echo json_encode(["status" => "error", "message" => $sql]);
+            echo json_encode(["status" => "error", "message" => "Material Delivery Status Not Updated"]);
+        }
+        break;
+
+    case 'PUT':
+        $siteVisitId = $_POST["id"] ?? '';
+        $delivery_note = $_POST["delivery_note"] ?? '';
+        $delivery_status = $_POST["delivery_status"] ?? '';
+
+        $sql = "UPDATE `material_delivery_records` SET `delivery_status`='$delivery_status',`delivery_note`='$delivery_note',`updated_by`='$userId',`updated_date`='$date',`updated_time`='$time' WHERE visit_id='$siteVisitId'";
+
+        if($conn->query($sql)){
+            echo json_encode(["status" => "success", "message" => $sql]);
+        }else{
+            echo json_encode(["status" => "error", "message" => "Material Delivery Status Not Updated"]);
         }
         break;
     
