@@ -6,6 +6,7 @@ export default function EditMaterialDeliver() {
   const { id } = useParams();
   const user = JSON.parse(localStorage.getItem("user"));
   const user_code = user?.user_code;
+  const [deleveryStat, setDeleveryStat] = useState(null);
 
   const [materialData, setMaterialData] = useState(null);
   const [materialPlants, setMaterialPlantsData] = useState([]);
@@ -13,7 +14,7 @@ export default function EditMaterialDeliver() {
   const [materialChargeableItems, setMaterialChargeableItemsData] = useState([]);
   const [materialDeliverData, setMaterialDeliverData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [deliveryStatus, setDeliveryStatus] = useState('yes');
+  const [deliveryStatus, setDeliveryStatus] = useState('no');
   const [deliveryNote, setDeliveryNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -30,6 +31,8 @@ export default function EditMaterialDeliver() {
 
         if (data.status === "success") {
           if (data.data && data.data.length > 0) {
+            setDeleveryStat(data.data[0].delivery_status);
+
             setMaterialData(data.data[0]);
           }
           if (data.plants) {
@@ -84,11 +87,15 @@ export default function EditMaterialDeliver() {
       form.append("delivery_status", deliveryStatus);
       form.append("delivery_note", deliveryNote);
       form.append("submitted_at", new Date().toISOString());
-
+      form.append("deleveryStat", deleveryStat);
+      if(deleveryStat!=null){
+        form.append("_method", "PUT");
+      }
       console.log("Submitting:", Object.fromEntries(form.entries()));
+      console.log("deleveryStat:", deleveryStat);
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}api/material-deliver.php?user_id=${user_code}`,
+        `${import.meta.env.VITE_API_URL}api/material-deliver.php?user_id=${user_code}&id=${id}`,
         {
           method: "POST",
           body: form,
@@ -212,6 +219,8 @@ export default function EditMaterialDeliver() {
       let nutrientInfo = `${nutrientName}:`;
       if (nutrient.tank_capacity) nutrientInfo += ` Tank Capacity: ${nutrient.tank_capacity}`;
       if (nutrient.topups) nutrientInfo += `, Topups: ${nutrient.topups}`;
+      const multiply = nutrient.tank_capacity * nutrient.topups;
+      nutrientInfo += ` - Total: ${multiply} Litre`;
       if (nutrient.other_info) nutrientInfo += `, ${nutrient.other_info}`;
       
       return nutrientInfo;
@@ -443,9 +452,10 @@ export default function EditMaterialDeliver() {
                   onChange={handleStatusChange}
                   className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
                 >
+                  <option value="no">Not Delivered</option>
                   <option value="yes">Yes - Delivered Successfully</option>
                   <option value="partial">Partial Delivery</option>
-                  <option value="no">Not Delivered</option>
+                  
                 </select>
               </div>
 

@@ -87,11 +87,83 @@ switch ($method) {
             while ($row = $result->fetch_assoc()) {
                 $data[] = $row;
             }
+            
+            $sql11 = "SELECT sv.id,sv.schedule_id,sv.are_plants_getting_water,sv.water_above_pump,sv.timer_working,sv.timer_issue,sv.motor_working,sv.motor_issue,sv.light_working,sv.light_issue,sv.equipment_damaged,sv.damaged_items,sv.any_leaks,sv.clean_equipment,sv.electric_connections_secured,sv.initial_ph,sv.corrected_ph,sv.initial_tds,sv.corrected_tds,sv.presence_of_pests,sv.nutrient_deficiency,sv.deficiency_details,sv.which_crop,sv.client_training_harvest,sv.pest_management,sv.equipment_cleaning,sv.plant_maintenance,sv.scope_of_improvement,sv.site_rating,sv.material_supplied_neemoil,sv.material_delivered_neemoil,sv.material_needs_delivery,u.name customer_name FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id ORDER BY sv.id DESC";
+            $result11 = $conn->query($sql11);
+            $siteVisit = [];
+            while ($row = $result11->fetch_assoc()) {
+                $siteVisit[] = $row;
+            }
 
-            echo json_encode([
-                "status" => "success",
-                "data" => $data
-            ]);
+            $sql2 = "SELECT * FROM site_visit_plant_problems order by id DESC";
+            $result2 = $conn->query($sql2);
+            $plant_problems = [];
+            while ($row = $result2->fetch_assoc()) {
+                $plant_problems[] = $row;
+            }
+
+            $sql3 = "SELECT * FROM site_visit_presence_of_pests ORDER BY id DESC";
+            $result3 = $conn->query($sql3);
+            $pest_types = [];
+            while ($row = $result3->fetch_assoc()) {
+                $pest_types[] = $row;
+            }
+
+            $sql4 = "SELECT * FROM site_visit_material_supplied_plants ORDER BY id DESC";
+            $result4 = $conn->query($sql4);
+            $supplied_plants = [];
+            while ($row = $result4->fetch_assoc()) {
+                $supplied_plants[] = $row;
+            }
+
+            $sql5 = "SELECT * FROM site_visit_material_supplied_chargeable_items ORDER BY id DESC";
+            $result5 = $conn->query($sql5);
+            $supplied_chargeable_item = [];
+            while ($row = $result5->fetch_assoc()) {
+                $supplied_chargeable_item[] = $row;
+            }
+
+            $sql6 = "SELECT * FROM site_visit_material_supplied_nutrients ORDER BY id DESC";
+            $result6 = $conn->query($sql6);
+            $supplied_nutrients = [];
+            while ($row = $result6->fetch_assoc()) {
+                $supplied_nutrients[] = $row;
+            }
+
+            $sql7 = "SELECT * FROM site_visit_photos ORDER BY id DESC";
+            $result7 = $conn->query($sql7);
+            $supplied_photo_setup = [];
+            while ($row = $result7->fetch_assoc()) {
+                $supplied_photo_setup[] = $row;
+            }
+
+            $sql8 = "SELECT * FROM site_visit_material_need_plants ORDER BY id DESC";
+            $result8 = $conn->query($sql8);
+            $need_plants = [];
+            while ($row = $result8->fetch_assoc()) {
+                $need_plants[] = $row;
+            }
+
+            $sql9 = "SELECT * FROM site_visit_material_need_nutrients ORDER BY id DESC";
+            $result9 = $conn->query($sql9);
+            $need_nutrients = [];
+            while ($row = $result9->fetch_assoc()) {
+                $need_nutrients[] = $row;
+            }
+
+            $sql10 = "SELECT * FROM site_visit_material_need_chargeable_items ORDER BY id DESC";
+            $result10 = $conn->query($sql10);
+            $need_chargeable_item = [];
+            while ($row = $result10->fetch_assoc()) {
+                $need_chargeable_item[] = $row;
+            }
+
+            echo json_encode(["status" => "success","data" => $data, "site_visit" => $siteVisit, "plantProblems" => $plant_problems, "pestTypes" => $pest_types, "suppliedPlants" => $supplied_plants, "suppliedChargeableItem" => $supplied_chargeable_item, "suppliedNutrients" => $supplied_nutrients, "suppliedPhotoSetup" => $supplied_photo_setup, "needPlants" => $need_plants, "needNutrients" => $need_nutrients, "needChargeableItem" => $need_chargeable_item]);
+
+            // echo json_encode([
+            //     "status" => "success",
+            //     "data" => $data
+            // ]);
         }elseif ($editSiteVisit) {
             if (!empty($userCode)) {
                 if (str_starts_with($userCode, 'TC')) {
