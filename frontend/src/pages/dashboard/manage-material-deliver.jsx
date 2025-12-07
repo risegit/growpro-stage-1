@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function UserTable() {
   const [allUsers, setAllUsers] = useState([]);
+  const [plantsList, setPlantsList] = useState([]);
+  const [nutrientsList, setNutrientsList] = useState([]);
+  const [chargeableItemList, setChargeableItemList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -11,28 +15,701 @@ export default function UserTable() {
     direction: 'ascending' // 'ascending' or 'descending'
   });
 
+  // Helper function to calculate supplies
+  const calculateSupplies = (tankCapacity, topups) => {
+    if (!tankCapacity || !topups) return "-";
+    
+    const capacity = parseFloat(tankCapacity);
+    const topupCount = parseFloat(topups);
+    
+    if (isNaN(capacity) || isNaN(topupCount)) return "-";
+    
+    const result = capacity * topupCount;
+    // Format to 2 decimal places if it's a decimal, otherwise show as integer
+    return result % 1 === 0 ? result.toString() : result.toFixed(2);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
   const usersPerPage = 10;
   const navigate = useNavigate();
+  const [pdfLoaded, setPdfLoaded] = useState(false);
 
   // 🔹 Fetch data from backend API
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}api/material-deliver.php`, {
-          method: "GET",
-        });
-        const data = await response.json();
-        console.log("user data=", data);
-        setAllUsers(data.data);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // useEffect(() => {
+  //   const fetchUsers = async () => {
+  //     try {
+  //       const response = await fetch(`${import.meta.env.VITE_API_URL}api/material-deliver.php`, {
+  //         method: "GET",
+  //       });
+  //       const data = await response.json();
+  //       console.log("user data=", data);
+  //       setAllUsers(data.data);
+  //       // 🔹 Store plants array
+  //     setPlantsList(data.plants || []);
+  //     } catch (error) {
+  //       console.error("Error fetching users:", error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
 
-    fetchUsers();
-  }, []);
+  //   fetchUsers();
+  // }, []);
+
+  // 🔹 Fetch data from backend API
+useEffect(() => {
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}api/material-deliver.php`, {
+        method: "GET",
+      });
+      const data = await response.json();
+      console.log("API Response:", data);
+      
+      // Match plants with users based on customer_id
+      const usersWithPlants = data.data.map(user => {
+        // Find plants for this specific user based on customer_id
+        const userPlants = data.plants.filter(plant => 
+          plant.customer_id === user.customer_id
+        );
+        const userNutrients = data.nutrients.filter(nutrient => 
+          nutrient.customer_id === user.customer_id
+        );
+        const userchargeableItem = data.chargeableItems.filter(chargeableItem => 
+          chargeableItem.customer_id === user.customer_id
+        );
+        
+        return {
+          ...user,
+          plants: userPlants,
+          nutrients: userNutrients,
+          chargeableItems: userchargeableItem
+
+        };
+      });
+      
+      console.log("Users with plants:", usersWithPlants);
+      setAllUsers(usersWithPlants);
+      setPlantsList(data.plants || []);
+      setNutrientsList(data.nutrients || []);
+      setChargeableItemList(data.chargeableItems || []);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchUsers();
+}, []);
+
+  // Load jsPDF library
+      useEffect(() => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.async = true;
+        script.onload = () => {
+          console.log('jsPDF loaded successfully');
+          setPdfLoaded(true);
+        };
+        script.onerror = () => {
+          console.error('Failed to load jsPDF');
+        };
+        document.body.appendChild(script);
+    
+        return () => {
+          document.body.removeChild(script);
+        };
+      }, []);
+
+  // Generate PDF Report
+//   const generatePDF = (visitData) => {
+//   if (!window.jspdf) {
+//     alert('PDF library is still loading. Please try again in a moment.');
+//     return;
+//   }
+
+//   const { jsPDF } = window.jspdf;
+//   const doc = new jsPDF();
+
+//   // Header
+//   doc.setFillColor(59, 130, 246);
+//   doc.rect(0, 0, 210, 40, "F");
+  
+//   doc.setTextColor(255, 255, 255);
+//   doc.setFontSize(24);
+//   doc.setFont(undefined, "bold");
+//   doc.text("Material Deliver Report", 105, 20, { align: "center" });
+  
+//   doc.setFontSize(10);
+//   doc.setFont(undefined, "normal");
+//   doc.text(`Report Generated: ${formatDate(new Date().toISOString())}`, 105, 30, { align: "center" });
+
+//   // Reset text color for body
+//   doc.setTextColor(0, 0, 0);
+  
+//   let yPos = 55;
+
+//   // Customer Information Section
+//   doc.setFontSize(16);
+//   doc.setFont(undefined, "bold");
+//   doc.setTextColor(59, 130, 246);
+//   doc.text("Customer Information", 20, yPos);
+  
+//   yPos += 5;
+//   doc.setLineWidth(0.5);
+//   doc.line(20, yPos, 190, yPos);
+  
+//   yPos += 10;
+//   doc.setFontSize(11);
+//   doc.setTextColor(0, 0, 0);
+
+//   const customerDetails = [
+//     { label: "Customer Name:", value: visitData.name || "-" },
+//     { label: "Phone Number:", value: visitData.phone || "-" },
+//   ];
+
+//   customerDetails.forEach(item => {
+//     doc.setFont(undefined, "bold");
+//     doc.text(item.label, 25, yPos);
+//     doc.setFont(undefined, "normal");
+//     doc.text(item.value, 70, yPos);
+//     yPos += 8;
+//   });
+
+//   // Material Information Section
+//   yPos += 5;
+//   doc.setFontSize(16);
+//   doc.setFont(undefined, "bold");
+//   doc.setTextColor(59, 130, 246);
+//   doc.text("Material Information", 20, yPos);
+  
+//   yPos += 5;
+//   doc.setLineWidth(0.5);
+//   doc.line(20, yPos, 190, yPos);
+  
+//   yPos += 10;
+//   doc.setFontSize(11);
+//   doc.setTextColor(0, 0, 0);
+
+//   const materialDetails = [
+//     { label: "Technician Name:", value: visitData.tech_name || "-" },
+//     { label: "Technician ID:", value: visitData.chargeableItem || "-" },
+//     { label: "Visited By Code:", value: visitData.nutrients || "-" },
+//   ];
+
+//   materialDetails.forEach(item => {
+//     doc.setFont(undefined, "bold");
+//     doc.text(item.label, 25, yPos);
+//     doc.setFont(undefined, "normal");
+//     doc.text(item.value, 70, yPos);
+//     yPos += 8;
+//   });
+
+//   // Plants Information Section
+//   yPos += 5;
+//   doc.setFontSize(16);
+//   doc.setFont(undefined, "bold");
+//   doc.setTextColor(59, 130, 246);
+//   doc.text("Plants to Deliver", 20, yPos);
+  
+//   yPos += 5;
+//   doc.setLineWidth(0.5);
+//   doc.line(20, yPos, 190, yPos);
+  
+//   yPos += 10;
+  
+//   // Check if plants exist in the visitData
+//   if (visitData.plants && visitData.plants.length > 0) {
+//     // Table headers for plants
+//     doc.setFontSize(10);
+//     doc.setFont(undefined, "bold");
+//     doc.text("S.No.", 25, yPos);
+//     doc.text("Plant Name", 45, yPos);
+//     doc.text("Quantity", 120, yPos);
+//     doc.text("Remarks", 150, yPos);
+    
+//     yPos += 8;
+//     doc.setLineWidth(0.2);
+//     doc.line(20, yPos, 190, yPos);
+//     yPos += 5;
+    
+//     // Plants data rows
+//     doc.setFontSize(9);
+//     doc.setFont(undefined, "normal");
+    
+//     visitData.plants.forEach((plant, index) => {
+//       // Check if we need a new page
+//       if (yPos > 250) {
+//         doc.addPage();
+//         yPos = 20;
+//       }
+      
+//       const serialNo = index + 1;
+//       const plantName = plant.plant_name === "others" 
+//         ? (plant.other_plant_name || "Other Plant") 
+//         : plant.plant_name || "-";
+//       const quantity = plant.quantity || "-";
+//       const remarks = plant.remarks || "-";
+      
+//       doc.text(serialNo.toString(), 25, yPos);
+//       doc.text(plantName, 45, yPos);
+//       doc.text(quantity.toString(), 120, yPos);
+      
+//       // Handle long remarks by splitting text
+//       const maxRemarksWidth = 40;
+//       const remarksLines = doc.splitTextToSize(remarks, maxRemarksWidth);
+//       doc.text(remarksLines, 150, yPos);
+      
+//       // If remarks has multiple lines, adjust yPos accordingly
+//       yPos += (remarksLines.length * 5);
+      
+//       yPos += 10; // Space for next item
+//     });
+//   } else {
+//     doc.setFontSize(10);
+//     doc.setFont(undefined, "normal");
+//     doc.text("No plants listed", 25, yPos);
+//     yPos += 8;
+//   }
+
+//   // Footer
+//   doc.setFontSize(8);
+//   doc.setTextColor(128, 128, 128);
+//   doc.text("This is a computer-generated report.", 105, 280, { align: "center" });
+//   doc.text("For any queries, please contact support.", 105, 285, { align: "center" });
+
+//   // Save PDF
+//   const fileName = `Material_Deliver_Report_${visitData.id || "unknown"}_${(visitData.name || "customer").replace(/\s+/g, '_')}.pdf`;
+//   doc.save(fileName);
+// };
+
+const generatePDF = (user) => {
+  if (!window.jspdf) {
+    alert('PDF library is still loading. Please try again in a moment.');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  // Header
+  doc.setFillColor(59, 130, 246);
+  doc.rect(0, 0, 210, 40, "F");
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.setFont(undefined, "bold");
+  doc.text("Material Deliver Report", 105, 20, { align: "center" });
+  
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
+  doc.text(`Report Generated: ${formatDate(new Date().toISOString())}`, 105, 30, { align: "center" });
+
+  // Reset text color for body
+  doc.setTextColor(0, 0, 0);
+  
+  let yPos = 55;
+
+  // Customer Information Section
+  doc.setFontSize(16);
+  doc.setFont(undefined, "bold");
+  doc.setTextColor(59, 130, 246);
+  doc.text("Customer Information", 20, yPos);
+  
+  yPos += 5;
+  doc.setLineWidth(0.5);
+  doc.line(20, yPos, 190, yPos);
+  
+  yPos += 10;
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+
+  const customerDetails = [
+    { label: "Customer Name:", value: user.name || "-" },
+    { label: "Phone Number:", value: user.phone || "-" },
+    { label: "Customer ID:", value: user.customer_id || "-" },
+  ];
+
+  customerDetails.forEach(item => {
+    doc.setFont(undefined, "bold");
+    doc.text(item.label, 25, yPos);
+    doc.setFont(undefined, "normal");
+    doc.text(item.value.toString(), 70, yPos);
+    yPos += 8;
+  });
+
+  // Check if we need a new page after basic info
+  if (yPos > 180) {
+    doc.addPage();
+    yPos = 20;
+  }
+
+  // Material Information Section
+  yPos += 10;
+  doc.setFontSize(16);
+  doc.setFont(undefined, "bold");
+  doc.setTextColor(59, 130, 246);
+  doc.text("Delivery Information", 20, yPos);
+  
+  yPos += 5;
+  doc.setLineWidth(0.5);
+  doc.line(20, yPos, 190, yPos);
+  
+  yPos += 10;
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+
+  // Delivery Status - FIXED
+  doc.setFont(undefined, "bold");
+  doc.text("Delivery Status:", 25, yPos);
+  doc.setFont(undefined, "normal");
+  
+  // Format delivery status text
+  const deliveryStatus = user.delivery_status || "Not specified";
+  let statusText = deliveryStatus;
+  let statusColor = [0, 0, 0]; // Default black
+  
+  // Add color coding for delivery status
+  switch(deliveryStatus.toLowerCase()) {
+    case 'delivered':
+    case 'yes':
+      statusColor = [34, 197, 94]; // Green
+      statusText = "Delivered";
+      break;
+    case 'partial':
+      statusColor = [245, 158, 11]; // Amber
+      statusText = "Partially Delivered";
+      break;
+    case 'pending':
+    case 'no':
+      statusColor = [239, 68, 68]; // Red
+      statusText = "Pending";
+      break;
+  }
+  
+  // Save current color
+  const currentColor = doc.getTextColor();
+  // Set status color
+  doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+  doc.text(statusText, 70, yPos);
+  // Restore original color
+  doc.setTextColor(currentColor[0], currentColor[1], currentColor[2]);
+  
+  yPos += 8;
+
+  // Plants Information Section
+  yPos += 10;
+  doc.setFontSize(16);
+  doc.setFont(undefined, "bold");
+  doc.setTextColor(59, 130, 246);
+  doc.text("Plants Delivered", 20, yPos);
+  
+  yPos += 5;
+  doc.setLineWidth(0.5);
+  doc.line(20, yPos, 190, yPos);
+  
+  yPos += 10;
+  
+  // Check if plants exist for this user
+  if (user.plants && user.plants.length > 0) {
+    // Table headers for plants
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    doc.text("#", 25, yPos);
+    doc.text("Plant Name", 35, yPos);
+    doc.text("Quantity", 120, yPos);
+    
+    yPos += 8;
+    doc.setLineWidth(0.2);
+    doc.line(20, yPos, 190, yPos);
+    yPos += 5;
+    
+    // Plants data rows
+    doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+    
+    user.plants.forEach((plant, index) => {
+      // Check if we need a new page
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      const serialNo = index + 1;
+      const plantName = plant.plant_name === "Others" || plant.plant_name === "others"
+        ? (plant.other_plant_name || "Custom Plant")
+        : plant.plant_name || "-";
+      const quantity = plant.quantity || "-";
+      
+      doc.text(serialNo.toString(), 25, yPos);
+      doc.text(plantName, 35, yPos);
+      doc.text(quantity.toString(), 120, yPos);
+      
+      yPos += 8;
+      
+      // Add small space between rows
+      if (index < user.plants.length - 1) {
+        doc.setLineWidth(0.1);
+        doc.line(35, yPos, 180, yPos);
+        yPos += 5;
+      }
+    });
+    
+    // Add total summary for plants
+    yPos += 10;
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    doc.text(`Total Plants: ${user.plants.length}`, 25, yPos);
+    
+    const totalPlantQuantity = user.plants.reduce((sum, plant) => {
+      return sum + (parseInt(plant.quantity) || 0);
+    }, 0);
+    
+    doc.text(`Total Plant Quantity: ${totalPlantQuantity} units`, 100, yPos);
+    yPos += 15;
+    
+  } else {
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+    doc.text("No plants listed for delivery", 25, yPos);
+    yPos += 15;
+  }
+
+  // Check if we need a new page before nutrients
+  if (yPos > 180) {
+    doc.addPage();
+    yPos = 20;
+  }
+
+  // Nutrients Information Section
+  if (user.nutrients && user.nutrients.length > 0) {
+    doc.setFontSize(16);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(59, 130, 246);
+    doc.text("Nutrients Information", 20, yPos);
+    
+    yPos += 5;
+    doc.setLineWidth(0.5);
+    doc.line(20, yPos, 190, yPos);
+    
+    yPos += 10;
+    
+    // Table headers for nutrients
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    doc.text("#", 25, yPos);
+    doc.text("Nutrient Type", 35, yPos);
+    doc.text("Tank Capacity", 90, yPos);
+    doc.text("Topups", 130, yPos);
+    doc.text("Total Nutrients", 160, yPos);
+    
+    yPos += 8;
+    doc.setLineWidth(0.2);
+    doc.line(20, yPos, 190, yPos);
+    yPos += 5;
+    
+    // Nutrients data rows
+    doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+    
+    user.nutrients.forEach((nutrient, index) => {
+      // Check if we need a new page
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      const serialNo = index + 1;
+      const nutrientType = nutrient.nutrient_type || "-";
+      const tankCapacity = nutrient.tank_capacity || "-";
+      const topups = nutrient.topups || "-";
+      const supplies = calculateSupplies(nutrient.tank_capacity, nutrient.topups) + " L";
+      
+      doc.text(serialNo.toString(), 25, yPos);
+      doc.text(nutrientType, 35, yPos);
+      doc.text(`${tankCapacity} L`, 90, yPos);
+      doc.text(topups, 130, yPos);
+      doc.text(supplies, 160, yPos);
+      
+      yPos += 8;
+      
+      // Add small space between rows
+      if (index < user.nutrients.length - 1) {
+        doc.setLineWidth(0.1);
+        doc.line(35, yPos, 180, yPos);
+        yPos += 5;
+      }
+    });
+    
+    // Add total summary for nutrients
+    yPos += 10;
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    
+    const totalNutrients = user.nutrients.length;
+    const totalSupplies = user.nutrients.reduce((sum, nutrient) => {
+      if (!nutrient.tank_capacity || !nutrient.topups) return sum;
+      const capacity = parseFloat(nutrient.tank_capacity);
+      const topups = parseFloat(nutrient.topups);
+      if (isNaN(capacity) || isNaN(topups)) return sum;
+      return sum + (capacity * topups);
+    }, 0);
+    
+    doc.text(`Total Nutrient Supplies: ${totalSupplies.toFixed(2)} L`, 25, yPos);
+    yPos += 15;
+  }
+
+  // Check if we need a new page before chargeable items
+  if (yPos > 180) {
+    doc.addPage();
+    yPos = 20;
+  }
+
+  // Chargeable Items Information Section
+  if (user.chargeableItems && user.chargeableItems.length > 0) {
+    doc.setFontSize(16);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(59, 130, 246);
+    doc.text("Chargeable Items", 20, yPos);
+    
+    yPos += 5;
+    doc.setLineWidth(0.5);
+    doc.line(20, yPos, 190, yPos);
+    
+    yPos += 10;
+    
+    // Table headers for chargeable items
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    doc.text("#", 25, yPos);
+    doc.text("Item Name", 40, yPos);
+    doc.text("Quantity", 150, yPos);
+    
+    yPos += 8;
+    doc.setLineWidth(0.2);
+    doc.line(20, yPos, 190, yPos);
+    yPos += 5;
+    
+    // Chargeable items data rows
+    doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+    
+    user.chargeableItems.forEach((item, index) => {
+      // Check if we need a new page
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      const serialNo = index + 1;
+      const itemName = item.item_name === "Others" || item.item_name === "others"
+        ? (item.other_item_name || "Custom Item")
+        : item.item_name || "-";
+      const quantity = item.quantity || "-";
+      
+      doc.text(serialNo.toString(), 25, yPos);
+      doc.text(itemName, 40, yPos);
+      doc.text(quantity.toString(), 150, yPos);
+      
+      yPos += 8;
+      
+      // Add small space between rows
+      if (index < user.chargeableItems.length - 1) {
+        doc.setLineWidth(0.1);
+        doc.line(40, yPos, 180, yPos);
+        yPos += 5;
+      }
+    });
+    
+    // Add total summary for chargeable items
+    yPos += 10;
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    
+    const totalChargeableItems = user.chargeableItems.length;
+    const totalChargeableQuantity = user.chargeableItems.reduce((sum, item) => {
+      return sum + (parseInt(item.quantity) || 0);
+    }, 0);
+    
+    doc.text(`Total Chargeable Items: ${totalChargeableItems}`, 25, yPos);
+    doc.text(`Total Quantity: ${totalChargeableQuantity} units`, 100, yPos);
+    yPos += 15;
+  }
+
+  // Overall Summary Section
+  yPos += 5;
+  doc.setFontSize(14);
+  doc.setFont(undefined, "bold");
+  doc.setTextColor(59, 130, 246);
+  doc.text("Overall Summary", 20, yPos);
+  
+  yPos += 5;
+  doc.setLineWidth(0.5);
+  doc.line(20, yPos, 190, yPos);
+  
+  yPos += 10;
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+  
+  // Calculate totals
+  const totalPlants = user.plants?.length || 0;
+  const totalNutrientsCount = user.nutrients?.length || 0;
+  const totalChargeableItemsCount = user.chargeableItems?.length || 0;
+  const totalItems = totalPlants + totalNutrientsCount + totalChargeableItemsCount;
+  
+  doc.text(`Total Items Delivered: ${totalItems}`, 25, yPos);
+  yPos += 8;
+  
+  if (totalPlants > 0) {
+    const totalPlantQty = user.plants.reduce((sum, plant) => sum + (parseInt(plant.quantity) || 0), 0);
+    doc.text(`Total Plants: ${totalPlantQty} units`, 25, yPos);
+    yPos += 8;
+  }
+  
+  if (totalNutrientsCount > 0) {
+    const totalSupplies = user.nutrients.reduce((sum, nutrient) => {
+      if (!nutrient.tank_capacity || !nutrient.topups) return sum;
+      const capacity = parseFloat(nutrient.tank_capacity);
+      const topups = parseFloat(nutrient.topups);
+      if (isNaN(capacity) || isNaN(topups)) return sum;
+      return sum + (capacity * topups);
+    }, 0);
+    doc.text(`Total Nutrients: ${totalSupplies.toFixed(2)} L`, 25, yPos);
+    yPos += 8;
+  }
+  
+  if (totalChargeableItemsCount > 0) {
+    const totalChargeableQty = user.chargeableItems.reduce((sum, item) => 
+      sum + (parseInt(item.quantity) || 0), 0);
+    doc.text(`Total Chargeable Items: ${totalChargeableQty} units`, 25, yPos);
+    yPos += 8;
+  }
+
+  // Footer
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text("This is a computer-generated report.", 105, 285, { align: "center" });
+    doc.text("For any queries, please contact support.", 105, 290, { align: "center" });
+  }
+
+  // Save PDF
+  const safeName = (user.name || "customer").replace(/[^a-zA-Z0-9]/g, '_');
+  const fileName = `Material_Deliver_Report_${user.customer_id || user.id}_${safeName}.pdf`;
+  doc.save(fileName);
+};
 
   // 🔹 Handle sorting
   const handleSort = (key) => {
@@ -228,6 +905,7 @@ export default function UserTable() {
                           <SortIndicator columnKey="delivery_status" />
                         </div>
                       </th>
+                      <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-center">PDF Report</th>
                       <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">
                         Action
                       </th>
@@ -275,12 +953,28 @@ export default function UserTable() {
                             </a>
                           </td>
 
-                          <td className="py-4 px-4 text-gray-700 truncate">
-                            {user.plant}{user.nutrients}{user.chargeableItem}
+                          <td>
+                            {plantsList.length > 0 ? "Plants" : ""}{nutrientsList.length > 0 ? " , Nutrients" : ""}{chargeableItemList.length > 0 ? " , Chargeable Items" : ""}
                           </td>
 
                           <td className="py-4 px-4 text-gray-700 truncate">
                             {user.delivery_status?.toUpperCase()}
+                          </td>
+
+                          <td className="py-4 px-4 text-center">
+                            <button
+                              onClick={() => generatePDF(user)}
+                              disabled={!pdfLoaded}
+                              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+                                pdfLoaded 
+                                  ? 'bg-red-600 text-white hover:bg-red-700' 
+                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              }`}
+                              title={pdfLoaded ? "Download PDF Report" : "Loading PDF library..."}
+                            >
+                              <FileText size={16} />
+                              PDF
+                            </button>
                           </td>
 
                           {/* Action */}

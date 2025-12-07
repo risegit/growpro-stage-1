@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function UserTable() {
@@ -9,6 +10,7 @@ export default function UserTable() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
   const usersPerPage = 10;
   const navigate = useNavigate();
+  const [pdfLoaded, setPdfLoaded] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user"));
   const userRole = user?.role;
@@ -79,6 +81,124 @@ export default function UserTable() {
       return 0;
     });
   }, [allAMC, sortConfig]);
+
+    // Load jsPDF library
+    useEffect(() => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      script.async = true;
+      script.onload = () => {
+        console.log('jsPDF loaded successfully');
+        setPdfLoaded(true);
+      };
+      script.onerror = () => {
+        console.error('Failed to load jsPDF');
+      };
+      document.body.appendChild(script);
+  
+      return () => {
+        document.body.removeChild(script);
+      };
+    }, []);
+
+  // Generate PDF Report
+  const generatePDF = (visitData) => {
+    if (!window.jspdf) {
+      alert('PDF library is still loading. Please try again in a moment.');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFillColor(59, 130, 246);
+    doc.rect(0, 0, 210, 40, "F");
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont(undefined, "bold");
+    doc.text("AMC Report", 105, 20, { align: "center" });
+    
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+    doc.text(`Report Generated: ${formatDate(new Date().toISOString())}`, 105, 30, { align: "center" });
+
+    // Reset text color for body
+    doc.setTextColor(0, 0, 0);
+    
+    let yPos = 55;
+
+    // Customer Information Section
+    yPos += 5;
+    doc.setFontSize(16);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(59, 130, 246);
+    doc.text("Customer Information", 20, yPos);
+    
+    yPos += 5;
+    doc.setLineWidth(0.5);
+    doc.line(20, yPos, 190, yPos);
+    
+    yPos += 10;
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+
+    const customerDetails = [
+      { label: "Customer Name:", value: visitData.name },
+      { label: "Customer ID:", value: visitData.customer_id },
+      { label: "Phone Number:", value: visitData.phone },
+    ];
+
+    customerDetails.forEach(item => {
+      doc.setFont(undefined, "bold");
+      doc.text(item.label, 25, yPos);
+      doc.setFont(undefined, "normal");
+      doc.text(item.value, 70, yPos);
+      yPos += 8;
+    });
+
+    // Visit Information Section
+    yPos += 10;
+    doc.setFontSize(16);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(59, 130, 246);
+    doc.text("AMC Information", 20, yPos);
+    
+    yPos += 5;
+    doc.setLineWidth(0.5);
+    doc.line(20, yPos, 190, yPos);
+    
+    yPos += 10;
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    
+    // Visit Details
+    const visitDetails = [
+      { label: "Validity From:", value: formatDate(visitData.validity_from) },
+      { label: "Validity Upto:", value: formatDate(visitData.validity_upto) },
+      { label: "Visits per Month:", value: visitData.visits_per_month },
+      { label: "Total Visit Completed:", value: visitData.total_visits_done },
+      { label: "Total Visit Pending:", value: visitData.pending_visits },
+    ];
+
+    visitDetails.forEach(item => {
+      doc.setFont(undefined, "bold");
+      doc.text(item.label, 25, yPos);
+      doc.setFont(undefined, "normal");
+      doc.text(item.value, 70, yPos);
+      yPos += 8;
+    });
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text("This is a computer-generated report.", 105, 280, { align: "center" });
+    doc.text("For any queries, please contact support.", 105, 285, { align: "center" });
+
+    // Save PDF
+    doc.save(`AMC_Report_${visitData.amc_id}_${visitData.name.replace(/\s+/g, '_')}.pdf`);
+  };
 
   // 🔹 Filter users based on search
   const filteredUsers = useMemo(() => {
@@ -226,7 +346,7 @@ export default function UserTable() {
                         onClick={() => handleSort('name')}
                       >
                         <div className="flex items-center">
-                          Name
+                          Name 
                           <SortArrow columnKey="name" />
                         </div>
                       </th>
@@ -253,14 +373,14 @@ export default function UserTable() {
                         onClick={() => handleSort('pending_visits')}
                       >
                         <div className="flex items-center">
-                          Visit Pending This Month
+                          Visit Pending
                           <SortArrow columnKey="pending_visits" />
                         </div>
                       </th>
                       {/* Show Days Left column only for admin */}
                       {isAdmin && (
                         <th
-                          className="w-[16%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                          className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
                           onClick={() => handleSort('validity_upto')}
                         >
                           <div className="flex items-center">
@@ -269,8 +389,11 @@ export default function UserTable() {
                           </div>
                         </th>
                       )}
-                      <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">
+                      <th className="w-[11%] py-4 px-4 font-medium text-gray-700 text-left">
                         AMC Status
+                      </th>
+                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">
+                        Report
                       </th>
                       {userRole !== "technician" && (
                         <th className="py-4 px-4 font-medium text-gray-700 text-right">Action</th>
@@ -345,6 +468,22 @@ export default function UserTable() {
                             >
                               {status}
                             </span>
+                          </td>
+
+                          <td className="py-4 px-4 text-center">
+                            <button
+                              onClick={() => generatePDF(user)}
+                              disabled={!pdfLoaded}
+                              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+                                pdfLoaded 
+                                  ? 'bg-red-600 text-white hover:bg-red-700' 
+                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              }`}
+                              title={pdfLoaded ? "Download PDF Report" : "Loading PDF library..."}
+                            >
+                              <FileText size={16} />
+                              PDF
+                            </button>
                           </td>
 
                           {/* Action */}
