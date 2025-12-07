@@ -68,36 +68,65 @@ switch ($method) {
                 ]);
 
             }else{
-                $sql1 = "SELECT sv.id,u.name,u.phone,u.profile_pic,t.name tech_name,COALESCE(mdr.delivery_status, 'No') AS delivery_status FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id INNER JOIN users t ON sv.visited_by=t.user_code LEFT JOIN material_delivery_records mdr ON sv.id=mdr.visit_id";
+                $sql1 = "SELECT sv.id,u.id customer_id,u.name,u.phone,u.profile_pic,t.name tech_name,COALESCE(mdr.delivery_status, 'No') AS delivery_status FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id INNER JOIN users t ON sv.visited_by=t.user_code LEFT JOIN material_delivery_records mdr ON sv.id=mdr.visit_id";
                 $result = $conn->query($sql1);
 
                 $data = [];
+                // while ($row = $result->fetch_assoc()) {
+
+                //     // Move your checks inside the loop
+
+                //     $sql2 = "SELECT * FROM site_visit sv 
+                //             INNER JOIN site_visit_material_need_plants svp ON sv.id=svp.visit_id";
+                //     $result2 = $conn->query($sql2);
+                //     $row['plant'] = ($result2 && $result2->num_rows > 0) ? 'Plants' : '';
+
+                //     $sql3 = "SELECT * FROM site_visit sv 
+                //             INNER JOIN site_visit_material_need_nutrients svn ON sv.id=svn.visit_id";
+                //     $result3 = $conn->query($sql3);
+                //     $row['nutrients'] = ($result3 && $result3->num_rows > 0) ? ', Nutrients' : '';
+
+                //     $sql4 = "SELECT * FROM site_visit sv 
+                //             INNER JOIN site_visit_material_need_chargeable_items svci ON sv.id=svci.visit_id";
+                //     $result4 = $conn->query($sql4);
+                //     $row['chargeableItem'] = ($result4 && $result4->num_rows > 0) ? ', Chargeable Item' : '';
+
+                //     // add row to data
+                //     $data[] = $row;
+                // }
+
                 while ($row = $result->fetch_assoc()) {
+                    $data[]=$row;
+                }
 
-                    // Move your checks inside the loop
+                $sql2 = "SELECT sv.id, sv.customer_id, svp.plant_name,svp.quantity,svp.other_plant_name FROM site_visit sv INNER JOIN site_visit_material_need_plants svp ON sv.id=svp.visit_id";
+                $result2 = $conn->query($sql2);
+                $plants = [];
+                while ($row = $result2->fetch_assoc()) {
+                    $plants[]=$row;
+                }
 
-                    $sql2 = "SELECT * FROM site_visit sv 
-                            INNER JOIN site_visit_material_need_plants svp ON sv.id=svp.visit_id";
-                    $result2 = $conn->query($sql2);
-                    $row['plant'] = ($result2 && $result2->num_rows > 0) ? 'Plants' : '';
+                $sql3 = "SELECT sv.id,sv.customer_id,svn.nutrient_type,svn.tank_capacity,svn.topups,svn.other_nutrient_name,svn.other_tank_capacity FROM site_visit sv INNER JOIN site_visit_material_need_nutrients svn ON sv.id=svn.visit_id";
+                $result3 = $conn->query($sql3);
+                $nutrients = [];
+                while ($row = $result3->fetch_assoc()) {
+                    $nutrients[]=$row;
+                }
 
-                    $sql3 = "SELECT * FROM site_visit sv 
-                            INNER JOIN site_visit_material_need_nutrients svn ON sv.id=svn.visit_id";
-                    $result3 = $conn->query($sql3);
-                    $row['nutrients'] = ($result3 && $result3->num_rows > 0) ? ', Nutrients' : '';
-
-                    $sql4 = "SELECT * FROM site_visit sv 
-                            INNER JOIN site_visit_material_need_chargeable_items svci ON sv.id=svci.visit_id";
-                    $result4 = $conn->query($sql4);
-                    $row['chargeableItem'] = ($result4 && $result4->num_rows > 0) ? ', Chargeable Item' : '';
-
-                    // add row to data
-                    $data[] = $row;
+                $sql4 = "SELECT sv.id,sv.customer_id,svci.item_name,svci.other_item_name,svci.quantity FROM site_visit sv INNER JOIN site_visit_material_need_chargeable_items svci ON sv.id=svci.visit_id";
+                $result4 = $conn->query($sql4);
+                $chargeableItems = [];
+                while ($row = $result4->fetch_assoc()) {
+                    $chargeableItems[]=$row;
                 }
 
                 echo json_encode([
                     "status" => "success",
-                    "data" => $data
+                    "data" => $data,
+                    "plants" => $plants,
+                    "nutrients" => $nutrients,
+                    "chargeableItems" => $chargeableItems
+
                 ]);
             }
         
