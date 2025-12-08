@@ -24,7 +24,7 @@ switch ($method) {
             if ($result && $result->num_rows > 0) {
                 $row = $result->fetch_assoc();
                 $role = $row['role'];
-                $table_name = ($role == 'customer') ? 'customers_details' : (($role == 'admin' || $role == 'manager' || $role == 'technician') ? 'employee_other_details' : '');
+                $table_name = ($role == 'customer') ? 'customers_details' : (($role == 'admin' || $role == 'co-ordinator' || $role == 'technician') ? 'employee_other_details' : '');
             }
 
             if (!empty($table_name)) {
@@ -159,7 +159,7 @@ switch ($method) {
                 $roleLower = strtolower(trim($_POST['role']));
                 $prefix = '';
 
-                if ($roleLower === 'manager') $prefix = 'MN';
+                if ($roleLower === 'co-ordinator') $prefix = '';
                 elseif ($roleLower === 'admin') $prefix = 'AD';
                 elseif ($roleLower === 'technician') $prefix = 'TC';
                 else $prefix = 'OT'; // default prefix
@@ -169,7 +169,7 @@ switch ($method) {
                 $conn->query("UPDATE users SET user_code = '$user_code' WHERE id = '$user_id'");
 
                 $role = strtolower(trim($_POST['role'] ?? ''));
-                if (in_array($role, ['admin','manager', 'technician'])) {
+                if (in_array($role, ['admin','co-ordinator', 'technician'])) {
                     $sql2 = "INSERT INTO employee_other_details
                             (user_id, aadhaar_no, bank_name, acc_no, IFSC_code, state, city, locality, landmark, pincode, street_address, date, time)
                             VALUES
@@ -184,7 +184,7 @@ switch ($method) {
                     if (empty($row['user_code'])) {
                         $roleLower = strtolower(trim($row['role']));
                         $prefix = ($roleLower === 'admin') ? 'AD' :
-                                (($roleLower === 'manager') ? 'MN' :
+                                (($roleLower === 'co-ordinator') ? '' :
                                 (($roleLower === 'technician') ? 'TC' : 'US'));
 
                         $user_code = $prefix . str_pad($user_id, 4, '0', STR_PAD_LEFT);

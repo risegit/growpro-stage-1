@@ -175,8 +175,8 @@ export default function AddUserForm() {
 
         if (!formData.role) newErrors.role = 'Role is required';
 
-        // bank details only for manager or technician
-        if (['manager', 'technician'].includes(formData.role)) {
+        // bank details only for co-ordinator or technician
+        if (['co-ordinator', 'technician'].includes(formData.role)) {
             if (!formData.aadhaarNo.trim()) newErrors.aadhaarNo = 'Aadhaar number is required';
             else if (!/^\d{12}$/.test(formData.aadhaarNo.trim()))
                 newErrors.aadhaarNo = 'Aadhaar number must be 12 digits';
@@ -341,7 +341,7 @@ export default function AddUserForm() {
                         >
                             <option value="" disabled>Select role</option>
                             <option value="admin">Admin</option>
-                            <option value="manager">Manager</option>
+                            <option value="co-ordinator">Co-ordinator</option>
                             <option value="technician">Technician</option>
                         </select>
                         {errors.role && <span className="text-red-500 text-sm mt-1">{errors.role}</span>}
@@ -560,8 +560,8 @@ export default function AddUserForm() {
                         {errors.streetAddress && <span className="text-red-500 text-sm mt-1">{errors.streetAddress}</span>}
                     </div>
 
-                    {/* Manager / Technician Extra Fields */}
-                    {['manager', 'technician'].includes(formData.role) && (
+                    {/* co-ordinator / Technician Extra Fields */}
+                    {['co-ordinator', 'technician'].includes(formData.role) && (
                         <>
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">Aadhaar No <span className="text-red-500">*</span></label>

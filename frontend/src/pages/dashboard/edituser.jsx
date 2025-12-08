@@ -151,7 +151,7 @@ export default function EditUserForm() {
     else if (!/^\d{10}$/.test(formData.phone)) newErrors.phone = 'Phone must be 10 digits';
     if (!formData.role) newErrors.role = 'Role is required';
 
-    if (['manager', 'technician'].includes(formData.role)) {
+    if (['co-ordinator', 'technician'].includes(formData.role)) {
       if (!formData.aadhaarNo.trim()) newErrors.aadhaarNo = 'Aadhaar required';
       else if (!/^\d{12}$/.test(formData.aadhaarNo.trim())) newErrors.aadhaarNo = 'Must be 12 digits';
       if (!formData.bankName.trim()) newErrors.bankName = 'Bank name required';
@@ -275,7 +275,7 @@ export default function EditUserForm() {
             >
               <option value="" disabled>Select role</option>
               <option value="admin">Admin</option>
-              <option value="manager">Manager</option>
+              <option value="co-ordinator">Co-ordinator</option>
               <option value="technician">Technician</option>
             </select>
             {errors.role && <span className="text-red-500 text-sm mt-1">{errors.role}</span>}
@@ -511,8 +511,8 @@ export default function EditUserForm() {
             {errors.streetAddress && <span className="text-red-500 text-sm mt-1">{errors.streetAddress}</span>}
           </div>
 
-          {/* Bank Details - Show only for Manager or Technician */}
-          {['manager', 'technician'].includes(formData.role) && (
+          {/* Bank Details - Show only for co-ordinator or Technician */}
+          {['co-ordinator', 'technician'].includes(formData.role) && (
             <>
               <div className="flex flex-col">
                 <label className="mb-1 font-medium text-gray-700">
