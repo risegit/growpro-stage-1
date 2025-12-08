@@ -61,11 +61,11 @@ const routes = [
         icon: <HomeIcon {...icon} />,
         name: "Dashboard",
         path: "/home",
-        allowedRoles: ["admin", "manager", "technician"],
+        allowedRoles: ["admin", "co-ordinator", "technician"],
         element: (
           <RoleProtectedRoute
             element={<Home />}
-            allowedRoles={["admin", "manager", "technician"]}
+            allowedRoles={["admin", "co-ordinator", "technician"]}
           />
         ),
       },
@@ -104,38 +104,38 @@ const routes = [
       {
         icon: <UsersIcon {...icon} />,
         name: "Customers",
-        allowedRoles: ["admin", "manager"],
+        allowedRoles: ["admin", "co-ordinator"],
         collapse: [
           {
             name: "Add Customer",
             path: "/customers/add",
-            allowedRoles: ["admin", "manager"],
+            allowedRoles: ["admin", "co-ordinator"],
             element: (
               <RoleProtectedRoute
                 element={<Addcustomer />}
-                allowedRoles={["admin", "manager"]}
+                allowedRoles={["admin", "co-ordinator"]}
               />
             ),
           },
           {
             name: "Manage Customers",
             path: "/customers/viewcustomers",
-            allowedRoles: ["admin", "manager"],
+            allowedRoles: ["admin", "co-ordinator"],
             element: (
               <RoleProtectedRoute
                 element={<Viewcustomer />}
-                allowedRoles={["admin", "manager"]}
+                allowedRoles={["admin", "co-ordinator"]}
               />
             ),
           },
           {
             name: "Edit Customer",
             path: "/customers/editcustomer/:id",
-            allowedRoles: ["admin", "manager"],
+            allowedRoles: ["admin", "co-ordinator"],
             element: (
               <RoleProtectedRoute
                 element={<Editcustomer />}
-                allowedRoles={["admin", "manager"]}
+                allowedRoles={["admin", "co-ordinator"]}
               />
             ),
             hidden: true,
@@ -145,38 +145,38 @@ const routes = [
       {
         icon: <WrenchScrewdriverIcon {...icon} />,
         name: "AMC",
-        allowedRoles: ["admin", "manager", "technician"],
+        allowedRoles: ["admin", "co-ordinator", "technician"],
         collapse: [
           {
             name: "Add AMC",
             path: "/amc/addamc",
-            allowedRoles: ["admin", "manager"],
+            allowedRoles: ["admin", "co-ordinator"],
             element: (
               <RoleProtectedRoute
                 element={<Addamc />}
-                allowedRoles={["admin", "manager"]}
+                allowedRoles={["admin", "co-ordinator"]}
               />
             ),
           },
           {
             name: "Manage AMC",
             path: "/amc/viewamc",
-            allowedRoles: ["admin", "manager", "technician"],
+            allowedRoles: ["admin", "co-ordinator", "technician"],
             element: (
               <RoleProtectedRoute
                 element={<Viewamc />}
-                allowedRoles={["admin", "manager", "technician"]}
+                allowedRoles={["admin", "co-ordinator", "technician"]}
               />
             ),
           },
           {
             name: "Edit AMC",
             path: "/amc/editamc/:id",
-            allowedRoles: ["admin", "manager"],
+            allowedRoles: ["admin", "co-ordinator"],
             element: (
               <RoleProtectedRoute
                 element={<Editamc />}
-                allowedRoles={["admin", "manager"]}
+                allowedRoles={["admin", "co-ordinator"]}
               />
             ),
             hidden: true,
@@ -186,38 +186,38 @@ const routes = [
       {
         icon: <MapPinIcon {...icon} />,
         name: "Schedule Site Visits",
-        allowedRoles: ["admin", "manager", "technician"],
+        allowedRoles: ["admin", "co-ordinator", "technician"],
         collapse: [
           {
             name: "Schedule Visit",
             path: "/sitevisits/schedulevisit",
-            allowedRoles: ["admin", "manager"],
+            allowedRoles: ["admin", "co-ordinator"],
             element: (
               <RoleProtectedRoute
                 element={<Schedulevisit />}
-                allowedRoles={["admin", "manager"]}
+                allowedRoles={["admin", "co-ordinator"]}
               />
             ),
           },
           {
             name: "Manage Schedule Visit",
             path: "/sitevisits/viewschedulevisit",
-            allowedRoles: ["admin", "manager", "technician"],
+            allowedRoles: ["admin", "co-ordinator", "technician"],
             element: (
               <RoleProtectedRoute
                 element={<ManageSchedulevisit />}
-                allowedRoles={["admin", "manager", "technician"]}
+                allowedRoles={["admin", "co-ordinator", "technician"]}
               />
             ),
           },
           {
             name: "Edit Visit",
             path: "/sitevisits/editschedulevisit/:id",
-            allowedRoles: ["admin", "manager"],
+            allowedRoles: ["admin", "co-ordinator"],
             element: (
               <RoleProtectedRoute
                 element={<EditScheduleVisit />}
-                allowedRoles={["admin", "manager"]}
+                allowedRoles={["admin", "co-ordinator"]}
               />
             ),
             hidden: true,
@@ -227,39 +227,39 @@ const routes = [
       {
         icon: <Eye {...icon} />,
         name: "Site Observation Visits",
-        allowedRoles: ["admin", "manager", "technician"],
+        allowedRoles: ["admin", "co-ordinator", "technician"],
         collapse: [
           
           {
             name: "Create Observation Visits",
             path: "/sitevisits/createvisits",
-            allowedRoles: ["admin", "manager", "technician"],
+            allowedRoles: ["admin", "co-ordinator", "technician"],
             element: (
               <RoleProtectedRoute
                 element={<Createvisits />}
-                allowedRoles={["admin", "manager", "technician"]}
+                allowedRoles={["admin", "co-ordinator", "technician"]}
               />
             ),
           },
           {
             name: "Manage Observation Visits",
             path: "/sitevisits/viewvisits",
-            allowedRoles: ["admin", "manager", "technician"],
+            allowedRoles: ["admin", "co-ordinator", "technician"],
             element: (
               <RoleProtectedRoute
                 element={<Viewvisits />}
-                allowedRoles={["admin", "manager", "technician"]}
+                allowedRoles={["admin", "co-ordinator", "technician"]}
               />
             ),
           },
           {
             name: "Edit Visit",
             path: "/sitevisits/editvisit/:id",
-            allowedRoles: ["admin", "manager"],
+            allowedRoles: ["admin", "co-ordinator"],
             element: (
               <RoleProtectedRoute
                 element={<Editvisit />}
-                allowedRoles={["admin", "manager"]}
+                allowedRoles={["admin", "co-ordinator"]}
               />
             ),
             hidden: true,
@@ -270,22 +270,22 @@ const routes = [
         icon: <FileText {...icon} />,
         name: "Manage Material Deliver",
         path: "/manage-material-deliver",
-        allowedRoles: ["admin", "manager", "technician"],
+        allowedRoles: ["admin", "co-ordinator", "technician"],
         element: (
           <RoleProtectedRoute
             element={<ManageMaterialDeliver />}
-            allowedRoles={["admin", "manager", "technician"]}
+            allowedRoles={["admin", "co-ordinator", "technician"]}
           />
         ),
       },
       {
             name: "Edit Material Deliver",
             path: "/editmaterialdeliver/:id",
-            allowedRoles: ["admin", "manager"],
+            allowedRoles: ["admin", "co-ordinator"],
             element: (
               <RoleProtectedRoute
                 element={<EditMaterialDeliver />}
-                allowedRoles={["admin", "manager"]}
+                allowedRoles={["admin", "co-ordinator"]}
               />
             ),
             hidden: true,
@@ -294,11 +294,11 @@ const routes = [
         icon: <FileText {...icon} />,
         name: "Reports",
         path: "/reports",
-        allowedRoles: ["admin", "manager", "technician"],
+        allowedRoles: ["admin", "co-ordinator", "technician"],
         element: (
           <RoleProtectedRoute
             element={<Reports />}
-            allowedRoles={["admin", "manager", "technician"]}
+            allowedRoles={["admin", "co-ordinator", "technician"]}
           />
         ),
       },

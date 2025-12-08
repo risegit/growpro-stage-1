@@ -210,7 +210,7 @@ export default function UserTable() {
                         </div>
                       </th>
                       <th
-                        className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                        className="w-[14%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
                         onClick={() => handleSort('role')}
                       >
                         <div className="flex items-center">
@@ -293,7 +293,7 @@ export default function UserTable() {
                               className={`px-3 py-1 rounded-full text-sm font-semibold text-white border-2
               ${user.role === "admin"
                                   ? "bg-green-700 border-green-700"
-                                  : user.role === "manager"
+                                  : user.role === "co-ordinator"
                                     ? "bg-green-400 border-green-400"
                                     : user.role === "technician"
                                       ? "bg-[rgb(244,166,74)] border-[rgb(244,166,74)]"
@@ -374,7 +374,7 @@ export default function UserTable() {
                             className={`inline-block px-3 py-1 rounded-lg text-xs font-semibold text-white border-2
                 ${user.role === "admin"
                                 ? "bg-green-700 border-green-700" // dark green
-                                : user.role === "manager"
+                                : user.role === "co-ordinator"
                                   ? "bg-green-400 border-green-400" // light green
                                   : user.role === "technician"
                                     ? "bg-[rgb(244,166,74)] border-[rgb(244,166,74)]" // orange
