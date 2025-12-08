@@ -156,7 +156,7 @@ switch ($method) {
             if ($conn->query($sql)) {
                 $user_id = $conn->insert_id;
                 // 2. Generate prefix based on role
-                $roleLower = strtolower(trim($_POST['role']));
+                $roleLower = strtolower(trim($_POST['role'])); 
                 $prefix = '';
 
                 if ($roleLower === 'co-ordinator') $prefix = '';
