@@ -41,7 +41,7 @@ export default function EditUserForm() {
 
   // 🟢 Fetch user details when component loads
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUser = async () => { 
       if (!id) return;
       setLoading(true);
       try {

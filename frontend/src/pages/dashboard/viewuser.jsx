@@ -218,7 +218,7 @@ export default function UserTable() {
                           <SortIndicator columnKey="role" />
                         </div>
                       </th>
-                      <th
+                      <th 
                         className="w-[22%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
                         onClick={() => handleSort('email')}
                       >

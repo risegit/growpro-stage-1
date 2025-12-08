@@ -210,7 +210,7 @@ export default function UserTable() {
                         </div>
                       </th>
 
-                      {userRole !== "manager" && (
+                      {userRole !== "co-ordinator" && (
                         <th className="py-4 px-4 font-medium text-gray-700 text-right">Action</th>
                       )}
                     </tr>
@@ -257,7 +257,7 @@ export default function UserTable() {
                           </span>
                         </td>
 
-                        {userRole !== "manager" && (
+                        {userRole !== "co-ordinator" && (
                           <td className="py-4 px-4 text-right">
                             <button
                               onClick={() => handleEdit(user.user_id)}
@@ -320,7 +320,7 @@ export default function UserTable() {
                       </div>
                     </div>
 
-                    {userRole !== "manager" && (
+                    {userRole !== "co-ordinator" && (
                       <button
                         onClick={() => handleEdit(user.user_id)}
                         className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition"
