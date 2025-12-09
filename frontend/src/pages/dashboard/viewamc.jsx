@@ -102,103 +102,172 @@ export default function UserTable() {
     }, []);
 
   // Generate PDF Report
-  const generatePDF = (visitData) => {
-    if (!window.jspdf) {
-      alert('PDF library is still loading. Please try again in a moment.');
-      return;
-    }
+const generatePDF = (visitData) => {
+  if (!window.jspdf) {
+    alert('PDF library is still loading. Please try again in a moment.');
+    return;
+  }
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
 
-    // Header
-    doc.setFillColor(59, 130, 246);
-    doc.rect(0, 0, 210, 40, "F");
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
-    doc.setFont(undefined, "bold");
-    doc.text("AMC Report", 105, 20, { align: "center" });
-    
-    doc.setFontSize(10);
-    doc.setFont(undefined, "normal");
-    doc.text(`Report Generated: ${formatDate(new Date().toISOString())}`, 105, 30, { align: "center" });
+  /* -------------------------------------------------------
+     🔹 HEADER + LOGO
+  --------------------------------------------------------*/
+  const logoPath = '/img/growprologo.jpeg'; 
+  doc.addImage(logoPath, 'JPEG', 15, 10, 30, 30);
 
-    // Reset text color for body
-    doc.setTextColor(0, 0, 0);
-    
-    let yPos = 55;
+  const titleX = 50 + (160 / 2);
+  doc.setTextColor(244, 166, 76);
+  doc.setFontSize(24);
+  doc.setFont(undefined,"bold");
+  doc.text("AMC Report", titleX, 20, { align: "right" });
 
-    // Customer Information Section
-    yPos += 5;
-    doc.setFontSize(16);
-    doc.setFont(undefined, "bold");
-    doc.setTextColor(59, 130, 246);
-    doc.text("Customer Information", 20, yPos);
-    
-    yPos += 5;
-    doc.setLineWidth(0.5);
-    doc.line(20, yPos, 190, yPos);
-    
-    yPos += 10;
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
+  doc.setFontSize(10);
+  doc.setFont(undefined,"normal");
+  doc.text(`Report Generated: ${formatDate(new Date().toISOString())}`, titleX, 30, { align: "right" });
 
-    const customerDetails = [
-      { label: "Customer Name:", value: visitData.name },
-      { label: "Customer ID:", value: visitData.customer_id },
-      { label: "Phone Number:", value: visitData.phone },
-    ];
+  // Separator line below header
+  doc.setDrawColor(102,187,106);
+  doc.setLineWidth(2);
+  doc.line(0, 45, 210, 45);
 
-    customerDetails.forEach(item => {
-      doc.setFont(undefined, "bold");
-      doc.text(item.label, 25, yPos);
-      doc.setFont(undefined, "normal");
-      doc.text(item.value, 70, yPos);
-      yPos += 8;
-    });
+  doc.setTextColor(0,0,0);
+  let yPos = 65;
 
-    // Visit Information Section
-    yPos += 10;
-    doc.setFontSize(16);
-    doc.setFont(undefined, "bold");
-    doc.setTextColor(59, 130, 246);
-    doc.text("AMC Information", 20, yPos);
-    
-    yPos += 5;
-    doc.setLineWidth(0.5);
-    doc.line(20, yPos, 190, yPos);
-    
-    yPos += 10;
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-    
-    // Visit Details
-    const visitDetails = [
-      { label: "Validity From:", value: formatDate(visitData.validity_from) },
-      { label: "Validity Upto:", value: formatDate(visitData.validity_upto) },
-      { label: "Visits per Month:", value: visitData.visits_per_month },
-      { label: "Total Visit Completed:", value: visitData.total_visits_done },
-      { label: "Total Visit Pending:", value: visitData.pending_visits },
-    ];
 
-    visitDetails.forEach(item => {
-      doc.setFont(undefined, "bold");
-      doc.text(item.label, 25, yPos);
-      doc.setFont(undefined, "normal");
-      doc.text(item.value, 70, yPos);
-      yPos += 8;
-    });
+  /* -------------------------------------------------------
+     🔹 CUSTOMER INFORMATION (Keep Data, Change Styling)
+  --------------------------------------------------------*/
+  doc.setFontSize(16);
+  doc.setFont(undefined,"bold");
+  doc.setTextColor(59,130,246);
+  doc.text("Customer Information", 20, yPos);
 
-    // Footer
-    doc.setFontSize(8);
-    doc.setTextColor(128, 128, 128);
-    doc.text("This is a computer-generated report.", 105, 280, { align: "center" });
-    doc.text("For any queries, please contact support.", 105, 285, { align: "center" });
+  yPos += 6;
+  doc.setLineWidth(0.3);
+  doc.line(20, yPos, 190, yPos);
 
-    // Save PDF
-    doc.save(`AMC_Report_${visitData.amc_id}_${visitData.name.replace(/\s+/g, '_')}.pdf`);
-  };
+  yPos += 10;
+  doc.setFontSize(11);
+
+  const customerDetails = [
+    { label:"Customer Name:", value: visitData.name },
+    { label:"Customer ID:", value: visitData.customer_id },
+    { label:"Phone Number:", value: visitData.phone },
+  ];
+
+  customerDetails.forEach(item=>{
+    doc.setFont(undefined,"bold");
+    doc.setTextColor(244,166,76);
+    doc.text(item.label, 25, yPos);
+
+    doc.setFont(undefined,"normal");
+    doc.setTextColor(0,0,0);
+    doc.text(item.value || "-", 70, yPos);
+
+    yPos += 8;
+  });
+
+
+  /* -------------------------------------------------------
+     🔹 AMC INFORMATION (New UI Applied)
+  --------------------------------------------------------*/
+  yPos += 5;
+  doc.setFontSize(16);
+  doc.setFont(undefined,"bold");
+  doc.setTextColor(59,130,246);
+  doc.text("AMC Information", 20, yPos);
+
+  yPos += 6;
+  doc.setLineWidth(0.3);
+  doc.line(20, yPos, 190, yPos);
+
+  yPos += 10;
+  doc.setFontSize(11);
+
+  const amcDetails = [
+    { label:"Validity From:", value: formatDate(visitData.validity_from) },
+    { label:"Validity Upto:", value: formatDate(visitData.validity_upto) },
+    { label:"Visits per Month:", value: visitData.visits_per_month },
+    { label:"Total Visit Completed:", value: visitData.total_visits_done },
+    { label:"Total Visit Pending:", value: visitData.pending_visits },
+  ];
+
+  amcDetails.forEach(item=>{
+    doc.setFont(undefined,"bold");
+    doc.setTextColor(244,166,76);
+    doc.text(item.label, 25, yPos);
+
+    doc.setFont(undefined,"normal");
+    doc.setTextColor(0,0,0);
+    doc.text(item.value?.toString(), 70, yPos);
+
+    yPos += 8;
+  });
+
+
+  /* -------------------------------------------------------
+     🔹 FOOTER
+  --------------------------------------------------------*/
+const pageCount = doc.getNumberOfPages();
+for (let i = 1; i <= pageCount; i++) {
+  doc.setPage(i);
+  
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  
+  // Footer background with your specified color (160, 199, 99)
+ doc.setFillColor(255,255,255); 
+  doc.rect(0, pageHeight - 40, pageWidth, 40, 'F');
+  
+  // Top border line with full width in your specified color (225, 122, 0)
+  doc.setDrawColor(225, 122, 0);
+  doc.setLineWidth(1.5);
+  doc.line(0, pageHeight - 40, pageWidth, pageHeight - 40);
+  
+  // Contact info
+  doc.setFontSize(9);
+  
+  // Email label in your specified color (225, 122, 0)
+  doc.setTextColor(225, 122, 0);
+  doc.setFont(undefined, "bold");
+  doc.text("Email:", 25, pageHeight - 30);
+  
+  // Email value in black
+  doc.setFontSize(15)
+  doc.setTextColor(0, 0, 0);
+  doc.setFont(undefined, "normal");
+  doc.text("sales@growpro.co.in", 45, pageHeight - 30);
+  
+  // Phone label in your specified color (225, 122, 0)
+  doc.setTextColor(225, 122, 0);
+  doc.setFont(undefined, "bold");
+  doc.text("Phone:", 25, pageHeight - 20);
+  
+  // Phone value in black
+  doc.setTextColor(0, 0, 0);
+  doc.setFont(undefined, "normal");
+  doc.text("+91 93218 87125", 45, pageHeight - 20);
+  
+  // Right aligned copyright and page info
+  doc.setFontSize(8);
+  doc.setTextColor(80, 80, 80); // Dark gray for better contrast on light green
+  
+  // Company info
+  doc.setFont(undefined, "bold");
+  doc.text("GrowPro Solutions", pageWidth - 25, pageHeight - 30, { align: "right" });
+  
+  doc.setFont(undefined, "normal");
+  doc.text("Material Delivery Report", pageWidth - 25, pageHeight - 23, { align: "right" });
+  doc.text("Page " + i + " of " + pageCount, pageWidth - 25, pageHeight - 16, { align: "right" });
+}
+  /* -------------------------------------------------------
+     🔥 FINAL PDF DOWNLOAD
+  --------------------------------------------------------*/
+  doc.save(`AMC_Report_${visitData.amc_id}_${visitData.name.replace(/\s+/g,'_')}.pdf`);
+};
+
 
   // 🔹 Filter users based on search
   const filteredUsers = useMemo(() => {

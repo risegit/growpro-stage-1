@@ -58,404 +58,414 @@ export default function UserTable() {
     };
   }, []);
 
+  // Function to convert image to base64
+  const getBase64Image = async (url) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const dataURL = canvas.toDataURL('image/jpeg');
+        resolve(dataURL);
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  };
+
   // Generate PDF Report
-  const generatePDF = (visitData) => {
-  if (!window.jspdf) {
-    alert('PDF library is still loading. Please try again in a moment.');
-    return;
-  }
+  const generatePDF = async (visitData) => {
+    if (!window.jspdf) {
+      alert('PDF library is still loading. Please try again in a moment.');
+      return;
+    }
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
-  // Debug: Log the visitData and apiData to see the structure
-  console.log("visitData:", visitData);
-  console.log("apiData:", apiData);
+    // Debug: Log the visitData and apiData to see the structure
+    console.log("visitData:", visitData);
+    console.log("apiData:", apiData);
 
-  // Get all related data for this specific site visit
-  // First, let's find the correct identifier
-  const siteVisitId = visitData.site_visit_id || visitData.id;
-  const scheduleId = visitData.schedule_id;
-  
-  console.log("Looking for data with:", {
-    siteVisitId,
-    scheduleId,
-    visitDataId: visitData.id
-  });
-
-  // Try different ways to find the site visit details
-  const siteVisitDetails = apiData.site_visit.find(
-    sv => 
-      sv.id === siteVisitId || 
-      sv.schedule_id === scheduleId ||
-      sv.id === visitData.id
-  );
-  
-  console.log("Found siteVisitDetails:", siteVisitDetails);
-
-  // Now let's see what identifiers the other arrays use
-  console.log("First plantProblem:", apiData.plantProblems[0]);
-  console.log("First pestType:", apiData.pestTypes[0]);
-  console.log("First needPlant:", apiData.needPlants[0]);
-
-  // Try different field names for filtering
-  const relatedPlantProblems = apiData.plantProblems.filter(
-    problem => 
-      problem.site_visit_id === siteVisitId ||
-      problem.visit_id === siteVisitId ||
-      problem.id === siteVisitId ||
-      (scheduleId && problem.schedule_id === scheduleId)
-  );
-  
-  const relatedPestTypes = apiData.pestTypes.filter(
-    pest => 
-      pest.site_visit_id === siteVisitId ||
-      pest.visit_id === siteVisitId ||
-      pest.id === siteVisitId ||
-      (scheduleId && pest.schedule_id === scheduleId)
-  );
-  
-  const relatedNeedPlants = apiData.needPlants.filter(
-    plant => 
-      plant.site_visit_id === siteVisitId ||
-      plant.visit_id === siteVisitId ||
-      plant.id === siteVisitId ||
-      (scheduleId && plant.schedule_id === scheduleId)
-  );
-  
-  const relatedSuppliedPlants = apiData.suppliedPlants.filter(
-    plant => 
-      plant.site_visit_id === siteVisitId ||
-      plant.visit_id === siteVisitId ||
-      plant.id === siteVisitId ||
-      (scheduleId && plant.schedule_id === scheduleId)
-  );
-  
-  const relatedNeedNutrients = apiData.needNutrients.filter(
-    nutrient => 
-      nutrient.site_visit_id === siteVisitId ||
-      nutrient.visit_id === siteVisitId ||
-      nutrient.id === siteVisitId ||
-      (scheduleId && nutrient.schedule_id === scheduleId)
-  );
-  
-  const relatedSuppliedNutrients = apiData.suppliedNutrients.filter(
-    nutrient => 
-      nutrient.site_visit_id === siteVisitId ||
-      nutrient.visit_id === siteVisitId ||
-      nutrient.id === siteVisitId ||
-      (scheduleId && nutrient.schedule_id === scheduleId)
-  );
-  
-  const relatedNeedChargeableItems = apiData.needChargeableItem.filter(
-    item => 
-      item.site_visit_id === siteVisitId ||
-      item.visit_id === siteVisitId ||
-      item.id === siteVisitId ||
-      (scheduleId && item.schedule_id === scheduleId)
-  );
-  
-  const relatedSuppliedChargeableItems = apiData.suppliedChargeableItem.filter(
-    item => 
-      item.site_visit_id === siteVisitId ||
-      item.visit_id === siteVisitId ||
-      item.id === siteVisitId ||
-      (scheduleId && item.schedule_id === scheduleId)
-  );
-  
-  const relatedSuppliedPhotoSetup = apiData.suppliedPhotoSetup.filter(
-    photo => 
-      photo.site_visit_id === siteVisitId ||
-      photo.visit_id === siteVisitId ||
-      photo.id === siteVisitId ||
-      (scheduleId && photo.schedule_id === scheduleId)
-  );
-
-  console.log("Filtered results:", {
-    relatedPlantProblems,
-    relatedPestTypes,
-    relatedNeedPlants,
-    relatedSuppliedPlants,
-    relatedNeedNutrients,
-    relatedSuppliedNutrients,
-    relatedNeedChargeableItems,
-    relatedSuppliedChargeableItems,
-    relatedSuppliedPhotoSetup
-  });
-
-  // Alternative approach: If all arrays are empty, let's check if we should use index-based matching
-  // This might be the case if the API returns data in the same order for all arrays
-  if (relatedPlantProblems.length === 0 && 
-      relatedPestTypes.length === 0 && 
-      apiData.plantProblems.length > 0) {
+    // Get all related data for this specific site visit
+    const siteVisitId = visitData.site_visit_id || visitData.id;
+    const scheduleId = visitData.schedule_id;
     
-    // Try to match by index if arrays are in same order
-    const visitIndex = apiData.site_visit.findIndex(sv => 
-      sv.id === siteVisitId || sv.schedule_id === scheduleId
+    console.log("Looking for data with:", {
+      siteVisitId,
+      scheduleId,
+      visitDataId: visitData.id
+    });
+
+    // Try different ways to find the site visit details
+    const siteVisitDetails = apiData.site_visit.find(
+      sv => 
+        sv.id === siteVisitId || 
+        sv.schedule_id === scheduleId ||
+        sv.id === visitData.id
     );
     
-    if (visitIndex !== -1) {
-      console.log(`Trying index-based matching at index ${visitIndex}`);
-      
-      // Get data by index (if arrays are parallel)
-      const plantProblem = apiData.plantProblems[visitIndex];
-      const pestType = apiData.pestTypes[visitIndex];
-      const needPlant = apiData.needPlants[visitIndex];
-      const suppliedPlant = apiData.suppliedPlants[visitIndex];
-      
-      if (plantProblem) relatedPlantProblems.push(plantProblem);
-      if (pestType) relatedPestTypes.push(pestType);
-      if (needPlant) relatedNeedPlants.push(needPlant);
-      if (suppliedPlant) relatedSuppliedPlants.push(suppliedPlant);
-      
-      console.log("Index-based results:", {
-        plantProblem,
-        pestType,
-        needPlant,
-        suppliedPlant
-      });
-    }
-  }
+    console.log("Found siteVisitDetails:", siteVisitDetails);
 
-  // Let's also try to display all data without filtering for debugging
-  console.log("ALL plantProblems (unfiltered):", apiData.plantProblems);
-  console.log("ALL pestTypes (unfiltered):", apiData.pestTypes);
-  console.log("ALL needPlants (unfiltered):", apiData.needPlants);
-  console.log("ALL suppliedPlants (unfiltered):", apiData.suppliedPlants);
-
-  // Continue with PDF creation...
-  // Header
-  doc.setFillColor(159, 200, 98);
-  doc.rect(0, 0, 210, 40, "F");
-  
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.setFont(undefined, "bold");
-  doc.text("Site Visit Report", 105, 20, { align: "center" });
-  
-  doc.setFontSize(10);
-  doc.setFont(undefined, "normal");
-  doc.text(`Report Generated: ${formatDate(new Date().toISOString())}`, 105, 30, { align: "center" });
-
-  doc.setTextColor(0, 0, 0);
-  
-  let yPos = 55;
-
-  // Visit Information Section
-  doc.setFontSize(16);
-  doc.setFont(undefined, "bold");
-  doc.setTextColor(59, 130, 246);
-  doc.text("Visit Information", 20, yPos);
-  
-  yPos += 10;
-  doc.setDrawColor(59, 130, 246);
-  doc.setLineWidth(0.5);
-  doc.line(20, yPos, 190, yPos);
-  
-  yPos += 10;
-  doc.setFontSize(11);
-  doc.setTextColor(0, 0, 0);
-  
-  // Visit Details
-  const visitDetails = [
-    { label: "Site Visit ID:", value: siteVisitId || "N/A" },
-    { label: "Schedule ID:", value: scheduleId || siteVisitDetails?.schedule_id || "N/A" },
-    { label: "Customer Name:", value: visitData.customer_name },
-    { label: "Customer ID:", value: visitData.customer_id },
-    { label: "Phone:", value: visitData.phone },
-    { label: "Technician:", value: `${visitData.technician_name} (${visitData.visited_by})` },
-    { label: "Visit Date:", value: formatDate(visitData.created_date) },
-  ];
-
-  if (siteVisitDetails) {
-    visitDetails.push(
-      { label: "Plants getting water?", value: siteVisitDetails.are_plants_getting_water || "N/A" },
-      { label: "Water above pump?", value: siteVisitDetails.water_above_pump || "N/A" },
-      { label: "Timer working?", value: siteVisitDetails.timer_working || "N/A" },
-      { label: "Motor working?", value: siteVisitDetails.motor_working || "N/A" },
-      { label: "Lights Working?", value: siteVisitDetails.light_working || "N/A" },
-      { label: "Equipment Damaged?", value: siteVisitDetails.equipment_damaged || "N/A" },
-      { label: "Any leaks?", value: siteVisitDetails.any_leaks || "N/A" },
-      { label: "Clean Environment?", value: siteVisitDetails.clean_equipment || "N/A" },
-      { label: "Electric Connections Secured?", value: siteVisitDetails.electric_connections_secured || "N/A" },
-      { label: "Equipment Damaged:", value: siteVisitDetails.equipment_damaged || "N/A" }
+    // Filter related data
+    const relatedPlantProblems = apiData.plantProblems.filter(
+      problem => 
+        problem.site_visit_id === siteVisitId ||
+        problem.visit_id === siteVisitId ||
+        problem.id === siteVisitId ||
+        (scheduleId && problem.schedule_id === scheduleId)
     );
-  }
-
-  visitDetails.forEach(item => {
-    if (yPos > 250) {
-      doc.addPage();
-      yPos = 20;
-    }
     
+    const relatedPestTypes = apiData.pestTypes.filter(
+      pest => 
+        pest.site_visit_id === siteVisitId ||
+        pest.visit_id === siteVisitId ||
+        pest.id === siteVisitId ||
+        (scheduleId && pest.schedule_id === scheduleId)
+    );
+    
+    const relatedNeedPlants = apiData.needPlants.filter(
+      plant => 
+        plant.site_visit_id === siteVisitId ||
+        plant.visit_id === siteVisitId ||
+        plant.id === siteVisitId ||
+        (scheduleId && plant.schedule_id === scheduleId)
+    );
+    
+    const relatedSuppliedPlants = apiData.suppliedPlants.filter(
+      plant => 
+        plant.site_visit_id === siteVisitId ||
+        plant.visit_id === siteVisitId ||
+        plant.id === siteVisitId ||
+        (scheduleId && plant.schedule_id === scheduleId)
+    );
+    
+    const relatedNeedNutrients = apiData.needNutrients.filter(
+      nutrient => 
+        nutrient.site_visit_id === siteVisitId ||
+        nutrient.visit_id === siteVisitId ||
+        nutrient.id === siteVisitId ||
+        (scheduleId && nutrient.schedule_id === scheduleId)
+    );
+    
+    const relatedSuppliedNutrients = apiData.suppliedNutrients.filter(
+      nutrient => 
+        nutrient.site_visit_id === siteVisitId ||
+        nutrient.visit_id === siteVisitId ||
+        nutrient.id === siteVisitId ||
+        (scheduleId && nutrient.schedule_id === scheduleId)
+    );
+    
+    const relatedNeedChargeableItems = apiData.needChargeableItem.filter(
+      item => 
+        item.site_visit_id === siteVisitId ||
+        item.visit_id === siteVisitId ||
+        item.id === siteVisitId ||
+        (scheduleId && item.schedule_id === scheduleId)
+    );
+    
+    const relatedSuppliedChargeableItems = apiData.suppliedChargeableItem.filter(
+      item => 
+        item.site_visit_id === siteVisitId ||
+        item.visit_id === siteVisitId ||
+        item.id === siteVisitId ||
+        (scheduleId && item.schedule_id === scheduleId)
+    );
+    
+    const relatedSuppliedPhotoSetup = apiData.suppliedPhotoSetup.filter(
+      photo => 
+        photo.site_visit_id === siteVisitId ||
+        photo.visit_id === siteVisitId ||
+        photo.id === siteVisitId ||
+        (scheduleId && photo.schedule_id === scheduleId)
+    );
+
+    // Alternative approach: If all arrays are empty, try index-based matching
+    if (relatedPlantProblems.length === 0 && 
+        relatedPestTypes.length === 0 && 
+        apiData.plantProblems.length > 0) {
+      
+      const visitIndex = apiData.site_visit.findIndex(sv => 
+        sv.id === siteVisitId || sv.schedule_id === scheduleId
+      );
+      
+      if (visitIndex !== -1) {
+        console.log(`Trying index-based matching at index ${visitIndex}`);
+        
+        const plantProblem = apiData.plantProblems[visitIndex];
+        const pestType = apiData.pestTypes[visitIndex];
+        const needPlant = apiData.needPlants[visitIndex];
+        const suppliedPlant = apiData.suppliedPlants[visitIndex];
+        
+        if (plantProblem) relatedPlantProblems.push(plantProblem);
+        if (pestType) relatedPestTypes.push(pestType);
+        if (needPlant) relatedNeedPlants.push(needPlant);
+        if (suppliedPlant) relatedSuppliedPlants.push(suppliedPlant);
+      }
+    }
+
+    // Header with Green Color
+    doc.setFillColor(34, 139, 34); // Green color
+    doc.rect(0, 0, 210, 40, "F");
+    
+    // Load and add logo
+    try {
+      // Path to your logo - adjust if needed
+      const logoPath = '/img/growprologo.jpeg';
+      // For development, you might need the full path:
+      // const logoPath = window.location.origin + '/img/growprologo.jpeg';
+      
+      // Try to load the logo
+      const logoData = await getBase64Image(logoPath);
+      
+      // Add logo to top left (10px from left, 5px from top)
+      doc.addImage(logoData, 'JPEG', 10, 5, 30, 30);
+      
+      // Adjust text position to accommodate logo
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.setFont(undefined, "bold");
+      doc.text("Site Visit Report", 105, 20, { align: "center" });
+      
+      doc.setFontSize(10);
+      doc.setFont(undefined, "normal");
+      doc.text(`Report Generated: ${formatDate(new Date().toISOString())}`, 105, 30, { align: "center" });
+      
+    } catch (error) {
+      console.error("Error loading logo:", error);
+      // If logo fails to load, just show the text header
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.setFont(undefined, "bold");
+      doc.text("Site Visit Report", 105, 20, { align: "center" });
+      
+      doc.setFontSize(10);
+      doc.setFont(undefined, "normal");
+      doc.text(`Report Generated: ${formatDate(new Date().toISOString())}`, 105, 30, { align: "center" });
+    }
+
+    doc.setTextColor(0, 0, 0);
+    
+    let yPos = 55;
+
+    // Visit Information Section
+    doc.setFontSize(16);
     doc.setFont(undefined, "bold");
-    doc.text(item.label, 25, yPos);
-    doc.setFont(undefined, "normal");
+    doc.setTextColor(34, 139, 34); // Green color for section titles
+    doc.text("Visit Information", 20, yPos);
     
-    // Handle long text by splitting it
-    const text = String(item.value || "");
-    if (text.length > 50) {
-      const lines = doc.splitTextToSize(text, 100);
-      doc.text(lines, 90, yPos);
-      yPos += (lines.length * 8);
-    } else {
-      doc.text(text, 70, yPos);
-      yPos += 8;
-    }
-  });
+    yPos += 10;
+    doc.setDrawColor(34, 139, 34); // Green color for line
+    doc.setLineWidth(0.5);
+    doc.line(20, yPos, 190, yPos);
+    
+    yPos += 10;
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    
+    // Visit Details
+    const visitDetails = [
+      { label: "Site Visit ID:", value: siteVisitId || "N/A" },
+      { label: "Schedule ID:", value: scheduleId || siteVisitDetails?.schedule_id || "N/A" },
+      { label: "Customer Name:", value: visitData.customer_name },
+      { label: "Customer ID:", value: visitData.customer_id },
+      { label: "Phone:", value: visitData.phone },
+      { label: "Technician:", value: `${visitData.technician_name} (${visitData.visited_by})` },
+      { label: "Visit Date:", value: formatDate(visitData.created_date) },
+    ];
 
-  // Helper function to add section with items
-  const addSection = (title, items, getItemText) => {
-    if (items.length > 0) {
-      yPos += 5;
+    if (siteVisitDetails) {
+      visitDetails.push(
+        { label: "Plants getting water?", value: siteVisitDetails.are_plants_getting_water || "N/A" },
+        { label: "Water above pump?", value: siteVisitDetails.water_above_pump || "N/A" },
+        { label: "Timer working?", value: siteVisitDetails.timer_working || "N/A" },
+        { label: "Motor working?", value: siteVisitDetails.motor_working || "N/A" },
+        { label: "Lights Working?", value: siteVisitDetails.light_working || "N/A" },
+        { label: "Equipment Damaged?", value: siteVisitDetails.equipment_damaged || "N/A" },
+        { label: "Any leaks?", value: siteVisitDetails.any_leaks || "N/A" },
+        { label: "Clean Environment?", value: siteVisitDetails.clean_equipment || "N/A" },
+        { label: "Electric Connections Secured?", value: siteVisitDetails.electric_connections_secured || "N/A" },
+        { label: "Equipment Damaged:", value: siteVisitDetails.equipment_damaged || "N/A" }
+      );
+    }
+
+    visitDetails.forEach(item => {
       if (yPos > 250) {
         doc.addPage();
         yPos = 20;
       }
       
-      doc.setFontSize(16);
       doc.setFont(undefined, "bold");
-      doc.setTextColor(59, 130, 246);
-      doc.text(title, 20, yPos);
+      doc.text(item.label, 25, yPos);
+      doc.setFont(undefined, "normal");
       
-      yPos += 10;
-      doc.setLineWidth(0.5);
-      doc.line(20, yPos, 190, yPos);
-      
-      yPos += 10;
-      doc.setFontSize(11);
-      doc.setTextColor(0, 0, 0);
+      const text = String(item.value || "");
+      if (text.length > 50) {
+        const lines = doc.splitTextToSize(text, 100);
+        doc.text(lines, 90, yPos);
+        yPos += (lines.length * 8);
+      } else {
+        doc.text(text, 70, yPos);
+        yPos += 8;
+      }
+    });
 
-      items.forEach(item => {
+    // Helper function to add section with items
+    const addSection = (title, items, getItemText) => {
+      if (items.length > 0) {
+        yPos += 5;
         if (yPos > 250) {
           doc.addPage();
           yPos = 20;
         }
         
-        const itemText = getItemText(item);
-        const lines = doc.splitTextToSize(itemText, 150);
-        doc.text(lines, 25, yPos);
-        yPos += (lines.length * 8) + 2;
-      });
+        doc.setFontSize(16);
+        doc.setFont(undefined, "bold");
+        doc.setTextColor(34, 139, 34); // Green color for section titles
+        doc.text(title, 20, yPos);
+        
+        yPos += 10;
+        doc.setLineWidth(0.5);
+        doc.line(20, yPos, 190, yPos);
+        
+        yPos += 10;
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+
+        items.forEach(item => {
+          if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+          }
+          
+          const itemText = getItemText(item);
+          const lines = doc.splitTextToSize(itemText, 150);
+          doc.text(lines, 25, yPos);
+          yPos += (lines.length * 8) + 2;
+        });
+      }
+    };
+
+    // Add all sections
+    addSection("Plant Problems", relatedPlantProblems, (item) => {
+      return `• ${item.problem_type || item.name || item.type || "Problem"}: ${item.remark || item.description || item.comment || "No details"}`;
+    });
+
+    addSection("Pest Types", relatedPestTypes, (item) => {
+      return `• ${item.pest_type || item.name || item.type || "Pest"}`;
+    });
+
+    addSection("Plants Needed", relatedNeedPlants, (item) => {
+      return `• ${item.plant_name || item.name || "Plant"} (Quantity: ${item.quantity || 1}) - ${item.remark || item.description || ""}`;
+    });
+
+    addSection("Plants Supplied", relatedSuppliedPlants, (item) => {
+      return `• ${item.plant_name || item.name || "Plant"} (Quantity: ${item.quantity || 1})`;
+    });
+
+    addSection("Nutrients Needed", relatedNeedNutrients, (item) => {
+      return `• ${item.nutrient_name || item.name || "Nutrient"} (Quantity: ${item.quantity || 1}) - ${item.remark || ""}`;
+    });
+
+    addSection("Nutrients Supplied", relatedSuppliedNutrients, (item) => {
+      return `• ${item.nutrient_name || item.name || "Nutrient"} (Quantity: ${item.quantity || 1})`;
+    });
+
+    addSection("Chargeable Items Needed", relatedNeedChargeableItems, (item) => {
+      return `• ${item.item_name || item.name || "Item"} (Quantity: ${item.quantity || 1}) - ${item.remark || ""}`;
+    });
+
+    addSection("Chargeable Items Supplied", relatedSuppliedChargeableItems, (item) => {
+      return `• ${item.item_name || item.name || "Item"} (Quantity: ${item.quantity || 1})`;
+    });
+
+    addSection("Photo Setup Supplied", relatedSuppliedPhotoSetup, (item) => {
+      return `• ${item.setup_type || item.name || "Setup"}: ${item.description || item.remark || ""}`;
+    });
+
+    // If still no data found, show a message
+    if (relatedPlantProblems.length === 0 && 
+        relatedPestTypes.length === 0 &&
+        relatedNeedPlants.length === 0) {
+      
+      yPos += 10;
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.setFontSize(12);
+      doc.setFont(undefined, "italic");
+      doc.setTextColor(128, 128, 128);
+      doc.text("No additional details found for this visit.", 105, yPos, { align: "center" });
     }
-  };
 
-  // Add all sections
-  addSection("Plant Problems", relatedPlantProblems, (item) => {
-    return `• ${item.problem_type || item.name || item.type || "Problem"}: ${item.remark || item.description || item.comment || "No details"}`;
-  });
-
-  addSection("Pest Types", relatedPestTypes, (item) => {
-    return `• ${item.pest_type || item.name || item.type || "Pest"}`;
-  });
-
-  addSection("Plants Needed", relatedNeedPlants, (item) => {
-    return `• ${item.plant_name || item.name || "Plant"} (Quantity: ${item.quantity || 1}) - ${item.remark || item.description || ""}`;
-  });
-
-  addSection("Plants Supplied", relatedSuppliedPlants, (item) => {
-    return `• ${item.plant_name || item.name || "Plant"} (Quantity: ${item.quantity || 1})`;
-  });
-
-  addSection("Nutrients Needed", relatedNeedNutrients, (item) => {
-    return `• ${item.nutrient_name || item.name || "Nutrient"} (Quantity: ${item.quantity || 1}) - ${item.remark || ""}`;
-  });
-
-  addSection("Nutrients Supplied", relatedSuppliedNutrients, (item) => {
-    return `• ${item.nutrient_name || item.name || "Nutrient"} (Quantity: ${item.quantity || 1})`;
-  });
-
-  addSection("Chargeable Items Needed", relatedNeedChargeableItems, (item) => {
-    return `• ${item.item_name || item.name || "Item"} (Quantity: ${item.quantity || 1}) - ${item.remark || ""}`;
-  });
-
-  addSection("Chargeable Items Supplied", relatedSuppliedChargeableItems, (item) => {
-    return `• ${item.item_name || item.name || "Item"} (Quantity: ${item.quantity || 1})`;
-  });
-
-  addSection("Photo Setup Supplied", relatedSuppliedPhotoSetup, (item) => {
-    return `• ${item.setup_type || item.name || "Setup"}: ${item.description || item.remark || ""}`;
-  });
-
-  // If still no data found, show a message
-  if (relatedPlantProblems.length === 0 && 
-      relatedPestTypes.length === 0 &&
-      relatedNeedPlants.length === 0) {
-    
-    yPos += 10;
-    if (yPos > 250) {
-      doc.addPage();
-      yPos = 20;
-    }
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, "italic");
+    // Footer
+    yPos = 280;
+    doc.setFontSize(8);
     doc.setTextColor(128, 128, 128);
-    doc.text("No additional details found for this visit.", 105, yPos, { align: "center" });
-  }
+    doc.text("This is a computer-generated report.", 105, yPos, { align: "center" });
+    doc.text("For any queries, please contact support.", 105, yPos + 5, { align: "center" });
 
-  // Footer
-  yPos = 280;
-  doc.setFontSize(8);
-  doc.setTextColor(128, 128, 128);
-  doc.text("This is a computer-generated report.", 105, yPos, { align: "center" });
-  doc.text("For any queries, please contact support.", 105, yPos + 5, { align: "center" });
-
-  // Save PDF
-  const fileName = `Site_Visit_Report_${siteVisitId}_${visitData.customer_name.replace(/\s+/g, '_')}.pdf`;
-  doc.save(fileName);
-};
+    // Save PDF
+    const fileName = `Site_Visit_Report_${siteVisitId}_${visitData.customer_name.replace(/\s+/g, '_')}.pdf`;
+    doc.save(fileName);
+  };
 
   // Fetch data from backend API
   useEffect(() => {
     const fetchUsers = async () => {
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}api/site-visit.php?view-visit='viewvisit'&user_code=${user_code}`,
-      { method: "GET" }
-    );
-    const data = await response.json();
-    
-    // Debug: Log the full structure
-    console.log("Full API Response:", data);
-    
-    // Log each array's structure
-    if (data.site_visit) {
-      console.log("site_visit[0]:", data.site_visit[0]);
-      console.log("Keys of site_visit[0]:", Object.keys(data.site_visit[0]));
-    }
-    
-    if (data.plantProblems) {
-      console.log("plantProblems[0]:", data.plantProblems[0]);
-      console.log("Keys of plantProblems[0]:", Object.keys(data.plantProblems[0]));
-    }
-    
-    if (data.pestTypes) {
-      console.log("pestTypes[0]:", data.pestTypes[0]);
-      console.log("Keys of pestTypes[0]:", Object.keys(data.pestTypes[0]));
-    }
-    
-    // Store data
-    setAllUsers(data.data || []);
-    setApiData({
-      site_visit: data.site_visit || [],
-      plantProblems: data.plantProblems || [],
-      pestTypes: data.pestTypes || [],
-      needChargeableItem: data.needChargeableItem || [],
-      needNutrients: data.needNutrients || [],
-      needPlants: data.needPlants || [],
-      suppliedChargeableItem: data.suppliedChargeableItem || [],
-      suppliedNutrients: data.suppliedNutrients || [],
-      suppliedPhotoSetup: data.suppliedPhotoSetup || [],
-      suppliedPlants: data.suppliedPlants || [],
-    });
-    
-  } catch (error) {
-    console.error("Error fetching users:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}api/site-visit.php?view-visit='viewvisit'&user_code=${user_code}`,
+          { method: "GET" }
+        );
+        const data = await response.json();
+        
+        // Debug: Log the full structure
+        console.log("Full API Response:", data);
+        
+        // Log each array's structure
+        if (data.site_visit) {
+          console.log("site_visit[0]:", data.site_visit[0]);
+          console.log("Keys of site_visit[0]:", Object.keys(data.site_visit[0]));
+        }
+        
+        if (data.plantProblems) {
+          console.log("plantProblems[0]:", data.plantProblems[0]);
+          console.log("Keys of plantProblems[0]:", Object.keys(data.plantProblems[0]));
+        }
+        
+        if (data.pestTypes) {
+          console.log("pestTypes[0]:", data.pestTypes[0]);
+          console.log("Keys of pestTypes[0]:", Object.keys(data.pestTypes[0]));
+        }
+        
+        // Store data
+        setAllUsers(data.data || []);
+        setApiData({
+          site_visit: data.site_visit || [],
+          plantProblems: data.plantProblems || [],
+          pestTypes: data.pestTypes || [],
+          needChargeableItem: data.needChargeableItem || [],
+          needNutrients: data.needNutrients || [],
+          needPlants: data.needPlants || [],
+          suppliedChargeableItem: data.suppliedChargeableItem || [],
+          suppliedNutrients: data.suppliedNutrients || [],
+          suppliedPhotoSetup: data.suppliedPhotoSetup || [],
+          suppliedPlants: data.suppliedPlants || [],
+        });
+        
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
     fetchUsers();
   }, []);
