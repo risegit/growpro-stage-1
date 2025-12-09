@@ -46,129 +46,195 @@ export default function UserTable() {
   }, []);
 
   // Generate PDF Report
-  const generatePDF = (visitData) => {
-    if (!window.jspdf) {
-      alert('PDF library is still loading. Please try again in a moment.');
-      return;
-    }
+const generatePDF = (visitData) => {
+  if (!window.jspdf) {
+    alert('PDF library is still loading. Please try again in a moment.');
+    return;
+  }
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
 
-    // Header
-    doc.setFillColor(59, 130, 246);
-    doc.rect(0, 0, 210, 40, "F");
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
+  // First, add the logo to the top left corner
+  // Using relative path from public folder
+  const logoPath = '/img/growprologo.jpeg';
+  
+  // Add logo image (coordinates: x, y, width, height)
+  // Using 30x30 size, adjust as needed
+  doc.addImage(logoPath, 'JPEG', 15, 10, 30, 30);
+  
+  // Adjust text position to be centered in the remaining space
+  doc.setTextColor(244, 166, 76);
+  doc.setFontSize(24);
+  doc.setFont(undefined, "bold");
+  
+  // Calculate center position: logo width + (remaining space / 2)
+  // Logo takes 50px (15 offset + 30 width + 5 padding), so center in remaining 160px
+  const titleX = 50 + (160 / 2); // Center in the rectangle area
+  
+  doc.text("Site Visit Report", titleX, 20, { align: "right" });
+  
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
+  doc.text(`Report Generated: ${formatDate(new Date().toISOString())}`, titleX, 30, { align: "right" });
+
+  // Add full-width margin/separator line below header
+  doc.setDrawColor(102, 187, 106); // Light gray color for separator
+  doc.setLineWidth(2);
+  doc.line(0, 45, 210, 45); // Full width from x=0 to x=210 (A4 width)
+
+  // Reset text color for body
+  doc.setTextColor(0, 0, 0);
+  
+  let yPos = 65; // Start content 10px below the separator line
+
+  // Visit Information Section
+  doc.setFontSize(16);
+  doc.setFont(undefined, "bold");
+  doc.setTextColor(59, 130, 246); // Blue color for section header
+  doc.text("Visit Information", 20, yPos);
+  
+  yPos += 5;
+  doc.setDrawColor(102, 187, 106);
+  doc.setLineWidth(0.3);
+  doc.line(20, yPos, 190, yPos);
+  
+  yPos += 10;
+  doc.setFontSize(11);
+
+  // Visit Details - Orange color for labels
+  const visitDetails = [
+    { label: "Visit ID:", value: visitData.site_visit_id },
+    { label: "Visit Date:", value: formatDate(visitData.created_date) },
+  ];
+
+  visitDetails.forEach(item => {
     doc.setFont(undefined, "bold");
-    doc.text("Site Visit Report", 105, 20, { align: "center" });
-    
-    doc.setFontSize(10);
+    doc.setTextColor(244, 166, 76); // Orange color for labels
+    doc.text(item.label, 25, yPos);
     doc.setFont(undefined, "normal");
-    doc.text(`Report Generated: ${formatDate(new Date().toISOString())}`, 105, 30, { align: "center" });
+    doc.setTextColor(0, 0, 0); // Black color for values
+    doc.text(item.value, 70, yPos);
+    yPos += 8;
+  });
 
-    // Reset text color for body
-    doc.setTextColor(0, 0, 0);
-    
-    let yPos = 55;
+  // Customer Information Section
+  yPos += 5;
+  doc.setFontSize(16);
+  doc.setFont(undefined, "bold");
+  doc.setTextColor(59, 130, 246); // Blue color for section header
+  doc.text("Customer Information", 20, yPos);
+  
+  yPos += 5;
+  doc.setLineWidth(0.3);
+  doc.line(20, yPos, 190, yPos);
+  
+  yPos += 10;
+  doc.setFontSize(11);
 
-    // Visit Information Section
-    doc.setFontSize(16);
+  const customerDetails = [
+    { label: "Customer Name:", value: visitData.customer_name },
+    { label: "Customer ID:", value: visitData.customer_id },
+    { label: "Phone Number:", value: visitData.phone },
+  ];
+
+  customerDetails.forEach(item => {
     doc.setFont(undefined, "bold");
-    doc.setTextColor(59, 130, 246);
-    doc.text("Visit Information", 20, yPos);
-    
-    yPos += 10;
-    doc.setDrawColor(59, 130, 246);
-    doc.setLineWidth(0.5);
-    doc.line(20, yPos, 190, yPos);
-    
-    yPos += 10;
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-    
-    // Visit Details
-    const visitDetails = [
-      { label: "Visit ID:", value: visitData.site_visit_id },
-      { label: "Visit Date:", value: formatDate(visitData.created_date) },
-    ];
+    doc.setTextColor(244, 166, 76); // Orange color for labels
+    doc.text(item.label, 25, yPos);
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(0, 0, 0); // Black color for values
+    doc.text(item.value, 70, yPos);
+    yPos += 8;
+  });
 
-    visitDetails.forEach(item => {
-      doc.setFont(undefined, "bold");
-      doc.text(item.label, 25, yPos);
-      doc.setFont(undefined, "normal");
-      doc.text(item.value, 70, yPos);
-      yPos += 8;
-    });
+  // Technician Information Section
+  yPos += 5;
+  doc.setFontSize(16);
+  doc.setFont(undefined, "bold");
+  doc.setTextColor(59, 130, 246); // Blue color for section header
+  doc.text("Technician Information", 20, yPos);
+  
+  yPos += 5;
+  doc.setLineWidth(0.3);
+  doc.line(20, yPos, 190, yPos);
+  
+  yPos += 10;
+  doc.setFontSize(11);
 
-    // Customer Information Section
-    yPos += 5;
-    doc.setFontSize(16);
+  const technicianDetails = [
+    { label: "Technician Name:", value: visitData.technician_name },
+    { label: "Technician ID:", value: visitData.technician_id },
+    { label: "Visited By Code:", value: visitData.visited_by },
+  ];
+
+  technicianDetails.forEach(item => {
     doc.setFont(undefined, "bold");
-    doc.setTextColor(59, 130, 246);
-    doc.text("Customer Information", 20, yPos);
-    
-    yPos += 10;
-    doc.setLineWidth(0.5);
-    doc.line(20, yPos, 190, yPos);
-    
-    yPos += 10;
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
+    doc.setTextColor(244, 166, 76); // Orange color for labels
+    doc.text(item.label, 25, yPos);
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(0, 0, 0); // Black color for values
+    doc.text(item.value, 70, yPos);
+    yPos += 8;
+  });
 
-    const customerDetails = [
-      { label: "Customer Name:", value: visitData.customer_name },
-      { label: "Customer ID:", value: visitData.customer_id },
-      { label: "Phone Number:", value: visitData.phone },
-    ];
+  // Footer
+const pageCount = doc.getNumberOfPages();
+for (let i = 1; i <= pageCount; i++) {
+  doc.setPage(i);
+  
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  
+  // Footer background with your specified color (160, 199, 99)
+ doc.setFillColor(255,255,255); 
+  doc.rect(0, pageHeight - 40, pageWidth, 40, 'F');
+  
+  // Top border line with full width in your specified color (225, 122, 0)
+  doc.setDrawColor(225, 122, 0);
+  doc.setLineWidth(1.5);
+  doc.line(0, pageHeight - 40, pageWidth, pageHeight - 40);
+  
+  // Contact info
+  doc.setFontSize(9);
+  
+  // Email label in your specified color (225, 122, 0)
+  doc.setTextColor(225, 122, 0);
+  doc.setFont(undefined, "bold");
+  doc.text("Email:", 25, pageHeight - 30);
+  
+  // Email value in black
+  doc.setFontSize(15)
+  doc.setTextColor(0, 0, 0);
+  doc.setFont(undefined, "normal");
+  doc.text("sales@growpro.co.in", 45, pageHeight - 30);
+  
+  // Phone label in your specified color (225, 122, 0)
+  doc.setTextColor(225, 122, 0);
+  doc.setFont(undefined, "bold");
+  doc.text("Phone:", 25, pageHeight - 20);
+  
+  // Phone value in black
+  doc.setTextColor(0, 0, 0);
+  doc.setFont(undefined, "normal");
+  doc.text("+91 93218 87125", 45, pageHeight - 20);
+  
+  // Right aligned copyright and page info
+  doc.setFontSize(8);
+  doc.setTextColor(80, 80, 80); // Dark gray for better contrast on light green
+  
+  // Company info
+  doc.setFont(undefined, "bold");
+  doc.text("GrowPro Solutions", pageWidth - 25, pageHeight - 30, { align: "right" });
+  
+  doc.setFont(undefined, "normal");
+  doc.text("Material Delivery Report", pageWidth - 25, pageHeight - 23, { align: "right" });
+  doc.text("Page " + i + " of " + pageCount, pageWidth - 25, pageHeight - 16, { align: "right" });
+}
 
-    customerDetails.forEach(item => {
-      doc.setFont(undefined, "bold");
-      doc.text(item.label, 25, yPos);
-      doc.setFont(undefined, "normal");
-      doc.text(item.value, 70, yPos);
-      yPos += 8;
-    });
-
-    // Technician Information Section
-    yPos += 5;
-    doc.setFontSize(16);
-    doc.setFont(undefined, "bold");
-    doc.setTextColor(59, 130, 246);
-    doc.text("Technician Information", 20, yPos);
-    
-    yPos += 10;
-    doc.setLineWidth(0.5);
-    doc.line(20, yPos, 190, yPos);
-    
-    yPos += 10;
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-
-    const technicianDetails = [
-      { label: "Technician Name:", value: visitData.technician_name },
-      { label: "Technician ID:", value: visitData.technician_id },
-      { label: "Visited By Code:", value: visitData.visited_by },
-    ];
-
-    technicianDetails.forEach(item => {
-      doc.setFont(undefined, "bold");
-      doc.text(item.label, 25, yPos);
-      doc.setFont(undefined, "normal");
-      doc.text(item.value, 70, yPos);
-      yPos += 8;
-    });
-
-    // Footer
-    doc.setFontSize(8);
-    doc.setTextColor(128, 128, 128);
-    doc.text("This is a computer-generated report.", 105, 280, { align: "center" });
-    doc.text("For any queries, please contact support.", 105, 285, { align: "center" });
-
-    // Save PDF
-    doc.save(`Site_Visit_Report_${visitData.site_visit_id}_${visitData.customer_name.replace(/\s+/g, '_')}.pdf`);
-  };
+  // Save PDF
+  doc.save(`Site_Visit_Report_${visitData.site_visit_id}_${visitData.customer_name.replace(/\s+/g, '_')}.pdf`);
+};
 
   // Fetch data from backend API
   useEffect(() => {
@@ -384,7 +450,7 @@ export default function UserTable() {
                             <td className="py-4 px-4 text-right">
                               <button
                                 onClick={() => handleEdit(user.site_visit_id)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                                className="px-4 py-2 btn-primary"
                               >
                                 Edit
                               </button>
