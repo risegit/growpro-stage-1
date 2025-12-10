@@ -131,167 +131,6 @@ useEffect(() => {
         };
       }, []);
 
-  // Generate PDF Report
-//   const generatePDF = (visitData) => {
-//   if (!window.jspdf) {
-//     alert('PDF library is still loading. Please try again in a moment.');
-//     return;
-//   }
-
-//   const { jsPDF } = window.jspdf;
-//   const doc = new jsPDF();
-
-//   // Header
-//   doc.setFillColor(59, 130, 246);
-//   doc.rect(0, 0, 210, 40, "F");
-  
-//   doc.setTextColor(255, 255, 255);
-//   doc.setFontSize(24);
-//   doc.setFont(undefined, "bold");
-//   doc.text("Material Deliver Report", 105, 20, { align: "center" });
-  
-//   doc.setFontSize(10);
-//   doc.setFont(undefined, "normal");
-//   doc.text(`Report Generated: ${formatDate(new Date().toISOString())}`, 105, 30, { align: "center" });
-
-//   // Reset text color for body
-//   doc.setTextColor(0, 0, 0);
-  
-//   let yPos = 55;
-
-//   // Customer Information Section
-//   doc.setFontSize(16);
-//   doc.setFont(undefined, "bold");
-//   doc.setTextColor(59, 130, 246);
-//   doc.text("Customer Information", 20, yPos);
-  
-//   yPos += 5;
-//   doc.setLineWidth(0.5);
-//   doc.line(20, yPos, 190, yPos);
-  
-//   yPos += 10;
-//   doc.setFontSize(11);
-//   doc.setTextColor(0, 0, 0);
-
-//   const customerDetails = [
-//     { label: "Customer Name:", value: visitData.name || "-" },
-//     { label: "Phone Number:", value: visitData.phone || "-" },
-//   ];
-
-//   customerDetails.forEach(item => {
-//     doc.setFont(undefined, "bold");
-//     doc.text(item.label, 25, yPos);
-//     doc.setFont(undefined, "normal");
-//     doc.text(item.value, 70, yPos);
-//     yPos += 8;
-//   });
-
-//   // Material Information Section
-//   yPos += 5;
-//   doc.setFontSize(16);
-//   doc.setFont(undefined, "bold");
-//   doc.setTextColor(59, 130, 246);
-//   doc.text("Material Information", 20, yPos);
-  
-//   yPos += 5;
-//   doc.setLineWidth(0.5);
-//   doc.line(20, yPos, 190, yPos);
-  
-//   yPos += 10;
-//   doc.setFontSize(11);
-//   doc.setTextColor(0, 0, 0);
-
-//   const materialDetails = [
-//     { label: "Technician Name:", value: visitData.tech_name || "-" },
-//     { label: "Technician ID:", value: visitData.chargeableItem || "-" },
-//     { label: "Visited By Code:", value: visitData.nutrients || "-" },
-//   ];
-
-//   materialDetails.forEach(item => {
-//     doc.setFont(undefined, "bold");
-//     doc.text(item.label, 25, yPos);
-//     doc.setFont(undefined, "normal");
-//     doc.text(item.value, 70, yPos);
-//     yPos += 8;
-//   });
-
-//   // Plants Information Section
-//   yPos += 5;
-//   doc.setFontSize(16);
-//   doc.setFont(undefined, "bold");
-//   doc.setTextColor(59, 130, 246);
-//   doc.text("Plants to Deliver", 20, yPos);
-  
-//   yPos += 5;
-//   doc.setLineWidth(0.5);
-//   doc.line(20, yPos, 190, yPos);
-  
-//   yPos += 10;
-  
-//   // Check if plants exist in the visitData
-//   if (visitData.plants && visitData.plants.length > 0) {
-//     // Table headers for plants
-//     doc.setFontSize(10);
-//     doc.setFont(undefined, "bold");
-//     doc.text("S.No.", 25, yPos);
-//     doc.text("Plant Name", 45, yPos);
-//     doc.text("Quantity", 120, yPos);
-//     doc.text("Remarks", 150, yPos);
-    
-//     yPos += 8;
-//     doc.setLineWidth(0.2);
-//     doc.line(20, yPos, 190, yPos);
-//     yPos += 5;
-    
-//     // Plants data rows
-//     doc.setFontSize(9);
-//     doc.setFont(undefined, "normal");
-    
-//     visitData.plants.forEach((plant, index) => {
-//       // Check if we need a new page
-//       if (yPos > 250) {
-//         doc.addPage();
-//         yPos = 20;
-//       }
-      
-//       const serialNo = index + 1;
-//       const plantName = plant.plant_name === "others" 
-//         ? (plant.other_plant_name || "Other Plant") 
-//         : plant.plant_name || "-";
-//       const quantity = plant.quantity || "-";
-//       const remarks = plant.remarks || "-";
-      
-//       doc.text(serialNo.toString(), 25, yPos);
-//       doc.text(plantName, 45, yPos);
-//       doc.text(quantity.toString(), 120, yPos);
-      
-//       // Handle long remarks by splitting text
-//       const maxRemarksWidth = 40;
-//       const remarksLines = doc.splitTextToSize(remarks, maxRemarksWidth);
-//       doc.text(remarksLines, 150, yPos);
-      
-//       // If remarks has multiple lines, adjust yPos accordingly
-//       yPos += (remarksLines.length * 5);
-      
-//       yPos += 10; // Space for next item
-//     });
-//   } else {
-//     doc.setFontSize(10);
-//     doc.setFont(undefined, "normal");
-//     doc.text("No plants listed", 25, yPos);
-//     yPos += 8;
-//   }
-
-//   // Footer
-//   doc.setFontSize(8);
-//   doc.setTextColor(128, 128, 128);
-//   doc.text("This is a computer-generated report.", 105, 280, { align: "center" });
-//   doc.text("For any queries, please contact support.", 105, 285, { align: "center" });
-
-//   // Save PDF
-//   const fileName = `Material_Deliver_Report_${visitData.id || "unknown"}_${(visitData.name || "customer").replace(/\s+/g, '_')}.pdf`;
-//   doc.save(fileName);
-// };
 
 const generatePDF = (user) => {
   if (!window.jspdf) {
@@ -777,7 +616,7 @@ for (let i = 1; i <= pageCount; i++) {
   doc.line(0, pageHeight - 40, pageWidth, pageHeight - 40);
   
   // Contact info
-  doc.setFontSize(9);
+  doc.setFontSize(12);
   
   // Email label in your specified color (225, 122, 0)
   doc.setTextColor(225, 122, 0);
@@ -785,7 +624,7 @@ for (let i = 1; i <= pageCount; i++) {
   doc.text("Email:", 25, pageHeight - 30);
   
   // Email value in black
-  doc.setFontSize(15)
+  doc.setFontSize(12);
   doc.setTextColor(0, 0, 0);
   doc.setFont(undefined, "normal");
   doc.text("sales@growpro.co.in", 45, pageHeight - 30);
