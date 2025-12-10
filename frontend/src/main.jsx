@@ -24,8 +24,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <ThemeProvider>
         <MaterialTailwindControllerProvider>
           <App />
-
-          {/* ✅ Add ToastContainer here */}
           <ToastContainer />
         </MaterialTailwindControllerProvider>
       </ThemeProvider>
