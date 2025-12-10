@@ -227,7 +227,7 @@ for (let i = 1; i <= pageCount; i++) {
   doc.line(0, pageHeight - 40, pageWidth, pageHeight - 40);
   
   // Contact info
-  doc.setFontSize(9);
+  doc.setFontSize(12);
   
   // Email label in your specified color (225, 122, 0)
   doc.setTextColor(225, 122, 0);
@@ -235,7 +235,7 @@ for (let i = 1; i <= pageCount; i++) {
   doc.text("Email:", 25, pageHeight - 30);
   
   // Email value in black
-  doc.setFontSize(15)
+  doc.setFontSize(12)
   doc.setTextColor(0, 0, 0);
   doc.setFont(undefined, "normal");
   doc.text("sales@growpro.co.in", 45, pageHeight - 30);
