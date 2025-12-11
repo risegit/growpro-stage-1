@@ -118,58 +118,72 @@ export default function EditMaterialDeliver() {
   };
 
   // Function to render plants display
-  const renderPlants = () => {
-    if (!materialPlants || materialPlants.length === 0) {
-      return (
-        <div className="flex flex-col md:col-span-2">
-          <label className="mb-1 font-medium text-gray-700">
-            Plants and Quantities
-          </label>
-          <div className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700 min-h-[42px]">
-            <p className="text-gray-500 italic">No plants specified</p>
-          </div>
-        </div>
-      );
-    }
-
-    if (materialPlants.length === 1) {
-      const plant = materialPlants[0];
-      const plantName = plant.other_plant_name?.trim() || plant.plant_name || '';
-      return (
-        <div className="flex flex-col md:col-span-2">
-          <label className="mb-1 font-medium text-gray-700">
-            Plant and Quantity
-          </label>
-          <input
-            type="text"
-            value={`${plantName}${plant.quantity ? ` - Qty: ${plant.quantity}` : ''}`}
-            readOnly
-            className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
-          />
-        </div>
-      );
-    }
-
-    // Multiple plants - show as a list in a textarea
-    const plantsText = materialPlants.map(plant => {
-      const plantName = plant.other_plant_name?.trim() || plant.plant_name || 'Unnamed Plant';
-      return `${plantName}${plant.quantity ? ` - Quantity: ${plant.quantity}` : ''}`;
-    }).join('\n');
-
+ // Function to render plants display
+const renderPlants = () => {
+  if (!materialPlants || materialPlants.length === 0) {
     return (
       <div className="flex flex-col md:col-span-2">
         <label className="mb-1 font-medium text-gray-700">
-          Plants and Quantities ({materialPlants.length} items)
+          Plants and Quantities
         </label>
-        <textarea
-          value={plantsText}
+        <div className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700 min-h-[42px]">
+          <p className="text-gray-500 italic">No plants specified</p>
+        </div>
+      </div>
+    );
+  }
+
+  // helper to choose the display name:
+  const getPlantDisplayName = (plant) => {
+    const other = plant.other_plant_name?.trim() || '';
+    const main = plant.plant_name?.trim() || '';
+
+    // If other is literally "Others" (any case) or empty, prefer main name.
+    if (!other || other.toLowerCase() === 'others') {
+      return main || other || 'Unnamed Plant';
+    }
+    return other;
+  };
+
+  if (materialPlants.length === 1) {
+    const plant = materialPlants[0];
+    const plantName = getPlantDisplayName(plant);
+    return (
+      <div className="flex flex-col md:col-span-2">
+        <label className="mb-1 font-medium text-gray-700">
+          Plant and Quantity
+        </label>
+        <input
+          type="text"
+          value={`${plantName}${plant.quantity ? ` - Qty: ${plant.quantity}` : ''}`}
           readOnly
-          rows={Math.min(materialPlants.length + 1, 5)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
+          className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
         />
       </div>
     );
-  };
+  }
+
+  // Multiple plants - show as a list in a textarea
+  const plantsText = materialPlants.map(plant => {
+    const plantName = getPlantDisplayName(plant);
+    return `${plantName}${plant.quantity ? ` - Quantity: ${plant.quantity}` : ''}`;
+  }).join('\n');
+
+  return (
+    <div className="flex flex-col md:col-span-2">
+      <label className="mb-1 font-medium text-gray-700">
+        Plants and Quantities ({materialPlants.length} items)
+      </label>
+      <textarea
+        value={plantsText}
+        readOnly
+        rows={Math.min(materialPlants.length + 1, 5)}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
+      />
+    </div>
+  );
+};
+
 
   // Function to render nutrients display
   const renderNutrients = () => {
@@ -243,67 +257,77 @@ export default function EditMaterialDeliver() {
 
   // Function to render chargeable items display
   const renderChargeableItems = () => {
-    if (!materialChargeableItems || materialChargeableItems.length === 0) {
-      return (
-        <div className="flex flex-col md:col-span-2">
-          <label className="mb-1 font-medium text-gray-700">
-            Chargeable Items
-          </label>
-          <div className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700 min-h-[42px]">
-            <p className="text-gray-500 italic">No chargeable items specified</p>
-          </div>
+  if (!materialChargeableItems || materialChargeableItems.length === 0) {
+    return (
+      <div className="flex flex-col md:col-span-2">
+        <label className="mb-1 font-medium text-gray-700">
+          Chargeable Items
+        </label>
+        <div className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700 min-h-[42px]">
+          <p className="text-gray-500 italic">No chargeable items specified</p>
         </div>
-      );
+      </div>
+    );
+  }
+
+  const getItemDisplayName = (item) => {
+    const other = item.other_item_name?.trim() || '';
+    const main = item.item_name?.trim() || '';
+
+    // If other is empty or equals "Others" (case-insensitive), use main name
+    if (!other || other.toLowerCase() === 'others') {
+      return main || other || 'Unnamed Item';
     }
+    return other;
+  };
 
-    if (materialChargeableItems.length === 1) {
-      const item = materialChargeableItems[0];
-      const itemName = item.other_item_name?.trim() || item.item_name || '';
-      
-      let itemInfo = itemName;
-      if (item.quantity) itemInfo += ` - Quantity: ${item.quantity}`;
-      if (item.other_info) itemInfo += `, ${item.other_info}`;
+  if (materialChargeableItems.length === 1) {
+    const item = materialChargeableItems[0];
+    const itemName = getItemDisplayName(item);
 
-      return (
-        <div className="flex flex-col md:col-span-2">
-          <label className="mb-1 font-medium text-gray-700">
-            Chargeable Item Details
-          </label>
-          <input
-            type="text"
-            value={itemInfo}
-            readOnly
-            className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
-          />
-        </div>
-      );
-    }
-
-    // Multiple chargeable items - show as a list in a textarea
-    const itemsText = materialChargeableItems.map(item => {
-      const itemName = item.other_item_name?.trim() || item.item_name || 'Unnamed Item';
-      
-      let itemInfo = itemName;
-      if (item.quantity) itemInfo += ` - Quantity: ${item.quantity}`;
-      if (item.other_info) itemInfo += `, ${item.other_info}`;
-      
-      return itemInfo;
-    }).join('\n');
+    let itemInfo = itemName;
+    if (item.quantity) itemInfo += ` - Quantity: ${item.quantity}`;
+    if (item.other_info) itemInfo += `, ${item.other_info}`;
 
     return (
       <div className="flex flex-col md:col-span-2">
         <label className="mb-1 font-medium text-gray-700">
-          Chargeable Items ({materialChargeableItems.length} items)
+          Chargeable Item Details
         </label>
-        <textarea
-          value={itemsText}
+        <input
+          type="text"
+          value={itemInfo}
           readOnly
-          rows={Math.min(materialChargeableItems.length + 2, 6)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
+          className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
         />
       </div>
     );
-  };
+  }
+
+  // Multiple items - show as a list in textarea
+  const itemsText = materialChargeableItems.map(item => {
+    const itemName = getItemDisplayName(item);
+    let info = itemName;
+    if (item.quantity) info += ` - Quantity: ${item.quantity}`;
+    if (item.other_info) info += `, ${item.other_info}`;
+    return info;
+  }).join('\n');
+
+  return (
+    <div className="flex flex-col md:col-span-2">
+      <label className="mb-1 font-medium text-gray-700">
+        Chargeable Items ({materialChargeableItems.length} items)
+      </label>
+      <textarea
+        value={itemsText}
+        readOnly
+        rows={Math.min(materialChargeableItems.length + 2, 6)}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
+      />
+    </div>
+  );
+};
+
 
   // Function to show delivery status indicator
   const renderDeliveryStatusInfo = () => {
