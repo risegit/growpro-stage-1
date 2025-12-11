@@ -144,18 +144,18 @@ const generatePDF = (user) => {
   /* -------------------------------------------------------
      🔹 HEADER + LOGO
   --------------------------------------------------------*/
-  const logoPath = '/img/growprologo.jpeg'; 
+  const logoPath = `${import.meta.env.BASE_URL}img/growprologo.jpeg`; 
   doc.addImage(logoPath, 'JPEG', 15, 10, 30, 30);
 
   const titleX = 50 + (160 / 2);
   doc.setTextColor(0,0,0,1);
   doc.setFontSize(24);
   doc.setFont(undefined, "bold");
-  doc.text("Material Deliver Report", titleX, 20, { align: "center" });
+  doc.text("Consumables Delivery Report", titleX, 20, { align: "center" });
 
   doc.setFontSize(10);
   doc.setFont(undefined, "normal");
-  doc.text(`Report Generated: ${formatDate(new Date().toISOString())}`, titleX, 30, { align: "left" });
+  doc.text(`Delivery Date: ${formatDate(new Date().toISOString())}`, titleX, 30, { align: "left" });
 
   // Separator line below header
   doc.setDrawColor(102, 187, 106);
@@ -168,44 +168,44 @@ const generatePDF = (user) => {
   /* -------------------------------------------------------
      🔹 CUSTOMER INFORMATION
   --------------------------------------------------------*/
-  doc.setFontSize(16);
-  doc.setFont(undefined, "bold");
-  doc.setTextColor(59, 130, 246);
-  doc.text("Customer Information", 20, yPos);
+  // doc.setFontSize(16);
+  // doc.setFont(undefined, "bold");
+  // doc.setTextColor(59, 130, 246);
+  // doc.text("Customer Information", 20, yPos);
 
-  yPos += 6;
-  doc.setLineWidth(0.3);
-  doc.line(20, yPos, 190, yPos);
+  // yPos += 6;
+  // doc.setLineWidth(0.3);
+  // doc.line(20, yPos, 190, yPos);
 
-  yPos += 10;
-  doc.setFontSize(11);
+  // yPos += 10;
+  // doc.setFontSize(11);
 
-  const customerDetails = [
-    { label: "Customer Name:", value: user.name || "-" },
-    { label: "Customer ID:", value: user.customer_id || "-" },
-    { label: "Phone Number:", value: user.phone || "-" },
-  ];
+  // const customerDetails = [
+  //   { label: "Customer Name:", value: user.name || "-" },
+  //   { label: "Customer ID:", value: user.customer_id || "-" },
+  //   { label: "Phone Number:", value: user.phone || "-" },
+  // ];
 
-  customerDetails.forEach(item => {
-    doc.setFont(undefined, "bold");
-    doc.setTextColor(244, 166, 76);
-    doc.text(item.label, 25, yPos);
+  // customerDetails.forEach(item => {
+  //   doc.setFont(undefined, "bold");
+  //   doc.setTextColor(244, 166, 76);
+  //   doc.text(item.label, 25, yPos);
 
-    doc.setFont(undefined, "normal");
-    doc.setTextColor(0, 0, 0);
-    doc.text(item.value.toString(), 70, yPos);
+  //   doc.setFont(undefined, "normal");
+  //   doc.setTextColor(0, 0, 0);
+  //   doc.text(item.value.toString(), 70, yPos);
 
-    yPos += 8;
-  });
+  //   yPos += 8;
+  // });
 
   /* -------------------------------------------------------
      🔹 DELIVERY INFORMATION
   --------------------------------------------------------*/
   yPos += 5;
-  doc.setFontSize(16);
+  doc.setFontSize(12);
   doc.setFont(undefined, "bold");
   doc.setTextColor(59, 130, 246);
-  doc.text("Delivery Information", 20, yPos);
+  doc.text("Dear Customer, the following are our consumables we have delivered to you:", 20, yPos);
 
   yPos += 6;
   doc.setLineWidth(0.3);
@@ -259,7 +259,7 @@ const generatePDF = (user) => {
   doc.setFontSize(16);
   doc.setFont(undefined, "bold");
   doc.setTextColor(59, 130, 246);
-  doc.text("Plants Delivered", 20, yPos);
+  doc.text("Plant Delivery:", 20, yPos);
   
 
   yPos += 6;
@@ -365,7 +365,7 @@ const generatePDF = (user) => {
     doc.setFontSize(16);
     doc.setFont(undefined, "bold");
     doc.setTextColor(59, 130, 246);
-    doc.text("Nutrients Information", 20, yPos);
+    doc.text("Nutrients Delivery:", 20, yPos);
     
     yPos += 6;
     doc.setLineWidth(0.3);
@@ -460,7 +460,7 @@ const generatePDF = (user) => {
     doc.setFontSize(16);
     doc.setFont(undefined, "bold");
     doc.setTextColor(59, 130, 246);
-    doc.text("Chargeable Items", 20, yPos);
+    doc.text("Chargeable Items:", 20, yPos);
     
     yPos += 6;
     doc.setLineWidth(0.3);
@@ -596,6 +596,27 @@ const generatePDF = (user) => {
     yPos += 8;
   }
 
+  yPos += 15;
+  doc.setFontSize(12);
+  doc.setFont(undefined, "bold");
+  doc.setTextColor(0, 0, 0);
+  doc.text("Do let us know if you'd like any further clarity on the material supplied. ", 20, yPos);
+  
+  yPos += 15;
+  doc.text("Happy Growing!", 20, yPos);
+  yPos += 8;
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
+  doc.setTextColor(66, 66, 66);
+  doc.text("Email: sales@growpro.co.in", 20, yPos);
+  doc.link(20, yPos - 5, 200, 10, { url: "mailto:sales@growpro.co.in" });
+  yPos += 6;
+  doc.text("Phone: 8591753001", 20, yPos);
+  doc.link(20, yPos - 5, 200, 10, { url: "tel:+918591753001" });
+  yPos += 6;
+  doc.text("GrowPro Technology", 20, yPos);
+  doc.link(20, yPos - 5, 200, 10, { url: "https://growpro.com/" });
+
   /* -------------------------------------------------------
      🔹 FOOTER
   --------------------------------------------------------*/
@@ -655,7 +676,7 @@ for (let i = 1; i <= pageCount; i++) {
      🔥 FINAL PDF DOWNLOAD
   --------------------------------------------------------*/
   const safeName = (user.name || "customer").replace(/\s+/g, '_');
-  const fileName = `Material_Deliver_Report_${user.customer_id || user.id}_${safeName}.pdf`;
+  const fileName = `Consumables_Delivery_Report_${formatDate(user.created_date)}_${safeName}.pdf`;
   doc.save(fileName);
 };
 

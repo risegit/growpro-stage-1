@@ -651,80 +651,23 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     };
 
     const validateStep4 = () => {
-        let newErrors = {};
+    let newErrors = {};
 
-        if (!formData.plants || formData.plants.length === 0) {
-            newErrors.plants = "Select at least one plant";
-        }
+    // ... (keep existing validations for other fields)
 
-        if (
-            formData.plants?.some((i) => i.value === "Others") &&
-            !formData.materialsSuppliedPlantData?.trim()
-        ) {
-            newErrors.materialsSuppliedPlantData = "Please specify the other material";
-        }
-
-        if (formData.plants && formData.plants.length > 0) {
-            const quantityErrors = {};
-            let hasQuantityErrors = false;
-
-            formData.plants.forEach((plant) => {
-                if (plant.value !== "Others") {
-                    const quantity = formData.plantQuantities?.[plant.value];
-                    if (!quantity || quantity.trim() === "" || isNaN(quantity) || parseInt(quantity) <= 0) {
-                        quantityErrors[plant.value] = "Quantity is required";
-                        hasQuantityErrors = true;
-                    }
-                } else {
-                    const otherQuantity = formData.plantQuantities?.["Others"];
-                    if (!otherQuantity || otherQuantity.trim() === "" || isNaN(otherQuantity) || parseInt(otherQuantity) <= 0) {
-                        quantityErrors["Others"] = "Quantity is required";
-                        hasQuantityErrors = true;
-                    }
-                }
-            });
-
-            if (hasQuantityErrors) {
-                newErrors.plantQuantities = quantityErrors;
-            }
-        }
-
-        formData.nutrientsData.forEach((field, index) => {
-            const rowErrors = {};
-
-            if (!field.nutrients) rowErrors.nutrients = "Required";
-
-            if (!field.tankCapacity || isNaN(field.tankCapacity) || Number(field.tankCapacity) <= 0) {
-                rowErrors.tankCapacity = "Enter valid tank capacity";
-            }
-
-            if (!field.numberOfTopups && field.numberOfTopups !== 0) {
-                rowErrors.numberOfTopups = "Required";
-            }
-
-            if (Object.keys(rowErrors).length > 0) {
-                if (!newErrors.nutrientsData) newErrors.nutrientsData = [];
-                newErrors.nutrientsData[index] = rowErrors;
-            }
-        });
-
-        if (!formData.material_supplied_neemoil) {
-            newErrors.material_supplied_neemoil = "Required";
-        }
-
-        if (!formData.material_supplied_chargeable_items ||
-            !Array.isArray(formData.material_supplied_chargeable_items) ||
-            formData.material_supplied_chargeable_items.length === 0) {
-            newErrors.material_supplied_chargeable_items = "Select chargeable items supplied";
-        }
-
+    // Chargeable Items - only validate if items are selected
+    if (formData.material_supplied_chargeable_items && 
+        formData.material_supplied_chargeable_items.length > 0) {
+        
+        // If "Others" is selected and no name provided
         if (formData.material_supplied_chargeable_items?.some((item) => item.value === "Others")) {
             if (!formData.chargeableOtherName?.trim()) {
                 newErrors.chargeableOtherName = "Please specify other item name";
             }
         }
 
-        if (formData.material_supplied_chargeable_items && formData.material_supplied_chargeable_items.length > 0) {
+        // Validate quantities for selected items
+        if (formData.material_supplied_chargeable_items.length > 0) {
             const chargeableQtyErrors = {};
             let hasChargeableQtyErrors = false;
 
@@ -742,14 +685,14 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                 newErrors.chargeableQuantities = chargeableQtyErrors;
             }
         }
+    }
+    // Remove the else part - it's not required
 
-        if (!formData.setupPhotos || formData.setupPhotos.length === 0) {
-            newErrors.setupPhoto = "At least one photo of the setup is required.";
-        }
+    // ... (keep existing validations for setupPhotos and other fields)
 
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+};
 
     const validateStep5 = () => {
         let newErrors = {};
@@ -1246,24 +1189,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                 )}
                             </div>
 
-                            {/* Crop Names */}
-                            <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">
-                                    State which crops (कौन सी फसल बताएं?) <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="cropNames"
-                                    value={formData.cropNames}
-                                    onChange={handleChange}
-                                    placeholder="Enter crop names (e.g., Lettuce, Tomato, Basil)"
-                                    className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.cropNames ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                                />
-                                {errors.cropNames && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.cropNames}</span>
-                                )}
-                            </div>
-
                             {/* Plant Problems */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
@@ -1282,6 +1207,24 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                 />
                                 {errors.plantProblems && (
                                     <span className="text-red-500 text-sm mt-1">{errors.plantProblems}</span>
+                                )}
+                            </div>
+
+                            {/* Crop Names */}
+                            <div className="flex flex-col">
+                                <label className="mb-1 font-medium text-gray-700">
+                                    State which crops (कौन सी फसल बताएं?) <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="cropNames"
+                                    value={formData.cropNames}
+                                    onChange={handleChange}
+                                    placeholder="Enter crop names (e.g., Lettuce, Tomato, Basil)"
+                                    className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.cropNames ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                />
+                                {errors.cropNames && (
+                                    <span className="text-red-500 text-sm mt-1">{errors.cropNames}</span>
                                 )}
                             </div>
 
@@ -1669,154 +1612,156 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             <div className="flex flex-col sm:flex-row space-x-0 sm:space-x-4 gap-4">
                                 {/* Chargeable Items Supplied */}
                                 <div className="flex-1">
-                                    <label className="mb-1 font-medium text-gray-700">
-                                        Chargeable Items Supplied (जो वस्तुएँ पैसे के लिए दी गई हैं) <span className="text-red-500">*</span>
-                                    </label>
+        <label className="mb-1 font-medium text-gray-700">
+            Chargeable Items Supplied (जो वस्तुएँ पैसे के लिए दी गई हैं)
+        </label>
 
-                                    <Select
-                                        isMulti
-                                        options={changebleItemsOptions}
-                                        value={formData.material_supplied_chargeable_items}
-                                        onChange={handleChargeableItemsChange}
-                                        classNamePrefix="react-select"
-                                        placeholder="Select items..."
-                                        styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
-                                    />
+        <Select
+            isMulti
+            options={changebleItemsOptions}
+            value={formData.material_supplied_chargeable_items}
+            onChange={handleChargeableItemsChange}
+            classNamePrefix="react-select"
+            placeholder="Select items (optional)..."
+            styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
+        />
 
-                                    {errors.material_supplied_chargeable_items && (
-                                        <span className="text-red-500 text-sm mt-1">{errors.material_supplied_chargeable_items}</span>
-                                    )}
+        {/* Remove the error display for the main select field */}
+        {/* {errors.material_supplied_chargeable_items && (
+            <span className="text-red-500 text-sm mt-1">{errors.material_supplied_chargeable_items}</span>
+        )} */}
 
-                                    {formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") && (
-                                        <div className="mt-3">
-                                            <input
-                                                type="text"
-                                                placeholder="Specify other item"
-                                                value={formData.chargeableOtherName || ""}
-                                                onChange={(e) => setFormData({ ...formData, chargeableOtherName: e.target.value })}
-                                                className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition 
+        {formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") && (
+            <div className="mt-3">
+                <input
+                    type="text"
+                    placeholder="Specify other item"
+                    value={formData.chargeableOtherName || ""}
+                    onChange={(e) => setFormData({ ...formData, chargeableOtherName: e.target.value })}
+                    className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition 
                     ${errors.chargeableOtherName ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}
                 `}
-                                            />
-                                            {errors.chargeableOtherName && (
-                                                <span className="text-red-500 text-sm mt-1">{errors.chargeableOtherName}</span>
-                                            )}
-                                        </div>
-                                    )}
+                />
+                {errors.chargeableOtherName && (
+                    <span className="text-red-500 text-sm mt-1">{errors.chargeableOtherName}</span>
+                )}
+            </div>
+        )}
 
-                                    {formData.material_supplied_chargeable_items?.length > 0 && (
-                                        <div className="flex flex-col mt-4">
-                                            <label className="mb-2 font-medium text-gray-700">
-                                                Quantity of Chargeable Items <span className="text-red-500">*</span>
-                                            </label>
+        {/* Only show quantity section if items are selected */}
+        {formData.material_supplied_chargeable_items?.length > 0 && (
+            <div className="flex flex-col mt-4">
+                <label className="mb-2 font-medium text-gray-700">
+                    Quantity of Chargeable Items <span className="text-red-500">*</span>
+                </label>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-                                                {formData.material_supplied_chargeable_items
-                                                    .filter((i) => i.value !== "Others")
-                                                    .map((item) => (
-                                                        <div key={item.value} className="flex flex-col gap-2">
-                                                            <label className="font-medium text-gray-600">{item.label}:</label>
-                                                            <input
-                                                                type="number"
-                                                                min="1"
-                                                                value={formData.chargeableQuantities?.[item.value] || ""}
-                                                                onChange={(e) => {
-                                                                    const value = e.target.value;
+                    {formData.material_supplied_chargeable_items
+                        .filter((i) => i.value !== "Others")
+                        .map((item) => (
+                            <div key={item.value} className="flex flex-col gap-2">
+                                <label className="font-medium text-gray-600">{item.label}:</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={formData.chargeableQuantities?.[item.value] || ""}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
 
-                                                                    setFormData({
-                                                                        ...formData,
-                                                                        chargeableQuantities: {
-                                                                            ...formData.chargeableQuantities,
-                                                                            [item.value]: value
-                                                                        }
-                                                                    });
+                                        setFormData({
+                                            ...formData,
+                                            chargeableQuantities: {
+                                                ...formData.chargeableQuantities,
+                                                [item.value]: value
+                                            }
+                                        });
 
-                                                                    if (errors.chargeableQuantities?.[item.value]) {
-                                                                        setErrors(prev => ({
-                                                                            ...prev,
-                                                                            chargeableQuantities: {
-                                                                                ...prev.chargeableQuantities,
-                                                                                [item.value]: undefined
-                                                                            }
-                                                                        }));
-                                                                    }
-                                                                }}
-                                                                placeholder="Qty"
-                                                                className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition 
+                                        if (errors.chargeableQuantities?.[item.value]) {
+                                            setErrors(prev => ({
+                                                ...prev,
+                                                chargeableQuantities: {
+                                                    ...prev.chargeableQuantities,
+                                                    [item.value]: undefined
+                                                }
+                                            }));
+                                        }
+                                    }}
+                                    placeholder="Qty"
+                                    className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition 
     ${errors.chargeableQuantities && errors.chargeableQuantities[item.value]
-                                                                        ? 'border-red-500 focus:ring-red-400'
-                                                                        : 'border-gray-300 focus:ring-blue-400'
-                                                                    }`}
-                                                            />
+                                            ? 'border-red-500 focus:ring-red-400'
+                                            : 'border-gray-300 focus:ring-blue-400'
+                                        }`}
+                                />
 
 
-                                                            {errors.chargeableQuantities && errors.chargeableQuantities[item.value] && (
-                                                                <span className="text-red-500 text-sm">{errors.chargeableQuantities[item.value]}</span>
-                                                            )}
-                                                        </div>
-                                                    ))}
+                                {errors.chargeableQuantities && errors.chargeableQuantities[item.value] && (
+                                    <span className="text-red-500 text-sm">{errors.chargeableQuantities[item.value]}</span>
+                                )}
+                            </div>
+                        ))}
 
-                                                {formData.material_supplied_chargeable_items?.some((i) => i.value === "Others") &&
-                                                    formData.chargeableOtherName?.trim() !== "" && (
-                                                        <div className="flex flex-col gap-2">
-                                                            <label className="font-medium text-gray-600">{formData.chargeableOtherName}:</label>
-                                                            <input
-                                                                type="number"
-                                                                min="1"
-                                                                value={formData.chargeableQuantities?.["Others"] || ""}
-                                                                onChange={(e) => {
-                                                                    const value = e.target.value;
+                    {formData.material_supplied_chargeable_items?.some((i) => i.value === "Others") &&
+                        formData.chargeableOtherName?.trim() !== "" && (
+                            <div className="flex flex-col gap-2">
+                                <label className="font-medium text-gray-600">{formData.chargeableOtherName}:</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={formData.chargeableQuantities?.["Others"] || ""}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
 
-                                                                    setFormData({
-                                                                        ...formData,
-                                                                        chargeableQuantities: {
-                                                                            ...formData.chargeableQuantities,
-                                                                            Others: value
-                                                                        }
-                                                                    });
+                                        setFormData({
+                                            ...formData,
+                                            chargeableQuantities: {
+                                                ...formData.chargeableQuantities,
+                                                Others: value
+                                            }
+                                        });
 
-                                                                    if (errors.chargeableQuantities?.["Others"]) {
-                                                                        setErrors(prev => ({
-                                                                            ...prev,
-                                                                            chargeableQuantities: {
-                                                                                ...prev.chargeableQuantities,
-                                                                                Others: undefined
-                                                                            }
-                                                                        }));
-                                                                    }
-                                                                }}
-                                                                placeholder="Qty"
-                                                                className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition 
+                                        if (errors.chargeableQuantities?.["Others"]) {
+                                            setErrors(prev => ({
+                                                ...prev,
+                                                chargeableQuantities: {
+                                                    ...prev.chargeableQuantities,
+                                                    Others: undefined
+                                                }
+                                            }));
+                                        }
+                                    }}
+                                    placeholder="Qty"
+                                    className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition 
     ${errors.chargeableQuantities && errors.chargeableQuantities["Others"]
-                                                                        ? 'border-red-500 focus:ring-red-400'
-                                                                        : 'border-gray-300 focus:ring-blue-400'
-                                                                    }`}
-                                                            />
+                                            ? 'border-red-500 focus:ring-red-400'
+                                            : 'border-gray-300 focus:ring-blue-400'
+                                        }`}
+                                />
 
 
-                                                            {errors.chargeableQuantities && errors.chargeableQuantities["Others"] && (
-                                                                <span className="text-red-500 text-sm">{errors.chargeableQuantities["Others"]}</span>
-                                                            )}
-                                                        </div>
-                                                    )}
+                                {errors.chargeableQuantities && errors.chargeableQuantities["Others"] && (
+                                    <span className="text-red-500 text-sm">{errors.chargeableQuantities["Others"]}</span>
+                                )}
+                            </div>
+                        )}
 
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div className="flex items-center mt-4">
-                                        <input
-                                            type="checkbox"
-                                            name="materialNeedsDelivery"
-                                            checked={formData.materialNeedsDelivery}
-                                            onChange={(e) => setFormData({ ...formData, materialNeedsDelivery: e.target.checked })}
-                                            className="h-4 w-4 text-[#9FC762] focus:ring-[#9FC762] border-gray-300 rounded"
-                                        />
-                                        <label className="ml-2 text-gray-700">
-                                            Material Needs to be delivered? (सामग्री जिसे पहुँचाना है)
-                                        </label>
-                                    </div>
-                                </div>
+                </div>
+            </div>
+        )}
+        <div className="flex items-center mt-4">
+            <input
+                type="checkbox"
+                name="materialNeedsDelivery"
+                checked={formData.materialNeedsDelivery}
+                onChange={(e) => setFormData({ ...formData, materialNeedsDelivery: e.target.checked })}
+                className="h-4 w-4 text-[#9FC762] focus:ring-[#9FC762] border-gray-300 rounded"
+            />
+            <label className="ml-2 text-gray-700">
+                Material Needs to be delivered? (सामग्री जिसे पहुँचाना है)
+            </label>
+        </div>
+    </div>
 
                                 {/* Photo of the Setup */}
                                 <div className="flex-1">
@@ -1859,7 +1804,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             {/* Materials Supplied */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    Materials Delivered (डिलीवर किए जाने वाले सामान) <span className="text-red-500">*</span>
+                                    Materials Deliver (डिलीवर किए जाने वाले सामान) <span className="text-red-500">*</span>
                                 </label>
                                 <Select
                                     isMulti
@@ -2067,7 +2012,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             {/* Chargeable Items */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    Chargeable Items Supplied (जो वस्तुएँ पैसे के लिए दी गई हैं)
+                                    Chargeable Items Deliver (जो वस्तुएँ पैसे के लिए दी गई हैं)
                                 </label>
                                 <Select
                                     isMulti
