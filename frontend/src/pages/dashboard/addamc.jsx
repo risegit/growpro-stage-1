@@ -690,7 +690,7 @@ export default function AMCForm() {
               name="validityFrom"
               value={formData.validityFrom}
               onChange={handleInputChange}
-              min={today}
+              // min={today}
               className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityFrom
                 ? "border-red-500 focus:ring-red-400"
                 : "border-gray-300 focus:ring-blue-400"

@@ -932,7 +932,7 @@ const handleStep4MaterialsSelection = (selected) => {
     const validateStep4 = () => {
         let newErrors = {};
 
-        // Plants validation
+        // Plants validation (unchanged)
         if (!formData.plants || formData.plants.length === 0) {
             newErrors.plants = "Select at least one plant";
         }
@@ -944,7 +944,7 @@ const handleStep4MaterialsSelection = (selected) => {
             newErrors.materialsSuppliedPlantData = "Please specify the other material";
         }
 
-        // Plants Quantity validation
+        // Plants Quantity validation (unchanged)
         if (formData.plants && formData.plants.length > 0) {
             const quantityErrors = {};
             let hasQuantityErrors = false;
@@ -970,7 +970,7 @@ const handleStep4MaterialsSelection = (selected) => {
             }
         }
 
-        // Nutrients data validation
+        // Nutrients data validation (unchanged)
         formData.nutrientsData.forEach((field, index) => {
             const rowErrors = {};
 
@@ -992,28 +992,15 @@ const handleStep4MaterialsSelection = (selected) => {
             }
         });
 
-        // Neem oil validation
+        // Neem oil validation (unchanged)
         if (!formData.material_supplied_neemoil) {
             newErrors.material_supplied_neemoil = "Required";
         }
 
-        // Chargeable items validation
-        if (
-            !formData.material_supplied_chargeable_items ||
-            !Array.isArray(formData.material_supplied_chargeable_items) ||
-            formData.material_supplied_chargeable_items.length === 0
-        ) {
-            newErrors.material_supplied_chargeable_items = "Select chargeable items supplied";
-        }
-
-        if (
-            formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") &&
-            !formData.materialschargeableItemsOptionsother?.trim()
-        ) {
-            newErrors.materialschargeableItemsOptionsother = "Please specify other items";
-        }
-
-        // Chargeable items quantity validation
+        // Chargeable items validation - REMOVED mandatory check
+        // Only validate quantities if items are selected
+        
+        // Chargeable items quantity validation - only if items are selected
         if (formData.material_supplied_chargeable_items && formData.material_supplied_chargeable_items.length > 0) {
             const chargeableQuantityErrors = {};
             let hasChargeableQuantityErrors = false;
@@ -1030,9 +1017,17 @@ const handleStep4MaterialsSelection = (selected) => {
             if (hasChargeableQuantityErrors) {
                 newErrors.chargeableQuantities = chargeableQuantityErrors;
             }
+
+            // Validate "Others" specification if "Others" is selected
+            if (
+                formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") &&
+                !formData.materialschargeableItemsOptionsother?.trim()
+            ) {
+                newErrors.materialschargeableItemsOptionsother = "Please specify other items";
+            }
         }
 
-        // Setup photo validation
+        // Setup photo validation (unchanged)
         if (!formData.setupPhotos || formData.setupPhotos.length === 0) {
             newErrors.setupPhoto = "At least one photo of the setup is required.";
         }
@@ -1040,7 +1035,6 @@ const handleStep4MaterialsSelection = (selected) => {
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
-
     const validateStep5 = () => {
         let newErrors = {};
 
@@ -1527,24 +1521,6 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            {/* Crop Names */}
-                            <div className="flex flex-col">
-                                <label className="mb-1 font-medium text-gray-700">
-                                    State which crops (कौन सी फसल बताएं?) <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="cropNames"
-                                    value={formData.cropNames}
-                                    onChange={handleChange}
-                                    placeholder="Enter crop names (e.g., Lettuce, Tomato, Basil)"
-                                    className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.cropNames ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                                />
-                                {errors.cropNames && (
-                                    <span className="text-red-500 text-sm mt-1">{errors.cropNames}</span>
-                                )}
-                            </div>
-
                             {/* Plant Problems */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
@@ -1563,6 +1539,24 @@ const handleStep4MaterialsSelection = (selected) => {
                                 />
                                 {errors.plantProblems && (
                                     <span className="text-red-500 text-sm mt-1">{errors.plantProblems}</span>
+                                )}
+                            </div>
+
+                            {/* Crop Names */}
+                            <div className="flex flex-col">
+                                <label className="mb-1 font-medium text-gray-700">
+                                    State which crops (कौन सी फसल बताएं?) <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="cropNames"
+                                    value={formData.cropNames}
+                                    onChange={handleChange}
+                                    placeholder="Enter crop names (e.g., Lettuce, Tomato, Basil)"
+                                    className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.cropNames ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                                />
+                                {errors.cropNames && (
+                                    <span className="text-red-500 text-sm mt-1">{errors.cropNames}</span>
                                 )}
                             </div>
 
@@ -1937,7 +1931,8 @@ const handleStep4MaterialsSelection = (selected) => {
                                 {/* Chargeable Items Supplied */}
                                 <div className="flex-1">
                                     <label className="mb-1 font-medium text-gray-700">
-                                        Chargeable Items Supplied (जो वस्तुएँ पैसे के लिए दी गई हैं) <span className="text-red-500">*</span>
+                                        Chargeable Items Supplied (जो वस्तुएँ पैसे के लिए दी गई हैं)
+                                        {/* REMOVED required asterisk */}
                                     </label>
                                     <Select
                                         isMulti
@@ -1950,12 +1945,9 @@ const handleStep4MaterialsSelection = (selected) => {
                                             });
                                         }}
                                         classNamePrefix="react-select"
-                                        placeholder="Select items..."
+                                        placeholder="Select items (optional)..."
                                         styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
                                     />
-                                    {errors.material_supplied_chargeable_items && (
-                                        <span className="text-red-500 text-sm mt-1">{errors.material_supplied_chargeable_items}</span>
-                                    )}
 
                                     {/* Input for "Other" item name */}
                                     {formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") && (
@@ -1966,7 +1958,9 @@ const handleStep4MaterialsSelection = (selected) => {
                                                 value={formData.materialschargeableItemsOptionsother || ""}
                                                 onChange={handleChange}
                                                 placeholder="Specify other item"
-                                                className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialschargeableItemsOptionsother ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                                                className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialschargeableItemsOptionsother
+                                                    ? "border-red-500 focus:ring-red-400"
+                                                    : "border-gray-300 focus:ring-blue-400"
                                                     }`}
                                             />
                                             {errors.materialschargeableItemsOptionsother && (
@@ -2101,7 +2095,7 @@ const handleStep4MaterialsSelection = (selected) => {
                             {/* Materials Supplied */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    Materials Delivered (डिलीवर किए जाने वाले सामान) <span className="text-red-500">*</span>
+                                    Materials Deliver (डिलीवर किए जाने वाले सामान) <span className="text-red-500">*</span>
                                 </label>
                                 <Select
                                     isMulti
@@ -2307,7 +2301,7 @@ const handleStep4MaterialsSelection = (selected) => {
                             {/* Chargeable Items */}
                             <div className="flex flex-col mt-4">
                                 <label className="mb-2 font-medium text-gray-700">
-                                    Chargeable Items Supplied (जो वस्तुएँ पैसे के लिए दी गई हैं)
+                                    Chargeable Items Deliver (जो वस्तुएँ पैसे के लिए दी गई हैं)
                                 </label>
 
                                 <Select

@@ -114,7 +114,7 @@ const generatePDF = (visitData) => {
   /* -------------------------------------------------------
      🔹 HEADER + LOGO
   --------------------------------------------------------*/
-  const logoPath = '/img/growprologo.jpeg'; 
+  const logoPath = `${import.meta.env.BASE_URL}img/growprologo.jpeg`; 
   doc.addImage(logoPath, 'JPEG', 15, 10, 30, 30);
 
   const titleX = 50 + (160 / 2);
