@@ -190,8 +190,10 @@ const generatePDF = (visitData) => {
     { label:"Validity From:", value: formatDate(visitData.validity_from) },
     { label:"Validity Upto:", value: formatDate(visitData.validity_upto) },
     { label:"Visits per Month:", value: visitData.visits_per_month },
-    { label:"Total Visit Completed:", value: visitData.total_visits_done },
-    { label:"Total Visit Pending:", value: visitData.pending_visits },
+    { label:"This Month Visit Completed:", value: visitData.current_month_visits_done },
+    { label:"This Month Remaining Visits Pending:", value: visitData.remaining_visits_current_month },
+    { label:"Total Visits Completed:", value: visitData.total_visits_done },
+    { label:"Total Allowed Visit:", value: visitData.total_allowed_visits }
   ];
 
   amcDetails.forEach(item=>{
@@ -201,7 +203,7 @@ const generatePDF = (visitData) => {
 
     doc.setFont(undefined,"normal");
     doc.setTextColor(0,0,0);
-    doc.text(item.value?.toString(), 70, yPos);
+    doc.text(item.value?.toString(), 100, yPos);
 
     yPos += 8;
   });
@@ -438,12 +440,12 @@ for (let i = 1; i <= pageCount; i++) {
                         </div>
                       </th>
                       <th
-                        className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
-                        onClick={() => handleSort('pending_visits')}
+                        className="w-[16%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                        onClick={() => handleSort('remaining_visits_current_month')}
                       >
                         <div className="flex items-center">
-                          Visit Pending
-                          <SortArrow columnKey="pending_visits" />
+                          Visit Pending For This Month
+                          <SortArrow columnKey="remaining_visits_current_month" />
                         </div>
                       </th>
                       {/* Show Days Left column only for admin */}
@@ -461,7 +463,7 @@ for (let i = 1; i <= pageCount; i++) {
                       <th className="w-[11%] py-4 px-4 font-medium text-gray-700 text-left">
                         AMC Status
                       </th>
-                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">
+                      <th className="w-[5%] py-4 px-4 font-medium text-gray-700 text-left">
                         Report
                       </th>
                       {userRole !== "technician" && (
@@ -505,7 +507,7 @@ for (let i = 1; i <= pageCount; i++) {
 
                           {/* Pending Visits */}
                           <td className="py-4 px-4 text-gray-700 text-left truncate">
-                            {user.pending_visits}
+                            {user.remaining_visits_current_month}
                           </td>
 
                           {/* Days Left - Only show for admin */}
