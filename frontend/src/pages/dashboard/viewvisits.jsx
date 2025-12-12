@@ -48,7 +48,7 @@ export default function UserTable() {
 
   // Generate PDF Report
   // Generate PDF Report
-  const generatePDF = async (visitData, fullApiData) => {
+const generatePDF = async (visitData, fullApiData) => {
     if (!window.jspdf) {
       toast.error("PDF library still loading — try again in a moment.");
       return;
@@ -183,11 +183,83 @@ export default function UserTable() {
       yPos += 10;
     };
 
+    // Helper function to load image
+    const loadImageToDataURL = async (imageUrl) => {
+      try {
+        console.log('Attempting to load image from:', imageUrl);
+        
+        const response = await fetch(imageUrl, {
+          method: 'GET',
+          cache: 'no-cache',
+          headers: {
+            'Accept': 'image/*'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const blob = await response.blob();
+        
+        if (blob.size === 0) {
+          throw new Error('Empty image blob');
+        }
+        
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error('Failed to read blob as DataURL'));
+          reader.readAsDataURL(blob);
+        });
+        
+        console.log('Successfully loaded image');
+        return dataUrl;
+      } catch (error) {
+        console.error('Error loading image:', error);
+        throw error;
+      }
+    };
+
+    // Helper to get correct image URL
+    const getImageUrl = (imageFileName) => {
+      if (!imageFileName) return null;
+      
+      // If it's already a full URL
+      if (imageFileName.startsWith('http://') || imageFileName.startsWith('https://')) {
+        return imageFileName;
+      }
+      
+      // If it's a data URL
+      if (imageFileName.startsWith('data:')) {
+        return imageFileName;
+      }
+      
+      const cleanFileName = encodeURIComponent(imageFileName.split('?')[0]);
+      
+      // IMPORTANT: Use relative path that will be proxied by Vite
+      if (import.meta.env.DEV) {
+        // In development: Use /uploads/site-visit/ which will proxy to backend
+        const imageUrl = `/uploads/site-visit/${cleanFileName}`;
+        console.log('DEV - Image URL:', imageUrl);
+        return imageUrl;
+      } else {
+        // In production: Use full URL
+        const imageUrl = `http://localhost/growpro-stage-1/backend/uploads/site-visit/${cleanFileName}`;
+        console.log('PROD - Image URL:', imageUrl);
+        return imageUrl;
+      }
+};
+
     // ========== HEADER ==========
     // Logo
     try {
-      const logoPath = `${import.meta.env.BASE_URL || ""}img/growprologo.jpeg`;
-      const resp = await fetch(logoPath, { cache: "no-store" });
+      // Use the same logic for logo
+      // const logoFileName = `${import.meta.env.BASE_URL || ""}img/growprologo.jpeg`;
+      const logoUrl = `${import.meta.env.BASE_URL || ""}img/growprologo.jpeg`;
+      console.log('Loading logo from:', logoUrl);
+      
+      const resp = await fetch(logoUrl, { cache: "no-store" });
       if (resp.ok) {
         const blob = await resp.blob();
         const dataUrl = await new Promise((res) => {
@@ -195,11 +267,15 @@ export default function UserTable() {
           reader.onloadend = () => res(reader.result);
           reader.readAsDataURL(blob);
         });
+        
         try {
           doc.addImage(dataUrl, "JPEG", 15, 10, 30, 30);
+          console.log('✓ Logo added successfully', logoFileName);
         } catch (err) {
           console.warn("Could not add logo:", err);
         }
+      } else {
+        console.warn("Logo load failed with status:", resp.status);
       }
     } catch (err) {
       console.warn("Logo load failed:", err);
@@ -210,7 +286,7 @@ export default function UserTable() {
     doc.setFontSize(24);
     doc.setFont(undefined, "bold");
     doc.setTextColor(0, 0, 0);
-    doc.text("Site Visit Report", titleX, 20, { align: "center" });
+    doc.text("Site Inspection Report", titleX, 20, { align: "center" });
 
     doc.setFontSize(10);
     doc.setFont(undefined, "normal");
@@ -227,8 +303,8 @@ export default function UserTable() {
     doc.setLineWidth(2);
     doc.line(0, 45, pageWidth, 45);
     yPos = 60
+
     // ========== VISIT INFORMATION ==========
-    // This is CORRECTLY placed AFTER the header (outside the header)
     drawSectionHeader("Visit Information");
     drawKeyValuePairs([
       { label: "Visit ID", value: visitData.site_visit_id || visitData.visit_id || "-" },
@@ -239,7 +315,7 @@ export default function UserTable() {
     drawSectionHeader("Customer Information");
     drawKeyValuePairs([
       { label: "Customer Name", value: visitData.customer_name || visitData.name || "-" },
-      { label: "Customer ID", value: visitData.customer_id || "-" },
+   
       { label: "Phone Number", value: visitData.phone || "-" },
     ]);
 
@@ -247,10 +323,16 @@ export default function UserTable() {
     drawSectionHeader("Technician Information");
     drawKeyValuePairs([
       { label: "Technician Name", value: visitData.technician_name || visitData.tech_name || "-" },
-      { label: "Technician ID", value: visitData.technician_id || "-" },
+
       { label: "Visited By Code", value: visitData.visited_by || "-" },
     ]);
 
+    yPos += 5;
+    doc.setFontSize(12);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(59, 130, 246);
+    doc.text("Dear Customer, the following are our observations from our visit:", 20, yPos);
+    
     // ========== SITE VISIT DETAILS ==========
     drawSectionHeader("Site Visit Details");
     const siteVisitList = Array.isArray(fullApiData.site_visit) ?
@@ -293,7 +375,6 @@ export default function UserTable() {
         [
           { key: "no", header: "#", width: 10 },
           { key: "problem", header: "Problem Name", width: 80 },
-          // { key: "details", header: "Details", width: 90 }
         ]
       );
     } else {
@@ -320,7 +401,6 @@ export default function UserTable() {
         [
           { key: "no", header: "#", width: 10 },
           { key: "pest", header: "Pest Name", width: 80 },
-          // { key: "treatment", header: "Treatment", width: 90 }
         ]
       );
     } else {
@@ -348,7 +428,7 @@ export default function UserTable() {
           { key: "no", header: "#", width: 10 },
           { key: "plant_name", header: "Plant Name", width: 70 },
           { key: "quantity", header: "Quantity", width: 40 },
-          { key: "notes", header: "Notes", width: 60 }
+     
         ]
       );
 
@@ -423,7 +503,7 @@ export default function UserTable() {
           { key: "nutrient_type", header: "Type", width: 50 },
           { key: "tank_capacity", header: "Tank Capacity", width: 40 },
           { key: "topups", header: "Topups", width: 40 },
-          { key: "amount_used", header: "Amount Used", width: 40 }
+          // { key: "amount_used", header: "Amount Used", width: 40 }
         ]
       );
     } else {
@@ -453,7 +533,7 @@ export default function UserTable() {
           { key: "nutrient_type", header: "Type", width: 50 },
           { key: "tank_capacity", header: "Tank Capacity", width: 40 },
           { key: "topups", header: "Topups", width: 40 },
-          { key: "urgency", header: "Urgency", width: 40 }
+
         ]
       );
     } else {
@@ -519,206 +599,136 @@ export default function UserTable() {
       yPos += 15;
     }
 
+    
     // ========== PHOTOS ==========
-   // ========== PHOTOS ==========
-drawSectionHeader("Setup Photos");
-const photos = Array.isArray(fullApiData.suppliedPhotoSetup) ? 
-  fullApiData.suppliedPhotoSetup.filter(p => 
-    String(p.visit_id) === String(visitData.site_visit_id || visitData.visit_id || visitData.id)
-  ) : [];
+    drawSectionHeader("Setup Photos");
+    const photos = Array.isArray(fullApiData.suppliedPhotoSetup) ? 
+      fullApiData.suppliedPhotoSetup.filter(p => 
+        String(p.visit_id) === String(visitData.site_visit_id || visitData.visit_id || visitData.id)
+      ) : [];
 
-if (photos.length > 0) {
-  // First show a summary table
-  drawTable(
-    photos.map((p, idx) => ({
-      no: idx + 1,
-      filename: p.image_url || p.filename || p.preview || "photo.jpg",
-      timestamp: p.created_at || new Date().toLocaleDateString()
-    })),
-    [
-      { key: "no", header: "#", width: 10 },
-      { key: "filename", header: "File Name", width: 100 },
-      { key: "timestamp", header: "Date Taken", width: 60 }
-    ]
-  );
-  
-  yPos += 10;
-  
-  // Now try to load and display actual images
-  doc.setFontSize(12);
-  doc.setFont(undefined, "bold");
-  doc.setTextColor(59, 130, 246);
-  doc.text("Image Previews:", margin, yPos);
-  yPos += 15;
-  
-  for (let i = 0; i < photos.length; i++) {
-    const photo = photos[i];
-    const imageFileName = photo.image_url || photo.filename || photo.preview;
-    
-    if (!imageFileName) {
-      continue;
-    }
-    
-    ensureSpace(150); // Reserve space for image
-    
-    // Show photo info
-    doc.setFontSize(10);
-    doc.setFont(undefined, "bold");
-    doc.setTextColor(244, 166, 76);
-    doc.text(`Photo ${i + 1}:`, margin, yPos);
-    
-    doc.setFont(undefined, "normal");
-    doc.setTextColor(0, 0, 0);
-    doc.text(imageFileName, margin + 25, yPos);
-    
-    yPos += 6;
-    
-    // Try to load the image - FIRST check if we have a valid API URL
-    console.log("VITE_API_URL:", import.meta.env.VITE_API_URL);
-    console.log("Image filename:", imageFileName);
-    
-    let imageUrl;
-    
-    // Check different possible formats for the image URL
-    if (imageFileName.startsWith('http://') || imageFileName.startsWith('https://')) {
-      // It's already a full URL
-      imageUrl = imageFileName;
-    } else if (imageFileName.startsWith('/')) {
-      // It's a relative path
-      imageUrl = imageFileName;
-    } else {
-      // Build the URL using VITE_API_URL
-      const baseUrl = import.meta.env.VITE_API_URL;
-      if (baseUrl) {
-        // Ensure baseUrl ends with slash
-        const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
-        imageUrl = `${normalizedBaseUrl}uploads/site-visit/${imageFileName}`;
-      } else {
-        // Fallback to relative path
-        imageUrl = `/uploads/site-visit/${imageFileName}`;
-      }
-    }
-    
-    console.log("Trying to load image from:", imageUrl);
-    
-    try {
-      // Create a timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Image load timeout')), 8000);
-      });
+    if (photos.length > 0) {
+      // Calculate space needed (more dynamic)
+      const estimatedSpace = photos.length * 30 + 30; // More space per image
+      ensureSpace(estimatedSpace);
       
-      // Try to load the image
-      const fetchPromise = fetch(imageUrl, {
-        mode: 'cors',
-        cache: 'no-cache',
-        headers: {
-          'Accept': 'image/*'
-        }
-      });
+      // Header
+      doc.setFontSize(12);
+      doc.setFont(undefined, "bold");
+      doc.setTextColor(59, 130, 246);
+      doc.text(`Photos (${photos.length}):`, margin, yPos);
+      yPos += 15;
       
-      // Race between fetch and timeout
-      const resp = await Promise.race([fetchPromise, timeoutPromise]);
+      // Group photos for better layout
+      const photosPerRow = 2; // Adjust based on your layout
+      let currentRow = [];
       
-      if (resp.ok) {
-        const blob = await resp.blob();
+      for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i];
+        const imageFileName = photo.image_url || photo.filename || photo.preview;
         
-        // Convert blob to data URL
-        const dataUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
+        if (!imageFileName) continue;
         
-        // Create image element to get dimensions
-        const img = new Image();
-        await new Promise((resolve, reject) => {
-          img.onload = resolve;
-          img.onerror = reject;
-          img.src = dataUrl;
-        });
+        // Check if we need a new page
+        ensureSpace(60); // Space for one image row
         
-        // Calculate dimensions to fit on page
-        const maxWidth = pageWidth - (margin * 2);
-        const maxHeight = 100;
+        const imageUrl = getImageUrl(imageFileName);
         
-        let imgWidth = img.width;
-        let imgHeight = img.height;
-        const scale = Math.min(maxWidth / imgWidth, maxHeight / imgHeight, 1);
-        
-        imgWidth = Math.round(imgWidth * scale);
-        imgHeight = Math.round(imgHeight * scale);
-        
-        ensureSpace(imgHeight + 10);
-        
-        // Add image to PDF
         try {
-          // Try JPEG first, then PNG
-          const format = blob.type.includes('png') ? 'PNG' : 'JPEG';
-          doc.addImage(dataUrl, format, margin, yPos, imgWidth, imgHeight);
+          // Load image
+          const dataUrl = await loadImageToDataURL(imageUrl);
+          const img = new Image();
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = dataUrl;
+          });
           
-          console.log(`Successfully added image ${i + 1} to PDF`);
-          yPos += imgHeight + 10;
-        } catch (addImageError) {
-          console.warn("Failed to add image to PDF:", addImageError);
-          // Show placeholder
-          showImagePlaceholder();
+          // Calculate position in row
+          const colIndex = currentRow.length;
+          const availableWidth = pageWidth - (2 * margin);
+          const imgWidth = (availableWidth / photosPerRow) - 10; // 10px gap
+          const imgHeight = 40; // Fixed height for consistency
+          
+          const xPos = margin + (colIndex * (imgWidth + 10));
+          
+          // Add image with proper scaling
+          let format = dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+          
+          // Scale image to fit while maintaining aspect ratio
+          const aspectRatio = img.width / img.height;
+          let displayWidth = imgWidth;
+          let displayHeight = imgHeight;
+          
+          if (aspectRatio > 1) {
+            // Landscape
+            displayHeight = imgWidth / aspectRatio;
+          } else {
+            // Portrait
+            displayWidth = imgHeight * aspectRatio;
+          }
+          
+          // Center image in its cell
+          const xOffset = (imgWidth - displayWidth) / 2;
+          const yOffset = (imgHeight - displayHeight) / 2;
+          
+          doc.addImage(
+            dataUrl, 
+            format, 
+            xPos + xOffset, 
+            yPos + yOffset, 
+            displayWidth, 
+            displayHeight
+          );
+          
+          // Add filename below image
+          doc.setFontSize(8);
+          doc.setFont(undefined, "normal");
+          doc.setTextColor(100, 100, 100);
+          
+          // Truncate filename if too long
+          const maxChars = Math.floor(imgWidth / 3); 
+          const displayName = imageFileName.length > maxChars ? 
+            imageFileName.substring(0, maxChars - 3) + "..." : imageFileName;
+          
+          // doc.text(displayName, xPos, yPos + imgHeight + 5, {
+          //   maxWidth: imgWidth
+          // });
+          
+          currentRow.push(photo);
+          
+          // Start new row if needed
+          if (currentRow.length >= photosPerRow || i === photos.length - 1) {
+            yPos += imgHeight + 15; // Image height + filename space
+            currentRow = [];
+            
+            // Add subtle separator between rows (optional)
+            if (i < photos.length - 1) {
+              ensureSpace(10);
+              doc.setDrawColor(240, 240, 240);
+              doc.setLineWidth(0.5);
+              doc.line(margin, yPos - 5, pageWidth - margin, yPos - 5);
+            }
+          }
+          
+        } catch (error) {
+          console.error(`Failed to load image ${imageFileName}:`, error);
+          
+          // Fallback: show filename in text
+          doc.setFontSize(9);
+          doc.setFont(undefined, "normal");
+          doc.setTextColor(150, 150, 150);
+          doc.text(`[Image: ${imageFileName}]`, margin, yPos);
+          yPos += 15;
         }
-      } else {
-        console.warn(`HTTP error ${resp.status} loading image`);
-        showImagePlaceholder();
       }
-    } catch (error) {
-      console.error("Error loading image:", error);
-      showImagePlaceholder();
-    }
-    
-    // Helper function to show placeholder
-    function showImagePlaceholder() {
-      ensureSpace(40);
       
-      // Draw a placeholder box
-      doc.setDrawColor(200, 200, 200);
-      doc.setFillColor(245, 245, 245);
-      doc.rect(margin, yPos, 80, 30, 'F');
-      doc.rect(margin, yPos, 80, 30);
-      
-      // Draw a camera icon
-      doc.setFontSize(20);
-      doc.setTextColor(180, 180, 180);
-      doc.text("📷", margin + 35, yPos + 18);
-      
-      // Add text
-      doc.setFontSize(8);
-      doc.setTextColor(120, 120, 120);
-      doc.text("Preview", margin + 30, yPos + 26);
-      doc.text("Not Available", margin + 24, yPos + 32);
-      
-      yPos += 40;
-    }
-    
-    // Reset text color
-    doc.setTextColor(0, 0, 0);
-    
-    // Add separator between photos (except last)
-    if (i < photos.length - 1) {
-      doc.setDrawColor(200, 200, 200);
-      doc.setLineWidth(0.2);
-      doc.line(margin, yPos, pageWidth - margin, yPos);
       yPos += 10;
+    } else {
+      ensureSpace(20);
+      doc.text("No setup photos available", margin, yPos);
+      yPos += 15;
     }
-    
-    // Page break if needed
-    if (yPos > pageHeight - 100) {
-      doc.addPage();
-      yPos = 20;
-    }
-  }
-} else {
-  ensureSpace(20);
-  doc.text("No setup photos available", margin, yPos);
-  yPos += 15;
-}
 
     // ========== OVERALL SUMMARY ==========
     ensureSpace(40);
@@ -754,10 +764,26 @@ if (photos.length > 0) {
       yPos += 8;
     });
 
-    yPos += 10;
+    yPos += 15;
     doc.setFontSize(12);
     doc.setFont(undefined, "bold");
-    doc.text("Thank you for choosing GrowPro Solutions!", margin, yPos);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Do let us know if you'd like clarity on any of our observations/suggestions.", 20, yPos);
+
+    yPos += 15;
+    doc.text("Happy Growing!", 20, yPos);
+    yPos += 8;
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(66, 66, 66);
+    doc.text("Email: sales@growpro.co.in", 20, yPos);
+    doc.link(20, yPos - 5, 200, 10, { url: "mailto:sales@growpro.co.in" });
+    yPos += 6;
+    doc.text("Phone: 8591753001", 20, yPos);
+    doc.link(20, yPos - 5, 200, 10, { url: "tel:+918591753001" });
+    yPos += 6;
+    doc.text("GrowPro Technology", 20, yPos);
+    doc.link(20, yPos - 5, 200, 10, { url: "https://growpro.com/" });
 
     yPos += 15;
     doc.setFontSize(10);
@@ -777,50 +803,59 @@ if (photos.length > 0) {
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
 
-      // Footer background
+      // FOOTER HEIGHT
+      const footerHeight = 22;
+      const footerY = pageHeight - footerHeight;
+
+      // White background
       doc.setFillColor(255, 255, 255);
-      doc.rect(0, pageHeight - 40, pageWidth, 40, 'F');
+      doc.rect(0, footerY, pageWidth, footerHeight, "F");
 
-      // Top border line with orange color from second code
+      // Orange line (slightly lower)
       doc.setDrawColor(225, 122, 0);
-      doc.setLineWidth(1.5);
-      doc.line(0, pageHeight - 40, pageWidth, pageHeight - 40);
+      doc.setLineWidth(1.2);
+      doc.line(0, footerY + 2, pageWidth, footerY + 2);
 
-      // Contact info
-      doc.setFontSize(12);
+      // TEXT Y POSITION (centered)
+      const row1Y = footerY + 10;  // Email row
+      const row2Y = footerY + 17;  // Phone + Pagination row
 
-      // Email label in orange
+      // ------------------------------
+      // LEFT SIDE (Email + Phone)
+      // ------------------------------
+      doc.setFontSize(10);
+
+      // Email
       doc.setTextColor(225, 122, 0);
       doc.setFont(undefined, "bold");
-      doc.text("Email:", 25, pageHeight - 30);
+      doc.text("Email:", 20, row1Y);
 
-      // Email value in black
-      doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
       doc.setFont(undefined, "normal");
-      doc.text("sales@growpro.co.in", 45, pageHeight - 30);
+      doc.text("sales@growpro.co.in", 50, row1Y);
 
-      // Phone label in orange
+      // Phone
       doc.setTextColor(225, 122, 0);
       doc.setFont(undefined, "bold");
-      doc.text("Phone:", 25, pageHeight - 20);
+      doc.text("Phone:", 20, row2Y);
 
-      // Phone value in black
       doc.setTextColor(0, 0, 0);
       doc.setFont(undefined, "normal");
-      doc.text("+91 93218 87125", 45, pageHeight - 20);
+      doc.text("+91 93218 87125", 50, row2Y);
 
-      // Right aligned info
-      doc.setFontSize(8);
+      // ------------------------------
+      // RIGHT SIDE (Company + Page)
+      // ------------------------------
+      const rightX = pageWidth - 20;
+
+      doc.setFontSize(9);
       doc.setTextColor(80, 80, 80);
 
-      // Company info
       doc.setFont(undefined, "bold");
-      doc.text("GrowPro Solutions", pageWidth - 25, pageHeight - 30, { align: "right" });
+      doc.text("GrowPro Solutions", rightX, row1Y, { align: "right" });
 
       doc.setFont(undefined, "normal");
-      doc.text("Site Visit Report", pageWidth - 25, pageHeight - 23, { align: "right" });
-      doc.text("Page " + i + " of " + pageCount, pageWidth - 25, pageHeight - 16, { align: "right" });
+      doc.text(`Page ${i} of ${pageCount}`, rightX, row2Y, { align: "right" });
     }
 
     // ========== SAVE PDF ==========
@@ -828,9 +863,8 @@ if (photos.length > 0) {
       .replace(/\s+/g, "_")
       .replace(/[^\w-_]/g, "");
 
-    doc.save(`Site_Visit_Report_${visitData.site_visit_id || visitData.visit_id || "visit"}_${safeName}.pdf`);
+    doc.save(`${safeName}_Site_Visit_Report_${formatDate(visitData.created_date)}.pdf`);
   };
-
 
   // Fetch data from backend API
   useEffect(() => {
