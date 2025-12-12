@@ -212,58 +212,67 @@ const generatePDF = (visitData) => {
   /* -------------------------------------------------------
      🔹 FOOTER
   --------------------------------------------------------*/
-const pageCount = doc.getNumberOfPages();
-for (let i = 1; i <= pageCount; i++) {
-  doc.setPage(i);
-  
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  
-  // Footer background with your specified color (160, 199, 99)
- doc.setFillColor(255,255,255); 
-  doc.rect(0, pageHeight - 40, pageWidth, 40, 'F');
-  
-  // Top border line with full width in your specified color (225, 122, 0)
-  doc.setDrawColor(225, 122, 0);
-  doc.setLineWidth(1.5);
-  doc.line(0, pageHeight - 40, pageWidth, pageHeight - 40);
-  
-  // Contact info
-  doc.setFontSize(12);
-  
-  // Email label in your specified color (225, 122, 0)
-  doc.setTextColor(225, 122, 0);
-  doc.setFont(undefined, "bold");
-  doc.text("Email:", 25, pageHeight - 30);
-  
-  // Email value in black
-  doc.setFontSize(12)
-  doc.setTextColor(0, 0, 0);
-  doc.setFont(undefined, "normal");
-  doc.text("sales@growpro.co.in", 45, pageHeight - 30);
-  
-  // Phone label in your specified color (225, 122, 0)
-  doc.setTextColor(225, 122, 0);
-  doc.setFont(undefined, "bold");
-  doc.text("Phone:", 25, pageHeight - 20);
-  
-  // Phone value in black
-  doc.setTextColor(0, 0, 0);
-  doc.setFont(undefined, "normal");
-  doc.text("+91 93218 87125", 45, pageHeight - 20);
-  
-  // Right aligned copyright and page info
-  doc.setFontSize(8);
-  doc.setTextColor(80, 80, 80); // Dark gray for better contrast on light green
-  
-  // Company info
-  doc.setFont(undefined, "bold");
-  doc.text("GrowPro Solutions", pageWidth - 25, pageHeight - 30, { align: "right" });
-  
-  doc.setFont(undefined, "normal");
-  doc.text("Material Delivery Report", pageWidth - 25, pageHeight - 23, { align: "right" });
-  doc.text("Page " + i + " of " + pageCount, pageWidth - 25, pageHeight - 16, { align: "right" });
-}
+  const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      // FOOTER HEIGHT
+      const footerHeight = 22;
+      const footerY = pageHeight - footerHeight;
+
+      // White background
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, footerY, pageWidth, footerHeight, "F");
+
+      // Orange line (slightly lower)
+      doc.setDrawColor(225, 122, 0);
+      doc.setLineWidth(1.2);
+      doc.line(0, footerY + 2, pageWidth, footerY + 2);
+
+      // TEXT Y POSITION (centered)
+      const row1Y = footerY + 10;  // Email row
+      const row2Y = footerY + 17;  // Phone + Pagination row
+
+      // ------------------------------
+      // LEFT SIDE (Email + Phone)
+      // ------------------------------
+      doc.setFontSize(10);
+
+      // Email
+      doc.setTextColor(225, 122, 0);
+      doc.setFont(undefined, "bold");
+      doc.text("Email:", 20, row1Y);
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFont(undefined, "normal");
+      doc.text("sales@growpro.co.in", 50, row1Y);
+
+      // Phone
+      doc.setTextColor(225, 122, 0);
+      doc.setFont(undefined, "bold");
+      doc.text("Phone:", 20, row2Y);
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFont(undefined, "normal");
+      doc.text("+91 93218 87125", 50, row2Y);
+
+      // ------------------------------
+      // RIGHT SIDE (Company + Page)
+      // ------------------------------
+      const rightX = pageWidth - 20;
+
+      doc.setFontSize(9);
+      doc.setTextColor(80, 80, 80);
+
+      doc.setFont(undefined, "bold");
+      doc.text("GrowPro Solutions", rightX, row1Y, { align: "right" });
+
+      doc.setFont(undefined, "normal");
+      doc.text(`Page ${i} of ${pageCount}`, rightX, row2Y, { align: "right" });
+    }
   /* -------------------------------------------------------
      🔥 FINAL PDF DOWNLOAD
   --------------------------------------------------------*/
