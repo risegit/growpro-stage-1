@@ -270,7 +270,7 @@ const generatePDF = async (visitData, fullApiData) => {
         
         try {
           doc.addImage(dataUrl, "JPEG", 15, 10, 30, 30);
-          console.log('✓ Logo added successfully', logoFileName);
+          // console.log('✓ Logo added successfully', logoFileName);
         } catch (err) {
           console.warn("Could not add logo:", err);
         }

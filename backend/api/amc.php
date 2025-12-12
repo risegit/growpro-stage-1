@@ -30,7 +30,7 @@ switch ($method) {
             $grower_detail = $conn->query("SELECT amc_growers.grower_id,growers.system_type,growers.system_type_other,amc_growers.grower_qty,growers.grower_qty max_qty FROM amc_growers INNER JOIN growers ON amc_growers.grower_id=growers.id where amc_growers.amc_id='$amcId'");
             $grower_data = [];
             while ($row = $grower_detail->fetch_assoc()) {
-                $grower_data[] = $row;
+                $grower_data[] = $row; 
             }
 
             // $grower_options = $conn->query("SELECT growers.id,growers.system_type FROM users INNER JOIN growers ON users.id=growers.customer_id where growers.customer_id='$customerId'");
