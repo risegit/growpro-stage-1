@@ -620,67 +620,101 @@ const generatePDF = (user) => {
   /* -------------------------------------------------------
      🔹 FOOTER
   --------------------------------------------------------*/
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
 
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-      // FOOTER HEIGHT
-      const footerHeight = 22;
-      const footerY = pageHeight - footerHeight;
+    // FOOTER HEIGHT
+    const footerHeight = 22;
+    const footerY = pageHeight - footerHeight;
 
-      // White background
-      doc.setFillColor(255, 255, 255);
-      doc.rect(0, footerY, pageWidth, footerHeight, "F");
+    // White background
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, footerY, pageWidth, footerHeight, "F");
 
-      // Orange line (slightly lower)
-      doc.setDrawColor(225, 122, 0);
-      doc.setLineWidth(1.2);
-      doc.line(0, footerY + 2, pageWidth, footerY + 2);
+    // Orange line (slightly lower)
+    doc.setDrawColor(225, 122, 0);
+    doc.setLineWidth(1.2);
+    doc.line(0, footerY + 2, pageWidth, footerY + 2);
 
-      // TEXT Y POSITION (centered)
-      const row1Y = footerY + 10;  // Email row
-      const row2Y = footerY + 17;  // Phone + Pagination row
+    // TEXT Y POSITION (centered)
+    const row1Y = footerY + 10;  // Email row
+    const row2Y = footerY + 17;  // Phone + Pagination row
 
-      // ------------------------------
-      // LEFT SIDE (Email + Phone)
-      // ------------------------------
-      doc.setFontSize(10);
+    // ------------------------------
+    // LEFT SIDE (Email + Phone as clickable links)
+    // ------------------------------
+    doc.setFontSize(10);
 
-      // Email
-      doc.setTextColor(225, 122, 0);
-      doc.setFont(undefined, "bold");
-      doc.text("Email:", 20, row1Y);
+    // Email label
+    doc.setTextColor(225, 122, 0);
+    doc.setFont(undefined, "bold");
+    doc.text("Email:", 20, row1Y);
 
-      doc.setTextColor(0, 0, 0);
+    // Email as clickable link with mailto
+    const emailText = "sales@growpro.co.in";
+    const emailX = 40;
+    doc.setTextColor(0, 102, 204); // Blue color for link
+    
+    if (typeof doc.textWithLink === 'function') {
+      doc.textWithLink(emailText, emailX, row1Y, {
+        url: "mailto:sales@growpro.co.in",
+        underline: true
+      });
+    } else {
       doc.setFont(undefined, "normal");
-      doc.text("sales@growpro.co.in", 50, row1Y);
-
-      // Phone
-      doc.setTextColor(225, 122, 0);
-      doc.setFont(undefined, "bold");
-      doc.text("Phone:", 20, row2Y);
-
-      doc.setTextColor(0, 0, 0);
-      doc.setFont(undefined, "normal");
-      doc.text("+91 93218 87125", 50, row2Y);
-
-      // ------------------------------
-      // RIGHT SIDE (Company + Page)
-      // ------------------------------
-      const rightX = pageWidth - 20;
-
-      doc.setFontSize(9);
-      doc.setTextColor(80, 80, 80);
-
-      doc.setFont(undefined, "bold");
-      doc.text("GrowPro Solutions", rightX, row1Y, { align: "right" });
-
-      doc.setFont(undefined, "normal");
-      doc.text(`Page ${i} of ${pageCount}`, rightX, row2Y, { align: "right" });
+      doc.text(emailText, emailX, row1Y);
+      // Add underline manually
+      const emailWidth = doc.getTextWidth(emailText);
+      doc.setDrawColor(0, 102, 204);
+      doc.setLineWidth(0.2);
+      doc.line(emailX, row1Y + 0.5, emailX + emailWidth, row1Y + 0.5);
     }
+
+    // Phone label
+    doc.setTextColor(225, 122, 0);
+    doc.setFont(undefined, "bold");
+    doc.text("Phone:", 20, row2Y);
+
+    // Phone as clickable link with tel:
+    const phoneText = "+91 859 175 3001";
+    const phoneX = 40;
+    const cleanPhoneNumber = "+918591753001"; // Remove spaces for tel: link
+    
+    doc.setTextColor(0, 102, 204); // Blue color for link
+    
+    if (typeof doc.textWithLink === 'function') {
+      doc.textWithLink(phoneText, phoneX, row2Y, {
+        url: `tel:${cleanPhoneNumber}`,
+        underline: true
+      });
+    } else {
+      doc.setFont(undefined, "normal");
+      doc.text(phoneText, phoneX, row2Y);
+      // Add underline manually
+      const phoneWidth = doc.getTextWidth(phoneText);
+      doc.setDrawColor(0, 102, 204);
+      doc.setLineWidth(0.2);
+      doc.line(phoneX, row2Y + 0.5, phoneX + phoneWidth, row2Y + 0.5);
+    }
+
+    // ------------------------------
+    // RIGHT SIDE (Company + Page)
+    // ------------------------------
+    const rightX = pageWidth - 20;
+
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+
+    doc.setFont(undefined, "bold");
+    doc.text("GrowPro Solutions", rightX, row1Y, { align: "right" });
+
+    doc.setFont(undefined, "normal");
+    doc.text(`Page ${i} of ${pageCount}`, rightX, row2Y, { align: "right" });
+  }
   /* -------------------------------------------------------
      🔥 FINAL PDF DOWNLOAD
   --------------------------------------------------------*/
