@@ -118,98 +118,161 @@ export default function EditMaterialDeliver() {
   };
 
   // Function to render plants display
- // Function to render plants display
-const renderPlants = () => {
-  if (!materialPlants || materialPlants.length === 0) {
-    return (
-      <div className="flex flex-col md:col-span-2">
-        <label className="mb-1 font-medium text-gray-700">
-          Plants and Quantities
-        </label>
-        <div className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700 min-h-[42px]">
-          <p className="text-gray-500 italic">No plants specified</p>
+  const renderPlants = () => {
+    if (!materialPlants || materialPlants.length === 0) {
+      return (
+        <div className="flex flex-col md:col-span-2">
+          <label className="mb-1 font-medium text-gray-700">
+            Plants and Quantities
+          </label>
+          <div className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700 min-h-[42px]">
+            <p className="text-gray-500 italic">No plants specified</p>
+          </div>
         </div>
-      </div>
-    );
-  }
-
-  // helper to choose the display name:
-  const getPlantDisplayName = (plant) => {
-    const other = plant.other_plant_name?.trim() || '';
-    const main = plant.plant_name?.trim() || '';
-
-    // If other is literally "Others" (any case) or empty, prefer main name.
-    if (!other || other.toLowerCase() === 'others') {
-      return main || other || 'Unnamed Plant';
+      );
     }
-    return other;
-  };
 
-  if (materialPlants.length === 1) {
-    const plant = materialPlants[0];
-    const plantName = getPlantDisplayName(plant);
+    // helper to choose the display name:
+    const getPlantDisplayName = (plant) => {
+      const other = plant.other_plant_name?.trim() || '';
+      const main = plant.plant_name?.trim() || '';
+
+      // If other is literally "Others" (any case) or empty, prefer main name.
+      if (!other || other.toLowerCase() === 'others') {
+        return main || other || 'Unnamed Plant';
+      }
+      return other;
+    };
+
+    if (materialPlants.length === 1) {
+      const plant = materialPlants[0];
+      const plantName = getPlantDisplayName(plant);
+      return (
+        <div className="flex flex-col md:col-span-2">
+          <label className="mb-1 font-medium text-gray-700">
+            Plant and Quantity
+          </label>
+          <input
+            type="text"
+            value={`${plantName}${plant.quantity ? ` - Qty: ${plant.quantity}` : ''}`}
+            readOnly
+            className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
+          />
+        </div>
+      );
+    }
+
+    // Multiple plants - show as a list in a textarea
+    const plantsText = materialPlants.map(plant => {
+      const plantName = getPlantDisplayName(plant);
+      return `${plantName}${plant.quantity ? ` - Quantity: ${plant.quantity}` : ''}`;
+    }).join('\n');
+
     return (
       <div className="flex flex-col md:col-span-2">
         <label className="mb-1 font-medium text-gray-700">
-          Plant and Quantity
+          Plants and Quantities ({materialPlants.length} items)
         </label>
-        <input
-          type="text"
-          value={`${plantName}${plant.quantity ? ` - Qty: ${plant.quantity}` : ''}`}
+        <textarea
+          value={plantsText}
           readOnly
-          className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
+          rows={Math.min(materialPlants.length + 1, 5)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
         />
       </div>
     );
-  }
-
-  // Multiple plants - show as a list in a textarea
-  const plantsText = materialPlants.map(plant => {
-    const plantName = getPlantDisplayName(plant);
-    return `${plantName}${plant.quantity ? ` - Quantity: ${plant.quantity}` : ''}`;
-  }).join('\n');
-
-  return (
-    <div className="flex flex-col md:col-span-2">
-      <label className="mb-1 font-medium text-gray-700">
-        Plants and Quantities ({materialPlants.length} items)
-      </label>
-      <textarea
-        value={plantsText}
-        readOnly
-        rows={Math.min(materialPlants.length + 1, 5)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
-      />
-    </div>
-  );
-};
-
+  };
 
   // Function to render nutrients display
   const renderNutrients = () => {
+    // Check if nutrients array exists and has items
     if (!materialNutrients || materialNutrients.length === 0) {
       return (
         <div className="flex flex-col md:col-span-2">
           <label className="mb-1 font-medium text-gray-700">
             Nutrients
           </label>
-          <div className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700 min-h-[42px]">
-            <p className="text-gray-500 italic">No nutrients specified</p>
-          </div>
+          <input
+            type="text"
+            value="No Nutrients Specified"
+            readOnly
+            className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-500 italic text-gray-500"
+          />
         </div>
       );
     }
 
-    if (materialNutrients.length === 1) {
-      const nutrient = materialNutrients[0];
+    // Filter out nutrients that have no valid data
+    const validNutrients = materialNutrients.filter(nutrient => {
+      const hasName = nutrient.other_nutrient_name?.trim() || nutrient.nutrient_type;
+      const hasTankCapacity = nutrient.tank_capacity && nutrient.tank_capacity > 0;
+      const hasTopups = nutrient.topups && nutrient.topups > 0;
+      const hasOtherInfo = nutrient.other_info?.trim();
+      
+      return hasName || hasTankCapacity || hasTopups || hasOtherInfo;
+    });
+
+    // If no valid nutrients after filtering
+    if (validNutrients.length === 0) {
+      return (
+        <div className="flex flex-col md:col-span-2">
+          <label className="mb-1 font-medium text-gray-700">
+            Nutrients
+          </label>
+          <input
+            type="text"
+            value="No Nutrients Specified"
+            readOnly
+            className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700 italic text-gray-500"
+          />
+        </div>
+      );
+    }
+
+    if (validNutrients.length === 1) {
+      const nutrient = validNutrients[0];
       const nutrientName = nutrient.other_nutrient_name?.trim() || nutrient.nutrient_type || '';
       
+      // Build nutrient info string
       let nutrientInfo = nutrientName;
-      if (nutrient.tank_capacity) nutrientInfo += `, Tank: ${nutrient.tank_capacity}`;
-      if (nutrient.topups) nutrientInfo += `, Topups: ${nutrient.topups}`;
-      const multiply = nutrient.tank_capacity * nutrient.topups;
-      nutrientInfo += ` - Total: ${multiply} Litre`;
-      if (nutrient.other_info) nutrientInfo += `, ${nutrient.other_info}`;
+      
+      // Only add tank capacity if it has a value
+      if (nutrient.tank_capacity) {
+        nutrientInfo += `, Tank: ${nutrient.tank_capacity}`;
+      }
+      
+      // Only add topups if it has a value
+      if (nutrient.topups) {
+        nutrientInfo += `, Topups: ${nutrient.topups}`;
+      }
+      
+      // Only add total calculation if both tank capacity and topups have values
+      if (nutrient.tank_capacity && nutrient.topups) {
+        const multiply = nutrient.tank_capacity * nutrient.topups;
+        nutrientInfo += ` - Total: ${multiply} Litre`;
+      }
+      
+      // Add other info if it exists
+      if (nutrient.other_info?.trim()) {
+        nutrientInfo += `, ${nutrient.other_info}`;
+      }
+
+      // If after building the string, it's just the name (or empty), show "No Nutrients Specified"
+      if (!nutrientInfo.trim() || nutrientInfo === nutrientName) {
+        return (
+          <div className="flex flex-col md:col-span-2">
+            <label className="mb-1 font-medium text-gray-700">
+              Nutrients
+            </label>
+            <input
+              type="text"
+              value="No Nutrients Specified"
+              readOnly
+              className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700 italic text-gray-500"
+            />
+          </div>
+        );
+      }
 
       return (
         <div className="flex flex-col md:col-span-2">
@@ -227,15 +290,27 @@ const renderPlants = () => {
     }
 
     // Multiple nutrients - show as a list in a textarea
-    const nutrientsText = materialNutrients.map(nutrient => {
-      const nutrientName = nutrient.other_nutrient_name?.trim() || nutrient.nutrient_type || 'Unnamed Nutrient';
+    const nutrientsText = validNutrients.map(nutrient => {
+      const nutrientName = nutrient.other_nutrient_name?.trim() || nutrient.nutrient_type || '';
       
-      let nutrientInfo = `${nutrientName}:`;
-      if (nutrient.tank_capacity) nutrientInfo += ` Tank Capacity: ${nutrient.tank_capacity}`;
-      if (nutrient.topups) nutrientInfo += `, Topups: ${nutrient.topups}`;
-      const multiply = nutrient.tank_capacity * nutrient.topups;
-      nutrientInfo += ` - Total: ${multiply} Litre`;
-      if (nutrient.other_info) nutrientInfo += `, ${nutrient.other_info}`;
+      let nutrientInfo = nutrientName;
+      
+      if (nutrient.tank_capacity) {
+        nutrientInfo += `, Tank: ${nutrient.tank_capacity}`;
+      }
+      
+      if (nutrient.topups) {
+        nutrientInfo += `, Topups: ${nutrient.topups}`;
+      }
+      
+      if (nutrient.tank_capacity && nutrient.topups) {
+        const multiply = nutrient.tank_capacity * nutrient.topups;
+        nutrientInfo += ` - Total: ${multiply} Litre`;
+      }
+      
+      if (nutrient.other_info?.trim()) {
+        nutrientInfo += `, ${nutrient.other_info}`;
+      }
       
       return nutrientInfo;
     }).join('\n');
@@ -243,12 +318,12 @@ const renderPlants = () => {
     return (
       <div className="flex flex-col md:col-span-2">
         <label className="mb-1 font-medium text-gray-700">
-          Nutrients ({materialNutrients.length} items)
+          Nutrients ({validNutrients.length} items)
         </label>
         <textarea
           value={nutrientsText}
           readOnly
-          rows={Math.min(materialNutrients.length + 2, 6)}
+          rows={Math.min(validNutrients.length + 2, 6)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
         />
       </div>
@@ -257,77 +332,76 @@ const renderPlants = () => {
 
   // Function to render chargeable items display
   const renderChargeableItems = () => {
-  if (!materialChargeableItems || materialChargeableItems.length === 0) {
-    return (
-      <div className="flex flex-col md:col-span-2">
-        <label className="mb-1 font-medium text-gray-700">
-          Chargeable Items
-        </label>
-        <div className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700 min-h-[42px]">
-          <p className="text-gray-500 italic">No chargeable items specified</p>
+    if (!materialChargeableItems || materialChargeableItems.length === 0) {
+      return (
+        <div className="flex flex-col md:col-span-2">
+          <label className="mb-1 font-medium text-gray-700">
+            Chargeable Items
+          </label>
+          <div className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700 min-h-[42px]">
+            <p className="text-gray-500 italic">No chargeable items specified</p>
+          </div>
         </div>
-      </div>
-    );
-  }
-
-  const getItemDisplayName = (item) => {
-    const other = item.other_item_name?.trim() || '';
-    const main = item.item_name?.trim() || '';
-
-    // If other is empty or equals "Others" (case-insensitive), use main name
-    if (!other || other.toLowerCase() === 'others') {
-      return main || other || 'Unnamed Item';
+      );
     }
-    return other;
-  };
 
-  if (materialChargeableItems.length === 1) {
-    const item = materialChargeableItems[0];
-    const itemName = getItemDisplayName(item);
+    const getItemDisplayName = (item) => {
+      const other = item.other_item_name?.trim() || '';
+      const main = item.item_name?.trim() || '';
 
-    let itemInfo = itemName;
-    if (item.quantity) itemInfo += ` - Quantity: ${item.quantity}`;
-    if (item.other_info) itemInfo += `, ${item.other_info}`;
+      // If other is empty or equals "Others" (case-insensitive), use main name
+      if (!other || other.toLowerCase() === 'others') {
+        return main || other || 'Unnamed Item';
+      }
+      return other;
+    };
+
+    if (materialChargeableItems.length === 1) {
+      const item = materialChargeableItems[0];
+      const itemName = getItemDisplayName(item);
+
+      let itemInfo = itemName;
+      if (item.quantity) itemInfo += ` - Quantity: ${item.quantity}`;
+      if (item.other_info) itemInfo += `, ${item.other_info}`;
+
+      return (
+        <div className="flex flex-col md:col-span-2">
+          <label className="mb-1 font-medium text-gray-700">
+            Chargeable Item Details
+          </label>
+          <input
+            type="text"
+            value={itemInfo}
+            readOnly
+            className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
+          />
+        </div>
+      );
+    }
+
+    // Multiple items - show as a list in textarea
+    const itemsText = materialChargeableItems.map(item => {
+      const itemName = getItemDisplayName(item);
+      let info = itemName;
+      if (item.quantity) info += ` - Quantity: ${item.quantity}`;
+      if (item.other_info) info += `, ${item.other_info}`;
+      return info;
+    }).join('\n');
 
     return (
       <div className="flex flex-col md:col-span-2">
         <label className="mb-1 font-medium text-gray-700">
-          Chargeable Item Details
+          Chargeable Items ({materialChargeableItems.length} items)
         </label>
-        <input
-          type="text"
-          value={itemInfo}
+        <textarea
+          value={itemsText}
           readOnly
-          className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
+          rows={Math.min(materialChargeableItems.length + 2, 6)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
         />
       </div>
     );
-  }
-
-  // Multiple items - show as a list in textarea
-  const itemsText = materialChargeableItems.map(item => {
-    const itemName = getItemDisplayName(item);
-    let info = itemName;
-    if (item.quantity) info += ` - Quantity: ${item.quantity}`;
-    if (item.other_info) info += `, ${item.other_info}`;
-    return info;
-  }).join('\n');
-
-  return (
-    <div className="flex flex-col md:col-span-2">
-      <label className="mb-1 font-medium text-gray-700">
-        Chargeable Items ({materialChargeableItems.length} items)
-      </label>
-      <textarea
-        value={itemsText}
-        readOnly
-        rows={Math.min(materialChargeableItems.length + 2, 6)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-700"
-      />
-    </div>
-  );
-};
-
+  };
 
   // Function to show delivery status indicator
   const renderDeliveryStatusInfo = () => {
