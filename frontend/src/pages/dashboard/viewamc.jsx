@@ -429,7 +429,7 @@ const generatePDF = (visitData) => {
     const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (daysLeft > 10) {
-      return "Active";
+      return "On-going";
     } else if (daysLeft > 0 && daysLeft <= 10) {
       return "Renew Soon";
     } else {
@@ -524,7 +524,7 @@ const generatePDF = (visitData) => {
                         </div>
                       </th>
                       <th
-                        className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                        className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
                         onClick={() => handleSort('visits_per_month')}
                       >
                         <div className="flex items-center">
@@ -544,7 +544,7 @@ const generatePDF = (visitData) => {
                       {/* Show Days Left column only for admin */}
                       {isAdmin && (
                         <th
-                          className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                          className="w-[11%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
                           onClick={() => handleSort('validity_upto')}
                         >
                           <div className="flex items-center">
@@ -553,11 +553,14 @@ const generatePDF = (visitData) => {
                           </div>
                         </th>
                       )}
-                      <th className="w-[11%] py-4 px-4 font-medium text-gray-700 text-left">
+                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">
                         AMC Status
                       </th>
-                      <th className="w-[5%] py-4 px-4 font-medium text-gray-700 text-left">
+                      <th className="w-[9%] py-4 px-4 font-medium text-gray-700 text-left">
                         Report
+                      </th>
+                      <th className="w-[5%] py-4 px-4 font-medium text-gray-700 text-left">
+                        Status
                       </th>
                       {userRole !== "technician" && (
                         <th className="py-4 px-4 font-medium text-gray-700 text-right">Action</th>
@@ -611,7 +614,7 @@ const generatePDF = (visitData) => {
                               </p>
                               <em
                                 className={`small-text py-1 rounded 
-                                  ${status === "Active" ? " text-green-400" : ""}
+                                  ${status === "On-going" ? " text-green-400" : ""}
                                   ${status === "Renew Soon" ? "text-red-300" : ""}
                                   ${status === "Expired" ? " text-red-600" : ""}
                                 `}
@@ -625,7 +628,7 @@ const generatePDF = (visitData) => {
                           <td className="py-4 px-4 text-gray-700 truncate">
                             <span
                               className={`px-3 py-1 rounded-lg text-sm font-medium cust-status-label
-                                ${status === "Active" ? "bg-green-400 text-white" : ""}
+                                ${status === "On-going" ? "bg-green-400 text-white" : ""}
                                 ${status === "Renew Soon" ? "bg-red-300 text-white" : ""}
                                 ${status === "Expired" ? "bg-red-600 text-white" : ""}
                               `}
@@ -648,6 +651,17 @@ const generatePDF = (visitData) => {
                               <FileText size={16} />
                               PDF
                             </button>
+                          </td>
+
+                          <td className="py-4 px-4">
+                            <span
+                              className={`px-3 py-1 rounded-2xl text-sm font-medium ${user.status === "active"
+                                  ? "bg-green-600 text-white"
+                                  : "bg-red-600 text-white"
+                                }`}
+                            >
+                              {/* {user.status} */}
+                            </span>
                           </td>
 
                           {/* Action */}
@@ -712,10 +726,10 @@ const generatePDF = (visitData) => {
                         {/* Pending Visits */}
                         <div className="flex flex-col">
                           <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Pending Visits
+                            Pending Visits / Month
                           </span>
                           <span className="text-sm text-gray-700">
-                            {user.pending_visits}
+                            {user.remaining_visits_current_month}
                           </span>
                         </div>
 

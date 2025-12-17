@@ -21,7 +21,7 @@ switch ($method) {
 
     case 'GET':
         if ($amcId) {
-            $amc_detail = $conn->query("SELECT amc.id,amc.amc_free_paid,amc.duration,amc.validity_from,amc.validity_upto,amc.other_duration,amc.visits_per_month,amc.pricing,amc.transport,amc.gst,amc.total,users.name,amc.customer_id FROM amc_details as amc INNER JOIN users ON amc.customer_id=users.id WHERE amc.id='$amcId'");
+            $amc_detail = $conn->query("SELECT amc.id,amc.amc_free_paid,amc.duration,amc.validity_from,amc.validity_upto,amc.other_duration,amc.visits_per_month,amc.pricing,amc.transport,amc.gst,amc.total,users.name,amc.customer_id,amc.status FROM amc_details as amc INNER JOIN users ON amc.customer_id=users.id WHERE amc.id='$amcId'");
             $amc_data = [];
             while ($row = $amc_detail->fetch_assoc()) {
                 $amc_data[] = $row;
@@ -55,7 +55,7 @@ switch ($method) {
             echo json_encode(["status" => "success", "data" => $growerData]);
         }elseif ($viewAMC){
             // $result = $conn->query("SELECT u.id AS customer_id, u.name, u.phone, a.id as amc_id,a.amc_free_paid, a.visits_per_month, a.validity_from, a.validity_upto, COUNT(s.id) AS total_visits_done, (a.visits_per_month - COUNT(s.id)) AS pending_visits FROM users u INNER JOIN amc_details a ON u.id = a.customer_id LEFT JOIN site_visit s ON s.customer_id = u.id AND s.created_date BETWEEN a.validity_from AND a.validity_upto WHERE u.status = 'active' AND CURRENT_DATE <= a.validity_upto GROUP BY u.id, u.name, u.phone, a.visits_per_month, a.validity_from, a.validity_upto");
-            $result = $conn->query("SELECT u.id AS customer_id, u.name, u.phone, a.id AS amc_id, a.amc_free_paid, a.visits_per_month, a.validity_from, a.validity_upto, COUNT(s.id) AS total_visits_done, (TIMESTAMPDIFF(MONTH, a.validity_from, a.validity_upto) * a.visits_per_month) AS total_allowed_visits, ((TIMESTAMPDIFF(MONTH, a.validity_from, a.validity_upto) * a.visits_per_month) - COUNT(s.id)) AS pending_visits, (SELECT COUNT(*) FROM site_visit sv WHERE sv.customer_id = u.id AND sv.created_date >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND sv.created_date < DATE_FORMAT(CURRENT_DATE + INTERVAL 1 MONTH, '%Y-%m-01')) AS current_month_visits_done, (a.visits_per_month - (SELECT COUNT(*) FROM site_visit sv WHERE sv.customer_id = u.id AND sv.created_date >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND sv.created_date < DATE_FORMAT(CURRENT_DATE + INTERVAL 1 MONTH, '%Y-%m-01'))) AS remaining_visits_current_month FROM users u INNER JOIN amc_details a ON u.id = a.customer_id LEFT JOIN site_visit s ON s.customer_id = u.id AND s.created_date BETWEEN a.validity_from AND a.validity_upto WHERE u.status = 'active' AND CURRENT_DATE <= a.validity_upto GROUP BY u.id, u.name, u.phone, a.id, a.amc_free_paid, a.visits_per_month, a.validity_from, a.validity_upto");
+            $result = $conn->query("SELECT u.id AS customer_id, u.name, u.phone, a.id AS amc_id, a.status, a.amc_free_paid, a.visits_per_month, a.validity_from, a.validity_upto, COUNT(s.id) AS total_visits_done, (TIMESTAMPDIFF(MONTH, a.validity_from, a.validity_upto) * a.visits_per_month) AS total_allowed_visits, ((TIMESTAMPDIFF(MONTH, a.validity_from, a.validity_upto) * a.visits_per_month) - COUNT(s.id)) AS pending_visits, (SELECT COUNT(*) FROM site_visit sv WHERE sv.customer_id = u.id AND sv.created_date >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND sv.created_date < DATE_FORMAT(CURRENT_DATE + INTERVAL 1 MONTH, '%Y-%m-01')) AS current_month_visits_done, (a.visits_per_month - (SELECT COUNT(*) FROM site_visit sv WHERE sv.customer_id = u.id AND sv.created_date >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND sv.created_date < DATE_FORMAT(CURRENT_DATE + INTERVAL 1 MONTH, '%Y-%m-01'))) AS remaining_visits_current_month FROM users u INNER JOIN amc_details a ON u.id = a.customer_id LEFT JOIN site_visit s ON s.customer_id = u.id AND s.created_date BETWEEN a.validity_from AND a.validity_upto WHERE u.status = 'active' AND CURRENT_DATE <= a.validity_upto GROUP BY u.id, u.name, u.phone, a.id, a.amc_free_paid, a.visits_per_month, a.validity_from, a.validity_upto");
             $data = [];
 
             while ($row = $result->fetch_assoc()) {
@@ -133,6 +133,8 @@ switch ($method) {
         $transport = $_POST['transport'] ?? '';
         $gst = $_POST['gst'] ?? '';
         $other_consumable = $_POST['otherConsumable'] ?? '';
+        $status = $_POST['isActive'] ?? '';
+        $userstatus = filter_var($status, FILTER_VALIDATE_BOOLEAN) ? 'active' : 'inactive';
         $sql1='';
         $jsonGrowersQuantities = isset($_POST['growerData']) ? $_POST['growerData'] : '';
         $growers_quantity = json_decode($jsonGrowersQuantities, true);
@@ -149,7 +151,7 @@ switch ($method) {
         $subtotal = $pricing+$transport;
         $gstAmount = ($subtotal * $gst) / 100;
         $total = round($subtotal + $gstAmount);
-        $sql = "UPDATE `amc_details` SET `amc_free_paid`='$amcFreePaid',`duration`='$duration',`other_duration`='$other_duration',`visits_per_month`='$visitsPerMonth',`validity_from`='$validityFrom',`validity_upto`='$validityUpto',`pricing`='$pricing',`transport`='$transport',`gst`='$gst',`total`='$total',`updated_by`='1',`updated_date`='$date',`updated_time`='$time' WHERE id='$amcId'";
+        $sql = "UPDATE `amc_details` SET `amc_free_paid`='$amcFreePaid',`duration`='$duration',`other_duration`='$other_duration',`visits_per_month`='$visitsPerMonth',`validity_from`='$validityFrom',`validity_upto`='$validityUpto',`pricing`='$pricing',`transport`='$transport',`gst`='$gst',`total`='$total',`status`='$userstatus',`updated_by`='1',`updated_date`='$date',`updated_time`='$time' WHERE id='$amcId'";
         if ($conn->query($sql)) {
             foreach ($growers_quantity as $growersQty) {
                 $amc_grower_sql = "UPDATE `amc_growers` SET `grower_qty`='{$growersQty['qty']}' WHERE amc_id='$amcId'";
