@@ -1,0 +1,168 @@
+const generatePDF = async (visitData, fullApiData) => {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("p", "mm", "a4");
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  let yPos = 20;
+
+  /* ----------------------------------
+     HELPERS
+  ---------------------------------- */
+
+  const ensureSpace = (h = 8) => {
+    if (yPos + h > pageHeight - 25) {
+      doc.addPage();
+      yPos = 20;
+    }
+  };
+
+  const drawLineField = (label, value = "", width = 60) => {
+    ensureSpace();
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+    doc.text(label, margin, yPos);
+    doc.line(margin + 55, yPos + 1, margin + 55 + width, yPos + 1);
+    if (value) doc.text(String(value), margin + 56, yPos);
+    yPos += 7;
+  };
+
+  const drawYesNo = (label, value) => {
+    ensureSpace();
+    doc.setFontSize(10);
+    doc.text(label, margin, yPos);
+
+    const yesX = pageWidth - 55;
+    const noX = pageWidth - 30;
+
+    doc.rect(yesX, yPos - 4, 4, 4);
+    doc.text("Yes", yesX + 6, yPos);
+
+    doc.rect(noX, yPos - 4, 4, 4);
+    doc.text("No", noX + 6, yPos);
+
+    if (String(value).toLowerCase() === "yes") doc.text("✓", yesX + 0.8, yPos);
+    if (String(value).toLowerCase() === "no") doc.text("✓", noX + 0.8, yPos);
+
+    yPos += 7;
+  };
+
+  const drawSection = (title) => {
+    ensureSpace(12);
+    doc.setFont(undefined, "bold");
+    doc.setFontSize(11);
+    doc.text(title, margin, yPos);
+    yPos += 8;
+    doc.setFont(undefined, "normal");
+  };
+
+  /* ----------------------------------
+     HEADER
+  ---------------------------------- */
+
+  doc.setFontSize(13);
+  doc.setFont(undefined, "bold");
+  doc.text("Grower Inspection Report", pageWidth / 2, yPos, { align: "center" });
+  yPos += 10;
+
+  doc.setFontSize(10);
+  doc.text("Client Name:", margin, yPos);
+  doc.line(margin + 25, yPos + 1, margin + 85, yPos + 1);
+  doc.text(visitData.customer_name || "", margin + 26, yPos);
+
+  doc.text("Date of Visit:", pageWidth - 75, yPos);
+  doc.line(pageWidth - 45, yPos + 1, pageWidth - 15, yPos + 1);
+  doc.text(visitData.created_date || "", pageWidth - 44, yPos);
+
+  yPos += 12;
+
+  /* ----------------------------------
+     DATA SHORTCUTS
+  ---------------------------------- */
+
+  const siteVisit = fullApiData.site_visit?.[0] || {};
+  const plantProblems = fullApiData.plantProblems || [];
+  const pests = fullApiData.pestTypes || [];
+
+  /* ----------------------------------
+     I. BASIC VISUAL INSPECTION
+  ---------------------------------- */
+
+  drawSection("I. Basic Visual Inspection");
+
+  drawYesNo("1. All plants are getting water?", siteVisit.are_plants_getting_water);
+  drawYesNo("2. Water above the pump?", siteVisit.water_above_pump);
+  drawYesNo("3. Timer / Motor / Lights working?", siteVisit.timer_working);
+  drawYesNo("4. Any other equipment damaged?", siteVisit.equipment_damage);
+  drawYesNo("5. Any leaks?", siteVisit.any_leaks);
+  drawYesNo("6. Clean growing equipment & surroundings?", siteVisit.cleanliness);
+  drawYesNo("7. Electric connections secured by clients?", siteVisit.electric_secured);
+
+  /* ----------------------------------
+     II. TECHNICAL OBSERVATIONS
+  ---------------------------------- */
+
+  yPos += 3;
+  drawSection("II. Technical Observations");
+
+  drawLineField("1. pH:", siteVisit.ph);
+  drawLineField("TDS (ppm):", siteVisit.tds);
+  drawLineField("Timer Setting:", siteVisit.timer_setting);
+
+  drawYesNo("2. Presence of pests?", pests.length ? "yes" : "no");
+  drawLineField("If yes, which?", pests.map(p => p.pest_name).join(", "), 100);
+
+  drawYesNo("3. Any nutrient deficiency?", plantProblems.length ? "yes" : "no");
+  drawLineField(
+    "If yes, symptoms?",
+    plantProblems.map(p => p.problem_name).join(", "),
+    120
+  );
+
+  drawLineField("Other:", siteVisit.other_observation, 120);
+
+  /* ----------------------------------
+     III. CLIENT TRAINING
+  ---------------------------------- */
+
+  yPos += 3;
+  drawSection("III. Client Training");
+
+  drawYesNo("1. How & when to harvest?", siteVisit.harvest_training);
+  drawYesNo("2. Plant maintenance?", siteVisit.plant_maintenance);
+  drawYesNo("3. Nutrient dosage & foliar spray?", siteVisit.nutrient_training);
+  drawYesNo("4. Pest management?", siteVisit.pest_training);
+  drawYesNo("5. Equipment maintenance?", siteVisit.equipment_training);
+  drawYesNo("6. Plant pruning?", siteVisit.pruning_training);
+  drawYesNo("7. Plant training / tying?", siteVisit.tying_training);
+  drawYesNo("8. Seed sowing / watering & transplanting?", siteVisit.transplant_training);
+
+  /* ----------------------------------
+     FOOTER FIELDS
+  ---------------------------------- */
+
+  yPos += 5;
+  drawLineField("Scope of Improvement:", siteVisit.scope_of_improvement, 120);
+
+  yPos += 6;
+  drawLineField(
+    "Plants / Seeds / Jiffy Bags / Nutrition / Neem Oil / pH up/down:",
+    "",
+    120
+  );
+
+  yPos += 10;
+  doc.text("Client Signature:", margin, yPos);
+  doc.line(margin + 30, yPos + 1, margin + 90, yPos + 1);
+
+  /* ----------------------------------
+     SAVE
+  ---------------------------------- */
+
+  const safeName = (visitData.customer_name || "site_visit")
+    .replace(/\s+/g, "_")
+    .replace(/[^\w-_]/g, "");
+
+  doc.save(`${safeName}_Grower_Inspection_Report.pdf`);
+};
