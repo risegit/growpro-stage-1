@@ -58,6 +58,7 @@ const StepperCustomerForm = () => {
     { value: 'Jalapenos', label: 'Jalapenos' },
     { value: 'Cauliflower', label: 'Cauliflower' },
     { value: 'Cucumber', label: 'Cucumber' },
+    { value: 'Green Amaranthus', label: 'Green Amaranthus' },
   ];
 
   const { id } = useParams();

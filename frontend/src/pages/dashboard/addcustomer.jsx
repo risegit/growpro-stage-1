@@ -57,10 +57,11 @@ const StepperCustomerForm = () => {
     { value: 'Jalapenos', label: 'Jalapenos' },
     { value: 'Cauliflower', label: 'Cauliflower' },
     { value: 'Cucumber', label: 'Cucumber' },
+    { value: 'Green Amaranthus', label: 'Green Amaranthus' },
     { value: 'other', label: 'Other (Specify Below)' },
   ];
 
-    const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [previews, setPreviews] = useState([]);
   const [profilePreview, setProfilePreview] = useState(null);

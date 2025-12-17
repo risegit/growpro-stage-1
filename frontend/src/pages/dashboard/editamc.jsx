@@ -20,7 +20,8 @@ export default function AMCForm() {
     pricing: "",
     transport: "",
     gst: "",
-    total: ""
+    total: "",
+    isActive: true
   });
 
   const consumablesHasOther = formData.consumables.some((c) => c.value === '9');
@@ -45,7 +46,8 @@ export default function AMCForm() {
     pricing: '',
     transport: '',
     gst: '',
-    total: ''
+    total: '',
+    isActive: true
   });
 
   const [systemQty, setSystemQty] = useState({});
@@ -137,7 +139,8 @@ export default function AMCForm() {
             pricing: amc.pricing || "",
             transport: amc.transport || "",
             gst: amc.gst || "",
-            total: amc.total || ""
+            total: amc.total || "",
+            isActive: amc.status ? amc.status === "active" : true,
           }));
         }
 
@@ -945,6 +948,18 @@ export default function AMCForm() {
             />
             <span className="text-xs text-gray-500 mt-1">Auto-calculated from Pricing + Transport + GST</span>
           </div>
+          <div className="flex items-center md:col-span-2">
+              <input
+                type="checkbox"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                id="isActive"
+              />
+              <label htmlFor="isActive" className="ml-2 block text-gray-700 font-medium">
+                Active (सक्रिय)
+              </label>
+            </div>
         </div>
 
         {/* Add On Form */}
