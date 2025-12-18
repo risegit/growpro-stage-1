@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from "react";
 
 export default function ReportTable() {
-    const [selectedReport, setSelectedReport] = useState("AMC Report");
+    const [selectedReport, setSelectedReport] = useState("Client Performance");
     const [searchQuery, setSearchQuery] = useState("");
-    
+    const user = JSON.parse(localStorage.getItem("user"));
+    const user_id = user?.id;
+    const [formData, setFormData] = useState({
+
+    });
     // Get today's date in YYYY-MM-DD format
     const getTodayDate = () => {
         const today = new Date();
@@ -16,17 +20,27 @@ export default function ReportTable() {
     const [startDate, setStartDate] = useState(getTodayDate());
     const [endDate, setEndDate] = useState(getTodayDate());
 
-    const handleSubmit = () => {
-        const filterData = {
-            reportType: selectedReport,
-            reportDisplayName: selectedReport === "AMC Report" ? "Client Performance" : "RAW Material",
-            startDate: startDate,
-            endDate: endDate,
-            searchQuery: searchQuery
-        };
+    const handleSubmit = async () => {
+        try {
+            const params = new URLSearchParams({
+            user_id: user_id,
+            report_type: selectedReport,
+            start_date: startDate,
+            end_date: endDate,
+            });
 
-        console.log("Filter Data Submitted:", filterData);
+            const response = await fetch(
+            `${import.meta.env.VITE_API_URL}api/reports.php?${params.toString()}`
+            );
+
+            const result = await response.json();
+            console.log("API Response:", result);
+        } catch (error) {
+            console.error("Error fetching report:", error);
+        }
     };
+
+
 
     return (
         <div className="w-full min-h-screen bg-gray-100 mt-10">
@@ -71,8 +85,8 @@ export default function ReportTable() {
                             onChange={(e) => setSelectedReport(e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 text-sm shadow-sm focus:ring-2 focus:ring-blue-400 mt-6"
                         >
-                            <option value="AMC Report">Client Performance</option>
-                            <option value="Observation Report">RAW Material</option>
+                            <option value="Client Performance">Client Performance</option>
+                            <option value="RAW Material">RAW Material</option>
                         </select>
 
                         {/* Start Date */}
