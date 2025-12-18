@@ -413,10 +413,6 @@ const generatePDF = (visitData) => {
     navigate(`/dashboard/amc/editamc/${userId}`);
   };
 
-  const goToPage = (page) => setCurrentPage(page);
-  const goToPrevious = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
-  const goToNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-
   // 🔹 Get AMC Status function
   const getAMCStatus = (validity_upto) => {
     const validityDate = new Date(validity_upto);
@@ -436,6 +432,10 @@ const generatePDF = (visitData) => {
       return "Expired";
     }
   };
+
+  const goToPage = (page) => setCurrentPage(page);
+  const goToPrevious = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const goToNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
   if (loading) {
     return (
@@ -660,7 +660,7 @@ const generatePDF = (visitData) => {
                                   : "bg-red-600 text-white"
                                 }`}
                             >
-                              {/* {user.status} */}
+                              {user.status || "Active"}
                             </span>
                           </td>
 
@@ -689,101 +689,141 @@ const generatePDF = (visitData) => {
                     (new Date(user.validity_upto) - new Date()) / (1000 * 60 * 60 * 24)
                   );
                   const status = getAMCStatus(user.validity_upto);
+                  const amcType = user.amc_free_paid || "Paid";
 
                   return (
                     <div
                       key={user.id}
                       className="border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition bg-white"
                     >
-                      <h3 className="font-semibold text-gray-800 text-lg mb-3">
-                        {user.name}
-                      </h3>
+                      {/* Name with AMC Type */}
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="font-semibold text-gray-800 text-lg">
+                          {user.name}
+                        </h3>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          amcType.toLowerCase() === 'free' 
+                            ? 'bg-blue-100 text-blue-800 border border-blue-200' 
+                            : 'bg-green-100 text-green-800 border border-green-200'
+                        }`}>
+                          {amcType}
+                        </span>
+                      </div>
 
-                      <div className="space-y-3 mb-5">
+                      <div className="space-y-4 mb-5">
                         {/* Phone */}
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                        <div className="flex justify-between items-center border-b pb-3">
+                          <span className="text-sm font-medium text-gray-600">
                             Contact
                           </span>
                           <a
                             href={`tel:${user.phone}`}
-                            className="text-sm text-blue-600 hover:underline"
+                            className="text-sm text-blue-600 hover:underline font-medium"
                           >
                             {user.phone}
                           </a>
                         </div>
 
                         {/* Visits per Month */}
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Visits / Month
+                        <div className="flex justify-between items-center border-b pb-3">
+                          <span className="text-sm font-medium text-gray-600">
+                            Visits per Month
                           </span>
-                          <span className="text-sm text-gray-700">
+                          <span className="text-sm text-gray-800 font-medium">
                             {user.visits_per_month}
                           </span>
                         </div>
 
                         {/* Pending Visits */}
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Pending Visits / Month
+                        <div className="flex justify-between items-center border-b pb-3">
+                          <span className="text-sm font-medium text-gray-600">
+                            Visit Pending This Month
                           </span>
-                          <span className="text-sm text-gray-700">
+                          <span className="text-sm text-gray-800 font-medium">
                             {user.remaining_visits_current_month}
                           </span>
                         </div>
 
                         {/* Days Left - Only show for admin */}
                         {isAdmin && (
-                          <>
-                            <div className="flex flex-col">
-                              <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                                Days Left
+                          <div className="flex justify-between items-center border-b pb-3">
+                            <span className="text-sm font-medium text-gray-600">
+                              Days Left
+                            </span>
+                            <div className="flex flex-col items-end">
+                              <span className="text-sm text-gray-800 font-medium">
+                                {daysLeft} Days
                               </span>
-                              <span className="text-sm text-gray-700">
-                                {daysLeft} days
-                              </span>
-                            </div>
-
-                            {/* Expiry date */}
-                            <div className="flex flex-col">
-                              <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                                Expiry Date
-                              </span>
-                              <span className="text-sm text-gray-700">
-                                {formatDate(user.validity_upto)}
+                              <span className="text-xs text-gray-500 mt-1">
+                                ({formatDate(user.validity_upto)})
                               </span>
                             </div>
-                          </>
+                          </div>
                         )}
 
-                        {/* Status */}
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Status
+                        {/* AMC Status */}
+                        <div className="flex justify-between items-center border-b pb-3">
+                          <span className="text-sm font-medium text-gray-600">
+                            AMC Status
                           </span>
                           <span
-                            className={`px-3 py-1 rounded-full text-xs font-bold w-fit
-                              ${status === "Active"
-                                ? "bg-green-600 text-white"
-                                : status === "Renew Soon"
-                                  ? "bg-orange-500 text-white"
-                                  : "bg-red-600 text-white"
-                              }
+                            className={`px-3 py-1 rounded-lg text-xs font-bold w-fit min-w-[100px] text-center
+                              ${status === "On-going" ? "bg-green-100 text-green-800 border border-green-200" : ""}
+                              ${status === "Renew Soon" ? "bg-yellow-100 text-yellow-800 border border-yellow-200" : ""}
+                              ${status === "Expired" ? "bg-red-100 text-red-800 border border-red-200" : ""}
                             `}
                           >
                             {status}
                           </span>
                         </div>
+
+                        {/* Report Button */}
+                        <div className="flex justify-between items-center border-b pb-3">
+                          <span className="text-sm font-medium text-gray-600">
+                            Report
+                          </span>
+                          <button
+                            onClick={() => generatePDF(user)}
+                            disabled={!pdfLoaded}
+                            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs transition ${
+                              pdfLoaded 
+                                ? 'bg-red-600 text-white hover:bg-red-700' 
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
+                            title={pdfLoaded ? "Download PDF Report" : "Loading PDF library..."}
+                          >
+                            <FileText size={12} />
+                            PDF
+                          </button>
+                        </div>
+
+                        {/* User Status */}
+                        <div className="flex justify-between items-center border-b pb-3">
+                          <span className="text-sm font-medium text-gray-600">
+                            Status
+                          </span>
+                          <span
+                            className={`px-3 py-1 rounded-2xl text-xs font-medium ${
+                              user.status === "active"
+                                ? "bg-green-100 text-green-800 border border-green-200"
+                                : "bg-red-100 text-red-800 border border-red-200"
+                            }`}
+                          >
+                            {user.status || "Active"}     
+                          </span>
+                        </div>
                       </div>
 
+                      {/* Action Buttons - Only show if not technician */}
                       {userRole !== "technician" && (
-                        <button
-                          onClick={() => handleEdit(user.amc_id)}
-                          className="w-full px-4 py-2.5 btn-primary"
-                        >
-                          Edit
-                        </button>
+                        <div className="flex gap-3 mt-6">
+                          <button
+                            onClick={() => handleEdit(user.amc_id)}
+                            className="flex-1 px-4 py-2.5 btn-primary"
+                          >
+                            Edit
+                          </button>
+                        </div>
                       )}
                     </div>
                   );

@@ -70,6 +70,9 @@ const generatePDF = async (visitData, fullApiData) => {
     let currentPage = 1;
     let totalPages = 1;
 
+    // Define orange color for headings
+    const orangeColor = [244, 169, 81];
+
     /* ----------------------------------
        LOGO HELPER
     ---------------------------------- */
@@ -121,6 +124,7 @@ const generatePDF = async (visitData, fullApiData) => {
       ensureSpace();
       doc.setFontSize(10);
       doc.setFont(undefined, "normal");
+      doc.setTextColor(0, 0, 0); // Black color for text
       doc.text(label, margin, yPos);
       doc.line(margin + 55, yPos + 1, margin + 55 + width, yPos + 1);
       if (value) doc.text(String(value), margin + 56, yPos);
@@ -131,6 +135,7 @@ const generatePDF = async (visitData, fullApiData) => {
       ensureSpace();
       doc.setFontSize(10);
       doc.setFont(undefined, "normal");
+      doc.setTextColor(0, 0, 0); // Black color for text
       doc.text(label, margin, yPos);
 
       const answerX = pageWidth - 30;
@@ -150,9 +155,11 @@ const generatePDF = async (visitData, fullApiData) => {
       ensureSpace(12);
       doc.setFont(undefined, "bold");
       doc.setFontSize(11);
+      doc.setTextColor(...orangeColor); // Orange color for section headings
       doc.text(title, margin, yPos);
       yPos += 8;
       doc.setFont(undefined, "normal");
+      doc.setTextColor(0, 0, 0); // Reset to black for normal text
     };
 
     const drawTable = (items = [], columns = [], showHeader = true) => {
@@ -165,6 +172,7 @@ const generatePDF = async (visitData, fullApiData) => {
         ensureSpace(10);
         doc.setFontSize(9);
         doc.setFont(undefined, "bold");
+        doc.setTextColor(0, 0, 0); // Black color for table headers
 
         let xPos = margin + 5;
         columns.forEach(col => {
@@ -181,6 +189,7 @@ const generatePDF = async (visitData, fullApiData) => {
       // Table rows
       doc.setFontSize(9);
       doc.setFont(undefined, "normal");
+      doc.setTextColor(0, 0, 0); // Black color for table content
 
       items.forEach((item) => {
         ensureSpace(10);
@@ -290,6 +299,7 @@ const generatePDF = async (visitData, fullApiData) => {
     // Title - adjust position to avoid logo
     doc.setFontSize(14);
     doc.setFont(undefined, "bold");
+    doc.setTextColor(0, 0, 0); // Black color for main title
     // Move title slightly to the right to avoid logo
     doc.text("Site Inspection Report", pageWidth / 2 + 10, 20, { align: "center" });
     
@@ -303,6 +313,7 @@ const generatePDF = async (visitData, fullApiData) => {
     
     doc.setFontSize(10);
     doc.setFont(undefined, "normal");
+    doc.setTextColor(0, 0, 0); // Black color for client info
     
     // Client Name - start further to the right to avoid logo
     const textStartX = margin + 30; // Move right to avoid logo
@@ -341,11 +352,13 @@ const generatePDF = async (visitData, fullApiData) => {
        I. BASIC VISUAL INSPECTION
     ---------------------------------- */
     doc.setFontSize(11);
-doc.setFont(undefined, "normal");
-doc.text("Dear Customer, the following are our observations from our Visit.", pageWidth / 2, yPos, { align: "center" });
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(0, 0, 0); // Black color for intro text
+    doc.text("Dear Customer, the following are our observations from our Visit.", pageWidth / 2, yPos, { align: "center" });
 
-yPos += 10; // Add space after the intro line
-
+    yPos += 10; // Add space after the intro line
+    
+    // Use the new drawSection function which now sets orange color
     drawSection("I. Basic Visual Inspection");
 
     drawYesNo("1. All plants are getting water?", siteVisit.are_plants_getting_water);
@@ -457,6 +470,7 @@ yPos += 10; // Add space after the intro line
       ensureSpace(15);
       doc.setFontSize(10);
       doc.setFont(undefined, "bold");
+      doc.setTextColor(0, 0, 0); // Black color for sub-headings
       doc.text("Plants Supplied:", margin, yPos);
       yPos += 6;
       doc.setFont(undefined, "normal");
@@ -485,6 +499,7 @@ yPos += 10; // Add space after the intro line
       ensureSpace(15);
       doc.setFontSize(10);
       doc.setFont(undefined, "bold");
+      doc.setTextColor(0, 0, 0); // Black color for sub-headings
       doc.text("Nutrients Supplied:", margin, yPos);
       yPos += 6;
       doc.setFont(undefined, "normal");
@@ -526,6 +541,7 @@ yPos += 10; // Add space after the intro line
       ensureSpace(15);
       doc.setFontSize(10);
       doc.setFont(undefined, "bold");
+      doc.setTextColor(0, 0, 0); // Black color for sub-headings
       doc.text("Other Items Supplied:", margin, yPos);
       yPos += 6;
       doc.setFont(undefined, "normal");
@@ -563,6 +579,7 @@ yPos += 10; // Add space after the intro line
       ensureSpace(15);
       doc.setFontSize(10);
       doc.setFont(undefined, "bold");
+      doc.setTextColor(0, 0, 0); // Black color for sub-headings
       doc.text("Plants Needed:", margin, yPos);
       yPos += 6;
       doc.setFont(undefined, "normal");
@@ -592,6 +609,7 @@ yPos += 10; // Add space after the intro line
       ensureSpace(15);
       doc.setFontSize(10);
       doc.setFont(undefined, "bold");
+      doc.setTextColor(0, 0, 0); // Black color for sub-headings
       doc.text("Nutrients Needed:", margin, yPos);
       yPos += 6;
       doc.setFont(undefined, "normal");
@@ -633,6 +651,7 @@ yPos += 10; // Add space after the intro line
       ensureSpace(15);
       doc.setFontSize(10);
       doc.setFont(undefined, "bold");
+      doc.setTextColor(0, 0, 0); // Black color for sub-headings
       doc.text("Chargeable Items Needed:", margin, yPos);
       yPos += 6;
       doc.setFont(undefined, "normal");
@@ -697,6 +716,7 @@ yPos += 10; // Add space after the intro line
         await addLogoToPage(currentPage);
       }
       
+      // Use drawSection for "Setup Photos" heading with orange color
       drawSection("Setup Photos");
       
       const availableWidth = pageWidth - (2 * margin);
@@ -780,6 +800,7 @@ yPos += 10; // Add space after the intro line
     yPos += 10;
     doc.setFontSize(11);
     doc.setFont(undefined, "normal");
+    doc.setTextColor(0, 0, 0); // Black color for clarification text
     doc.text("Do let us know if you'd like clarity on any of our observations/suggestions.", margin, yPos);
     
     yPos += 10;
@@ -798,6 +819,7 @@ yPos += 10; // Add space after the intro line
     // "Happy Growing!" - Large and LEFT ALIGNED
     doc.setFontSize(16);
     doc.setFont(undefined, "bold");
+    doc.setTextColor(0, 0, 0); // Black color for "Happy Growing!"
     doc.text("Happy Growing!", margin, yPos);
 
     yPos += 10;
@@ -805,6 +827,7 @@ yPos += 10; // Add space after the intro line
     // Contact information in LEFT-ALIGNED column style
     doc.setFontSize(11);
     doc.setFont(undefined, "normal");
+    doc.setTextColor(0, 0, 0); // Black color for contact info
 
     // Email with mailto: link (left aligned)
     doc.textWithLink("Email: sales@growpro.co.in", margin, yPos, {
@@ -814,7 +837,7 @@ yPos += 10; // Add space after the intro line
     yPos += 8;
 
     // Phone with tel: link (left aligned)
-    doc.textWithLink("Phone: 8591753001", margin, yPos, {
+    doc.textWithLink("Phone: +91 859 175 3001", margin, yPos, {
       url: "tel:+918591753001"
     });
 
@@ -838,6 +861,7 @@ yPos += 10; // Add space after the intro line
     // Left column: Phone with tel: link
     doc.setFontSize(9);
     doc.setFont(undefined, "normal");
+    doc.setTextColor(0, 0, 0); // Black color for footer
     doc.textWithLink("Phone: +91 859 175 3001", margin, footerY, {
       url: "tel:+918591753001"
     });
