@@ -164,7 +164,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         { label: "Improper Maintenance", value: "Improper Maintenance" },
         { label: "Overgrown crops", value: "Overgrown crops" },
         { label: "Improper Harvesting", value: "Improper Harvesting" },
-        { label: "Bolting", value: "Bolting" }
+        { label: "Bolting", value: "Bolting" },
+        { label: "Root Rot", value: "Root Rot" }
     ];
 
     const plantOptions = [
@@ -415,37 +416,45 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         setErrors({ ...errors, setupPhoto: "" });
     };
 
-    const handleStep4MaterialsSelection = (selected) => {
-        const newMaterials = selected || [];
-        const newQuantities = {};
+   const handleStep4MaterialsSelection = (selected) => {
+    const newMaterials = selected || [];
+    const newQuantities = {};
+    
+    // Only add quantities for selected materials
+    newMaterials.forEach(material => {
+        const key = material.value;
+        // Preserve existing quantity if it exists
+        if (formData.plantQuantities[key] !== undefined) {
+            newQuantities[key] = formData.plantQuantities[key];
+        }
+    });
+    
+    // IMPORTANT: Don't add "Others" if it's not in the selection
+    // No else clause to add empty "Others"
+    
+    setFormData({
+        ...formData,
+        plants: newMaterials,
+        plantQuantities: newQuantities,
+    });
 
-        newMaterials.forEach(material => {
-            const key = material.value;
-            if (formData.plantQuantities[key] !== undefined) {
-                newQuantities[key] = formData.plantQuantities[key];
-            }
-        });
-
-        setFormData({
-            ...formData,
-            plants: newMaterials,
-            plantQuantities: newQuantities,
-        });
-
-        setErrors({ ...errors, plants: "", plantQuantities: "" });
-    };
+    setErrors({ ...errors, plants: "", plantQuantities: "" });
+};
 
     const handleStep5MaterialsSelection = (selected) => {
         const newMaterials = selected || [];
         const newQuantities = {};
 
+        // Only add entries for materials that are selected
         newMaterials.forEach(material => {
             const key = material.value;
+            // Preserve existing quantity or use empty string
             if (formData.materialNeedPlantQuantities[key] !== undefined) {
                 newQuantities[key] = formData.materialNeedPlantQuantities[key];
             }
         });
 
+        // IMPORTANT: If "Others" is not in newMaterials, make sure it's not in newQuantities
         const hasOthers = newMaterials.some(m => m.value === "Others");
         if (!hasOthers && newQuantities["Others"] !== undefined) {
             delete newQuantities["Others"];
@@ -522,6 +531,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     };
 
     const handleStep5QuantityChange = (plantValue, quantity) => {
+        // Don't allow setting quantity for unselected plants
         const isPlantSelected = formData.step5Plants.some(plant =>
             plant.value === plantValue || (plantValue === "Others" && plant.value === "Others")
         );
@@ -642,53 +652,48 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     };
 
     const validateStep4 = () => {
-        let newErrors = {};
+    let newErrors = {};
+
+    // ... (keep existing validations for other fields)
+
+    // Chargeable Items - only validate if items are selected
+    if (formData.material_supplied_chargeable_items && 
+        formData.material_supplied_chargeable_items.length > 0) {
         
-        // 1. Materials Supplied validation (plants field)
-        if (!formData.plants || formData.plants.length === 0) {
-            newErrors.plants = "Required";
-        } else {
-            // Validate quantities for selected plants
-            const quantityErrors = {};
-            let hasQuantityErrors = false;
-            
-            formData.plants.forEach((plant) => {
-                if (plant.value !== "Others") {
-                    const quantity = formData.plantQuantities?.[plant.value];
-                    if (!quantity || quantity.trim() === "" || isNaN(quantity) || parseInt(quantity) <= 0) {
-                        quantityErrors[plant.value] = "Quantity is required";
-                        hasQuantityErrors = true;
-                    }
-                } else {
-                    const otherQuantity = formData.plantQuantities?.["Others"];
-                    if (!otherQuantity || otherQuantity.trim() === "" || isNaN(otherQuantity) || parseInt(otherQuantity) <= 0) {
-                        quantityErrors["Others"] = "Quantity is required";
-                        hasQuantityErrors = true;
-                    }
-                }
-            });
-            
-            if (hasQuantityErrors) {
-                newErrors.plantQuantities = quantityErrors;
+        // If "Others" is selected and no name provided
+        if (formData.material_supplied_chargeable_items?.some((item) => item.value === "Others")) {
+            if (!formData.chargeableOtherName?.trim()) {
+                newErrors.chargeableOtherName = "Please specify other item name";
             }
         }
-        
-        // 2. Photo of the Setup validation
-        if (!formData.setupPhotos || formData.setupPhotos.length === 0) {
-            newErrors.setupPhoto = "Required";
+
+        // Validate quantities for selected items
+        if (formData.material_supplied_chargeable_items.length > 0) {
+            const chargeableQtyErrors = {};
+            let hasChargeableQtyErrors = false;
+
+            formData.material_supplied_chargeable_items.forEach((item) => {
+                const qtyKey = item.value;
+                const qty = formData.chargeableQuantities?.[qtyKey];
+
+                if (!qty || qty.trim() === "" || isNaN(qty) || parseInt(qty) <= 0) {
+                    chargeableQtyErrors[qtyKey] = "Quantity is required";
+                    hasChargeableQtyErrors = true;
+                }
+            });
+
+            if (hasChargeableQtyErrors) {
+                newErrors.chargeableQuantities = chargeableQtyErrors;
+            }
         }
-        
-        // 3. Neem Oil validation
-        if (!formData.material_supplied_neemoil) {
-            newErrors.material_supplied_neemoil = "Required";
-        }
-        
-        // REMOVED: NutrientsData validation
-        // REMOVED: Chargeable Items validation
-        
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
+    }
+    // Remove the else part - it's not required
+
+    // ... (keep existing validations for setupPhotos and other fields)
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+};
 
     const validateStep5 = () => {
         let newErrors = {};
@@ -912,10 +917,10 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         </div>
     );
 
-    const YesNoSimple = ({ name, label, required = false }) => (
+    const YesNoSimple = ({ name, label }) => (
         <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">
-                {label} {required && <span className="text-red-500">*</span>}
+                {label} <span className="text-red-500">*</span>
             </label>
             <div className="flex gap-6">
                 {["yes", "no"].map((v) => (
@@ -964,8 +969,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                 )}
                             </div>
 
-                            <YesNoSimple name="plantsWater" label="Are the Plants Getting Water (क्या पौधों को पानी मिल रहा है?)" required={true} />
-                            <YesNoSimple name="waterAbovePump" label="Water above the pump (पंप के ऊपर पानी)" required={true} />
+                            <YesNoSimple name="plantsWater" label="Are the Plants Getting Water (क्या पौधों को पानी मिल रहा है?)" />
+                            <YesNoSimple name="waterAbovePump" label="Water above the pump (पंप के ऊपर पानी)" />
 
                             {/* Timer Working */}
                             <div className="flex flex-col">
@@ -1040,7 +1045,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                             {/* Lights Working */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    Lights Working (Light काम कर रही है) <span className="text-red-500">*</span>
+                                    Lights Working (Light काम कर रही है)
                                 </label>
                                 <div className="flex gap-6">
                                     {["yes", "no"].map((v) => (
@@ -1056,7 +1061,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                         </label>
                                     ))}
                                 </div>
-                                {errors.lightsWorking && <span className="text-red-500 text-sm mt-1">{errors.lightsWorking}</span>}
                                 {formData.lightsWorking === "no" && (
                                     <div className="mt-3">
                                         <input
@@ -1107,9 +1111,9 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                 )}
                             </div>
 
-                            <YesNoSimple name="anyLeaks" label="Any leaks (कोई भी लीक)" required={true} />
-                            <YesNoSimple name="cleanEnvironment" label="Clean Environment (स्वच्छ वातावरण)" required={true} />
-                            <YesNoSimple name="electricSecured" label="Electric Connections Secured (विद्युत कनेक्शन सुरक्षित)" required={true} />
+                            <YesNoSimple name="anyLeaks" label="Any leaks (कोई भी लीक)" />
+                            <YesNoSimple name="cleanEnvironment" label="Clean Environment (स्वच्छ वातावरण)" />
+                            <YesNoSimple name="electricSecured" label="Electric Connections Secured (विद्युत कनेक्शन सुरक्षित)" />
                         </div>
                     )}
 
@@ -1348,10 +1352,10 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                     {step === 3 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6">
                             {/* Yes/No fields */}
-                            <YesNoSimple name="harvestTraining" label="How & When to Harvest (कटाई कैसे और कब करें)" required={true} />
-                            <YesNoSimple name="pestManagement" label="Pest Management (कीट प्रबंधन)" required={true} />
-                            <YesNoSimple name="equipmentCleaning" label="Equipment Cleaning (उपकरण की सफ़ाई)" required={true} />
-                            <YesNoSimple name="plantMaintenance" label="Plant Maintenance (पौध रखरखाव)" required={true} />
+                            <YesNoSimple name="harvestTraining" label="How & When to Harvest (कटाई कैसे और कब करें)" />
+                            <YesNoSimple name="pestManagement" label="Pest Management (कीट प्रबंधन)" />
+                            <YesNoSimple name="equipmentCleaning" label="Equipment Cleaning (उपकरण की सफ़ाई)" />
+                            <YesNoSimple name="plantMaintenance" label="Plant Maintenance (पौध रखरखाव)" />
 
                             {/* Scopes of Improvement + Site Rating */}
                             <div className="flex flex-col md:flex-row md:space-x-4 md:col-span-2">
@@ -1411,7 +1415,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                     {/* STEP 4 */}
                     {step === 4 && (
                         <div className="space-y-6 px-6 py-6 max-w-full">
-                            {/* Materials Supplied - KEEP REQUIRED */}
+                            {/* Materials Supplied */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     Materials Supplied (सप्लाई किए जाने वाले सामान) <span className="text-red-500">*</span>
@@ -1512,13 +1516,13 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                 )}
                             </div>
 
-                            {/* Dynamic Fields for Nutrients Data - REMOVE REQUIRED */}
+                            {/* Dynamic Fields for Nutrients Data */}
                             {formData.nutrientsData.map((field, index) => (
                                 <div key={index} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                     {/* Nutrients */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Nutrients (पोषक तत्व)
+                                            Nutrients (पोषक तत्व) <span className="text-red-500">*</span>
                                         </label>
                                         <Select
                                             options={nutrientOptions}
@@ -1527,12 +1531,15 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                             classNamePrefix="react-select"
                                             placeholder="Select nutrient type..."
                                         />
+                                        {errors.nutrientsData && errors.nutrientsData[index]?.nutrients && (
+                                            <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index]?.nutrients}</span>
+                                        )}
                                     </div>
 
                                     {/* Tank Capacity */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Tank Capacity in Litre (टैंक क्षमता लीटर में)
+                                            Tank Capacity in Litre (टैंक क्षमता लीटर में) <span className="text-red-500">*</span>
                                         </label>
 
                                         <input
@@ -1551,12 +1558,18 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                             <option value="150" />
                                             <option value="200" />
                                         </datalist>
+
+                                        {errors.nutrientsData && errors.nutrientsData[index]?.tankCapacity && (
+                                            <span className="text-red-500 text-sm mt-1">
+                                                {errors.nutrientsData[index]?.tankCapacity}
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* Number of Top-ups */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Number of Top-ups (टॉप-अप की संख्या)
+                                            Number of Top-ups (टॉप-अप की संख्या) <span className="text-red-500">*</span>
                                         </label>
                                         <input
                                             type="number"
@@ -1564,8 +1577,11 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                             value={field.numberOfTopups}
                                             onChange={(e) => handleDynamicFieldChange(index, 'numberOfTopups', e.target.value)}
                                             placeholder="Enter number of top-ups"
-                                            className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:outline-none focus:ring-blue-400 transition w-full"
+                                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.nutrientsData && errors.nutrientsData[index]?.numberOfTopups ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'} w-full`}
                                         />
+                                        {errors.nutrientsData && errors.nutrientsData[index]?.numberOfTopups && (
+                                            <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index]?.numberOfTopups}</span>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -1590,117 +1606,165 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                 </button>
                             </div>
 
-                            {/* Neem Oil - KEEP REQUIRED */}
-                            <YesNoSimple name="material_supplied_neemoil" label="Neem Oil (नीम का तेल)" required={true} />
+                            {/* Neem Oil */}
+                            <YesNoSimple name="material_supplied_neemoil" label="Neem Oil (नीम का तेल)" />
 
-                            {/* Chargeable Items - REMOVE REQUIRED */}
+                            {/* Chargeable Items */}
                             <div className="flex flex-col sm:flex-row space-x-0 sm:space-x-4 gap-4">
                                 {/* Chargeable Items Supplied */}
                                 <div className="flex-1">
-                                    <label className="mb-1 font-medium text-gray-700">
-                                        Chargeable Items Supplied (जो वस्तुएँ पैसे के लिए दी गई हैं)
-                                    </label>
+        <label className="mb-1 font-medium text-gray-700">
+            Chargeable Items Supplied (जो वस्तुएँ पैसे के लिए दी गई हैं)
+        </label>
 
-                                    <Select
-                                        isMulti
-                                        options={changebleItemsOptions}
-                                        value={formData.material_supplied_chargeable_items}
-                                        onChange={handleChargeableItemsChange}
-                                        classNamePrefix="react-select"
-                                        placeholder="Select items (optional)..."
-                                        styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
-                                    />
+        <Select
+            isMulti
+            options={changebleItemsOptions}
+            value={formData.material_supplied_chargeable_items}
+            onChange={handleChargeableItemsChange}
+            classNamePrefix="react-select"
+            placeholder="Select items (optional)..."
+            styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
+        />
 
-                                    {formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") && (
-                                        <div className="mt-3">
-                                            <input
-                                                type="text"
-                                                placeholder="Specify other item"
-                                                value={formData.chargeableOtherName || ""}
-                                                onChange={(e) => setFormData({ ...formData, chargeableOtherName: e.target.value })}
-                                                className="px-3 py-2 border border-gray-300 rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none focus:ring-blue-400 transition"
-                                            />
-                                        </div>
-                                    )}
+        {/* Remove the error display for the main select field */}
+        {/* {errors.material_supplied_chargeable_items && (
+            <span className="text-red-500 text-sm mt-1">{errors.material_supplied_chargeable_items}</span>
+        )} */}
 
-                                    {/* Only show quantity section if items are selected */}
-                                    {formData.material_supplied_chargeable_items?.length > 0 && (
-                                        <div className="flex flex-col mt-4">
-                                            <label className="mb-2 font-medium text-gray-700">
-                                                Quantity of Chargeable Items
-                                            </label>
+        {formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") && (
+            <div className="mt-3">
+                <input
+                    type="text"
+                    placeholder="Specify other item"
+                    value={formData.chargeableOtherName || ""}
+                    onChange={(e) => setFormData({ ...formData, chargeableOtherName: e.target.value })}
+                    className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition 
+                    ${errors.chargeableOtherName ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}
+                `}
+                />
+                {errors.chargeableOtherName && (
+                    <span className="text-red-500 text-sm mt-1">{errors.chargeableOtherName}</span>
+                )}
+            </div>
+        )}
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Only show quantity section if items are selected */}
+        {formData.material_supplied_chargeable_items?.length > 0 && (
+            <div className="flex flex-col mt-4">
+                <label className="mb-2 font-medium text-gray-700">
+                    Quantity of Chargeable Items <span className="text-red-500">*</span>
+                </label>
 
-                                                {formData.material_supplied_chargeable_items
-                                                    .filter((i) => i.value !== "Others")
-                                                    .map((item) => (
-                                                        <div key={item.value} className="flex flex-col gap-2">
-                                                            <label className="font-medium text-gray-600">{item.label}:</label>
-                                                            <input
-                                                                type="number"
-                                                                min="1"
-                                                                value={formData.chargeableQuantities?.[item.value] || ""}
-                                                                onChange={(e) => {
-                                                                    const value = e.target.value;
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-                                                                    setFormData({
-                                                                        ...formData,
-                                                                        chargeableQuantities: {
-                                                                            ...formData.chargeableQuantities,
-                                                                            [item.value]: value
-                                                                        }
-                                                                    });
-                                                                }}
-                                                                placeholder="Qty"
-                                                                className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm w-24 focus:ring-2 outline-none focus:ring-blue-400 transition"
-                                                            />
-                                                        </div>
-                                                    ))}
+                    {formData.material_supplied_chargeable_items
+                        .filter((i) => i.value !== "Others")
+                        .map((item) => (
+                            <div key={item.value} className="flex flex-col gap-2">
+                                <label className="font-medium text-gray-600">{item.label}:</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={formData.chargeableQuantities?.[item.value] || ""}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
 
-                                                {formData.material_supplied_chargeable_items?.some((i) => i.value === "Others") &&
-                                                    formData.chargeableOtherName?.trim() !== "" && (
-                                                        <div className="flex flex-col gap-2">
-                                                            <label className="font-medium text-gray-600">{formData.chargeableOtherName}:</label>
-                                                            <input
-                                                                type="number"
-                                                                min="1"
-                                                                value={formData.chargeableQuantities?.["Others"] || ""}
-                                                                onChange={(e) => {
-                                                                    const value = e.target.value;
+                                        setFormData({
+                                            ...formData,
+                                            chargeableQuantities: {
+                                                ...formData.chargeableQuantities,
+                                                [item.value]: value
+                                            }
+                                        });
 
-                                                                    setFormData({
-                                                                        ...formData,
-                                                                        chargeableQuantities: {
-                                                                            ...formData.chargeableQuantities,
-                                                                            Others: value
-                                                                        }
-                                                                    });
-                                                                }}
-                                                                placeholder="Qty"
-                                                                className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm w-24 focus:ring-2 outline-none focus:ring-blue-400 transition"
-                                                            />
-                                                        </div>
-                                                    )}
+                                        if (errors.chargeableQuantities?.[item.value]) {
+                                            setErrors(prev => ({
+                                                ...prev,
+                                                chargeableQuantities: {
+                                                    ...prev.chargeableQuantities,
+                                                    [item.value]: undefined
+                                                }
+                                            }));
+                                        }
+                                    }}
+                                    placeholder="Qty"
+                                    className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition 
+    ${errors.chargeableQuantities && errors.chargeableQuantities[item.value]
+                                            ? 'border-red-500 focus:ring-red-400'
+                                            : 'border-gray-300 focus:ring-blue-400'
+                                        }`}
+                                />
 
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div className="flex items-center mt-4">
-                                        <input
-                                            type="checkbox"
-                                            name="materialNeedsDelivery"
-                                            checked={formData.materialNeedsDelivery}
-                                            onChange={(e) => setFormData({ ...formData, materialNeedsDelivery: e.target.checked })}
-                                            className="h-4 w-4 text-[#9FC762] focus:ring-[#9FC762] border-gray-300 rounded"
-                                        />
-                                        <label className="ml-2 text-gray-700">
-                                            Material Needs to be delivered? (सामग्री जिसे पहुँचाना है)
-                                        </label>
-                                    </div>
-                                </div>
 
-                                {/* Photo of the Setup - KEEP REQUIRED */}
+                                {errors.chargeableQuantities && errors.chargeableQuantities[item.value] && (
+                                    <span className="text-red-500 text-sm">{errors.chargeableQuantities[item.value]}</span>
+                                )}
+                            </div>
+                        ))}
+
+                    {formData.material_supplied_chargeable_items?.some((i) => i.value === "Others") &&
+                        formData.chargeableOtherName?.trim() !== "" && (
+                            <div className="flex flex-col gap-2">
+                                <label className="font-medium text-gray-600">{formData.chargeableOtherName}:</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={formData.chargeableQuantities?.["Others"] || ""}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+
+                                        setFormData({
+                                            ...formData,
+                                            chargeableQuantities: {
+                                                ...formData.chargeableQuantities,
+                                                Others: value
+                                            }
+                                        });
+
+                                        if (errors.chargeableQuantities?.["Others"]) {
+                                            setErrors(prev => ({
+                                                ...prev,
+                                                chargeableQuantities: {
+                                                    ...prev.chargeableQuantities,
+                                                    Others: undefined
+                                                }
+                                            }));
+                                        }
+                                    }}
+                                    placeholder="Qty"
+                                    className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition 
+    ${errors.chargeableQuantities && errors.chargeableQuantities["Others"]
+                                            ? 'border-red-500 focus:ring-red-400'
+                                            : 'border-gray-300 focus:ring-blue-400'
+                                        }`}
+                                />
+
+
+                                {errors.chargeableQuantities && errors.chargeableQuantities["Others"] && (
+                                    <span className="text-red-500 text-sm">{errors.chargeableQuantities["Others"]}</span>
+                                )}
+                            </div>
+                        )}
+
+                </div>
+            </div>
+        )}
+        <div className="flex items-center mt-4">
+            <input
+                type="checkbox"
+                name="materialNeedsDelivery"
+                checked={formData.materialNeedsDelivery}
+                onChange={(e) => setFormData({ ...formData, materialNeedsDelivery: e.target.checked })}
+                className="h-4 w-4 text-[#9FC762] focus:ring-[#9FC762] border-gray-300 rounded"
+            />
+            <label className="ml-2 text-gray-700">
+                Material Needs to be delivered? (सामग्री जिसे पहुँचाना है)
+            </label>
+        </div>
+    </div>
+
+                                {/* Photo of the Setup */}
                                 <div className="flex-1">
                                     <label className="mb-1 font-medium text-gray-700">
                                         Photo of the Setup (सेटअप की तस्वीर) <span className="text-red-500">*</span>
@@ -2093,6 +2157,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                         </div>
                     )}
 
+                    {/* BUTTONS */}
                     {/* BUTTONS */}
                     <div className="mt-6 px-6">
                         <div className="flex flex-col md:flex-row justify-end w-full gap-3">

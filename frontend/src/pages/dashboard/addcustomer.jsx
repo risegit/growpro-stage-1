@@ -237,7 +237,7 @@ const StepperCustomerForm = () => {
 
     if (currentStep === 1) {
       if (!formData.name.trim()) stepErrors.name = 'Name is required';
-      if (!formData.email.trim()) stepErrors.email = 'Email is required';
+      // if (!formData.email.trim()) stepErrors.email = 'Email is required';
       if (!formData.phoneNumber.trim()) stepErrors.phoneNumber = 'Phone number is required';
       else if (!/^\d{10}$/.test(formData.phoneNumber)) stepErrors.phoneNumber = 'Phone number must be 10 digits';
       if (formData.staffPhoneNumber && !/^\d{10}$/.test(formData.staffPhoneNumber)) {
@@ -424,66 +424,6 @@ const StepperCustomerForm = () => {
     }
   };
 
-
-  // const handleSubmit = async () => {
-  //   if (!validateStep()) return;
-
-  //   const formPayload = new FormData();
-
-  //   // Append main form fields
-  //   Object.keys(formData).forEach((key) => {
-  //     formPayload.append(key, formData[key]);
-  //   });
-
-  //   // Loop through growers
-  //   growers.forEach((grower, index) => {
-  //     // Clone grower and remove image from JSON object
-  //     const growerData = { ...grower };
-  //     const imageFile = growerData.photoAtInstallation;
-  //     delete growerData.photoAtInstallation;
-
-  //     // Add JSON grower data
-  //     // formPayload.append(`growers[${index}]`, JSON.stringify(growerData));
-  //     formPayload.append("growers", JSON.stringify(growers));
-
-  //     // Add image separately if exists
-  //     if (imageFile instanceof File) {
-  //       formPayload.append(`photoAtInstallation_${index}`, imageFile);
-  //     }
-  //   });
-
-  //   console.log("Form Payload Data:");
-  //   for (let pair of formPayload.entries()) {
-  //     console.log(pair[0] + ": ", pair[1]);
-  //   }
-
-  //   try {
-  //     const response = await fetch(
-  //       `${import.meta.env.VITE_API_URL}api/customer.php`,
-  //       {
-  //         method: "POST",
-  //         body: formPayload,
-  //       }
-  //     );
-
-  //     const text = await response.text(); // first get raw text
-  //     console.log("Raw Response:", text);
-
-  //     const result = JSON.parse(text); // then parse safely
-  //     console.log("Server Parsed JSON:", result);
-
-  //     if (result.status === "success") {
-  //       toast.success("Customer added successfully");
-  //       setErrors({});
-  //     } else {
-  //       toast.error(result.message || "Something went wrong");
-  //     }
-  //   } catch (error) {
-  //     console.error("Fetch Error:", error);
-  //     console.log('data',formData)
-  //     alert("Server error. Contact admin.");
-  //   }
-  // };
   const [cities, setCities] = useState([]);
   const statesAndCities = {
     Maharashtra: ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
@@ -542,7 +482,7 @@ const StepperCustomerForm = () => {
             {/* Email */}
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
-                Email (ईमेल) <span className="text-red-500">*</span>
+                Email (ईमेल) 
               </label>
               <input
                 type="email"
