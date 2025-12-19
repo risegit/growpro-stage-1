@@ -185,7 +185,7 @@ export default function UserTable() {
                         onClick={() => handleSort("phone")}
                       >
                         <div className="flex items-center">
-                          Phone
+                          Locality
                           <SortArrow columnKey="phone" />
                         </div>
                       </th>
@@ -195,7 +195,7 @@ export default function UserTable() {
                         onClick={() => handleSort("email")}
                       >
                         <div className="flex items-center">
-                          Email
+                          Plants
                           <SortArrow columnKey="email" />
                         </div>
                       </th>
@@ -219,7 +219,7 @@ export default function UserTable() {
                   <tbody>
                     {currentUsers.map((user) => (
                       <tr key={user._id} className="border-b hover:bg-gray-50 transition">
-                        <td className="py-4 px-1">
+                        <td className="w-[25%] py-4 px-1">
                           <div className="flex items-center gap-2">
                             <img
                               src={
@@ -234,19 +234,19 @@ export default function UserTable() {
                           </div>
                         </td>
 
-                        <td className="py-4 px-4 text-gray-700">
-                          <a href={`tel:${user.phone}`} className="text-blue-600 hover:underline">
-                            {user.phone}
-                          </a>
+                        <td className="w-[35%] py-4 px-4 text-gray-700">
+                          {/* <a href={`tel:${user.phone}`} className="text-blue-600 hover:underline"> */}
+                            {user.locality}, {user.landmark}
+                          {/* </a> */}
                         </td>
 
-                        <td className="py-4 px-4 text-gray-700">
-                          <a href={`mailto:${user.email}`} className="text-blue-600 hover:underline">
-                            {user.email}
-                          </a>
+                        <td className="w-[15%] py-4 px-4 text-gray-700">
+                          {/* <a href={`mailto:${user.email}`} className="text-blue-600 hover:underline"> */}
+                            {user.total_no_of_plants}
+                          {/* </a> */}
                         </td>
 
-                        <td className="py-4 px-4">
+                        <td className="w-[10%] py-4 px-4">
                           <span
                             className={`px-3 py-1 rounded-lg text-sm font-medium ${user.status === "active"
                                 ? "bg-green-600 text-white"
@@ -292,19 +292,19 @@ export default function UserTable() {
                       </div>
                     </div>
 
+                    <div>
+                      <p className="text-xs text-gray-500">Locality</p>
+                      <a href={`tel:${user.phone}`} className="text-sm text-blue-600 hover:underline">
+                        {user.locality}, {user.landmark}
+                      </a>
+                    </div>
+
                     <div className="space-y-2 mb-4">
                       <div>
-                        <p className="text-xs text-gray-500">Email</p>
-                        <a href={`mailto:${user.email}`} className="text-sm text-blue-600 hover:underline">
-                          {user.email}
-                        </a>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-gray-500">Phone</p>
-                        <a href={`tel:${user.phone}`} className="text-sm text-blue-600 hover:underline">
-                          {user.phone}
-                        </a>
+                        <p className="text-xs text-gray-500">Plants</p>
+                        {/* <a href={`mailto:${user.email}`} className="text-sm text-blue-600 hover:underline"> */}
+                          {user.total_no_of_plants}
+                        {/* </a> */}
                       </div>
 
                       <div>

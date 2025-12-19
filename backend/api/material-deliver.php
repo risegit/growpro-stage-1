@@ -68,7 +68,7 @@ switch ($method) {
                 ]);
 
             }else{
-                $sql1 = "SELECT sv.id,u.id customer_id,u.name,u.phone,u.profile_pic,t.name tech_name,COALESCE(mdr.delivery_status, 'No') AS delivery_status, sv.created_date FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id INNER JOIN users t ON sv.visited_by=t.user_code LEFT JOIN material_delivery_records mdr ON sv.id=mdr.visit_id";
+                $sql1 = "SELECT sv.id,u.id customer_id,u.name,u.phone,u.profile_pic,cd.locality,t.name tech_name,COALESCE(mdr.delivery_status, 'No') AS delivery_status, sv.created_date FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id INNER JOIN users t ON sv.visited_by=t.user_code LEFT JOIN material_delivery_records mdr ON sv.id=mdr.visit_id INNER JOIN customers_details cd ON cd.user_id=u.id";
                 $result = $conn->query($sql1);
 
                 $data = [];

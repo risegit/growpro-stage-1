@@ -104,6 +104,8 @@ const StepperCustomerForm = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
+
+  
   const handleGrowerChange = (index, e, customField, customValue) => {
     const updatedGrowers = [...growers];
 
@@ -274,7 +276,7 @@ const StepperCustomerForm = () => {
       let stepErrors = {};
 
       if (!formData.name.trim()) stepErrors.name = 'Name is required';
-      if (!formData.email.trim()) stepErrors.email = 'Email is required';
+      // if (!formData.email.trim()) stepErrors.email = 'Email is required';
       if (!formData.phoneNumber.trim()) stepErrors.phoneNumber = 'Phone number is required';
       else if (!/^\d{10}$/.test(formData.phoneNumber))
         stepErrors.phoneNumber = 'Phone number must be 10 digits';
@@ -338,80 +340,7 @@ const StepperCustomerForm = () => {
     return Object.keys(stepErrors).length === 0;
   };
 
-  // const handleSubmit = async () => {
-  //   if (!validateStep()) return;
-
-  //   const formPayload = new FormData();
-
-  //   // Append main form fields
-  //   for (const key in formData) {
-  //     formPayload.append(key, formData[key]);
-  //   }
-
-  //   // Append growers as JSON string
-  //   // formPayload.append("growers", JSON.stringify(growers));
-
-  //   console.log("Form Payload Data:");
-  //   for (let pair of formPayload.entries()) {
-  //     console.log(pair[0] + ": ", pair[1]);
-  //   }
-  //   formPayload.append('id', id);
-  //   formPayload.append('_method', 'PUT');
-
-  //   growers.forEach((grower, index) => {
-  //     // Clone grower and remove image from JSON object
-  //     const growerData = { ...grower };
-  //     const imageFile = growerData.photoAtInstallation;
-  //     delete growerData.photoAtInstallation;
-
-  //     // Add JSON grower data
-  //     // formPayload.append(`growers[${index}]`, JSON.stringify(growerData));
-  //     formPayload.append("growers", JSON.stringify(growers));
-
-  //     // Add image separately if exists
-  //     if (imageFile instanceof File) {
-  //       formPayload.append(`photoAtInstallation_${index}`, imageFile);
-  //     }
-  //   });
-  //   console.log("Form data entries:");
-  //   for (let [key, value] of formPayload.entries()) {
-  //     console.log(key, ":", value);
-  //   }
-
-
-
-  //   try {
-  //     const response = await fetch(
-  //       `${import.meta.env.VITE_API_URL}api/customer.php`,
-  //       {
-  //         method: "POST",
-  //         body: formPayload
-  //       }
-  //     );
-
-
-  //     const result = await response.json();
-  //     console.log("Server response:", result);
-
-  //     if (result.status === "success") {
-  //       toast.success(result.message);
-
-  //       // Reset form after success
-  //       // setFormData(initialCustomerState);
-  //       // setGrowers([initialGrowerState]);
-  //       // setCurrentStep(1);
-  //       setErrors({});
-  //     } else {
-  //       toast.error(result.error);
-  //       // alert("Something went wrong. Please try again.");
-  //     }
-  //   } catch (error) {
-  //     toast.error("Error submitting form");
-  //     console.error("Error submitting form:", error);
-  //     // alert("Server error. Contact admin.");
-  //   }
-  // };
-
+  
   const handleSubmit = async () => {
     if (!validateStep()) return;
 
@@ -536,7 +465,7 @@ const StepperCustomerForm = () => {
             {/* Email */}
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
-                Email (ईमेल) <span className="text-red-500">*</span>
+                Email (ईमेल) 
               </label>
               <input
                 type="email"

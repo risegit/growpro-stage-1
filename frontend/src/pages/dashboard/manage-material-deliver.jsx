@@ -760,18 +760,21 @@ const generatePDF = (user) => {
   }, [allUsers, sortConfig]);
 
   // 🔹 Filter users based on search
-  const filteredUsers = useMemo(() => {
-    if (!searchQuery.trim()) return sortedUsers;
-    const query = searchQuery.toLowerCase();
-    return sortedUsers.filter(
-      (user) =>
-        user.name.toLowerCase().includes(query) ||
-        user.phone.toLowerCase().includes(query) ||
-        user.delivery_status.toLowerCase().includes(query) ||
-        user.plant.toLowerCase().includes(query) ||
-        user.tech_name.toLowerCase().includes(query)
+const filteredUsers = useMemo(() => {
+  if (!searchQuery.trim()) return sortedUsers;{plantsList.length > 0 ? "Plants" : ""}
+
+  const query = searchQuery.toLowerCase();
+
+  return sortedUsers.filter((user) => {
+    return (
+      user.name?.toLowerCase().includes(query) ||
+      user.tech_name?.toLowerCase().includes(query) ||
+      user.locality?.toLowerCase().includes(query) ||
+      user.delivery_status?.toLowerCase().includes(query)
     );
-  }, [sortedUsers, searchQuery]);
+  });
+}, [sortedUsers, searchQuery]);
+
 
   // Pagination logic
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
@@ -892,11 +895,11 @@ const generatePDF = (user) => {
                       </th>
                       <th
                         className="w-[14%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
-                        onClick={() => handleSort('phone')}
+                        onClick={() => handleSort('locality')}
                       >
                         <div className="flex items-center">
-                          Customer No.
-                          <SortIndicator columnKey="phone" />
+                          Locality
+                          <SortIndicator columnKey="locality" />
                         </div>
                       </th>
                       <th
@@ -957,17 +960,20 @@ const generatePDF = (user) => {
 
                           {/* Phone */}
                           <td className="py-4 px-4 text-gray-700 truncate">
-                            <a
-                              href={`tel:${user.phone || user.mobile}`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              {user.phone || user.mobile}
-                            </a>
+                            {/* <a href={`tel:${user.phone || user.mobile}`} className="text-blue-600 hover:underline"> */}
+                              {user.locality}
+                            {/* </a> */}
                           </td>
 
-                          <td>
-                            {plantsList.length > 0 ? "Plants" : ""}{nutrientsList.length > 0 ? " , Nutrients" : ""}{chargeableItemList.length > 0 ? " , Chargeable Items" : ""}
+                          <td className="py-4 px-4 text-gray-700">
+                            {user.plants?.length > 0 && "Plants"}
+                            {user.nutrients?.length > 0 && (user.plants?.length > 0 ? ", Nutrients" : "Nutrients")}
+                            {user.chargeableItems?.length > 0 &&
+                              ((user.plants?.length > 0 || user.nutrients?.length > 0)
+                                ? ", Chargeable Items"
+                                : "Chargeable Items")}
                           </td>
+
 
                           <td className="py-4 px-4 text-gray-700 truncate">
                             {user.delivery_status?.toUpperCase()}
@@ -1036,15 +1042,12 @@ const generatePDF = (user) => {
                       <div className="space-y-3 mb-5">
                         <div className="flex flex-col">
                           <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Contact No.
+                            Locality
                           </span>
                           <span className="text-sm text-gray-700 break-all">
-                            <a
-                              href={`tel:${user.phone}`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              {user.phone}
-                            </a>
+                            {/* <a href={`tel:${user.phone}`} className="text-blue-600 hover:underline"> */}
+                              {user.locality}
+                            {/* </a> */}
                           </span>
                         </div>
                       </div>
