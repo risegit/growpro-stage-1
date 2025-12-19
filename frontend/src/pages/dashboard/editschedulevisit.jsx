@@ -22,7 +22,7 @@ export default function CustomerVisitForm() {
     const [loadingCustomers, setLoadingCustomers] = useState(false);
     const [loadingtechnicians, setLoadingtechnicians] = useState(false);
     const [loading, setLoading] = useState(false);
-
+                                                                                                                                                                                                                                                        
     // const customers = ["John Doe", "Nimish", "Akash", "Rohan"];
     // const technicians = ["Technician 1", "Technician 2", "Technician 3"];
 

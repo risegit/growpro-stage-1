@@ -74,7 +74,6 @@ const generatePDF = async (visitData, fullApiData) => {
        LOGO HELPER
     ---------------------------------- */
 
-    // Function to add logo to top LEFT corner of all pages
     const addLogoToPage = async (pageNum) => {
       try {
         const logoUrl = `${import.meta.env.BASE_URL || ""}img/growprologo.jpeg`;
@@ -82,10 +81,9 @@ const generatePDF = async (visitData, fullApiData) => {
         if (logoDataUrl) {
           const logoWidth = 25;
           const logoHeight = 18;
-          const logoX = margin; // LEFT aligned
-          const logoY = 10; // Top of page
+          const logoX = margin;
+          const logoY = 10;
           
-          // Switch to the page
           if (pageNum > 1) {
             doc.setPage(pageNum);
           }
@@ -98,21 +96,18 @@ const generatePDF = async (visitData, fullApiData) => {
     };
 
     /* ----------------------------------
-       HELPERS - MODIFIED ensureSpace
+       HELPERS
     ---------------------------------- */
 
     const ensureSpace = (h = 8) => {
-      // Add buffer space for logo
-      const logoSpace = 25; // Extra space to avoid logo overlap
+      const logoSpace = 25;
       
       if (yPos + h > pageHeight - 25) {
-        // Add new page
         doc.addPage();
         currentPage++;
         totalPages = currentPage;
-        yPos = 20 + logoSpace; // Start lower to avoid logo overlap
+        yPos = 20 + logoSpace;
         
-        // Add logo to new page
         setTimeout(() => addLogoToPage(currentPage), 0);
       }
     };
@@ -134,12 +129,24 @@ const generatePDF = async (visitData, fullApiData) => {
       doc.text(label, margin, yPos);
 
       const answerX = pageWidth - 30;
-      const answer = String(value).toLowerCase() === "yes" ? "Yes" : 
-                     String(value).toLowerCase() === "no" ? "No" : "";
+      let answer = "";
+      
+      if (value !== undefined && value !== null) {
+        const strValue = String(value).toLowerCase().trim();
+        if (strValue === "yes" || strValue === "y" || strValue === "true" || strValue === "1") {
+          answer = "Yes";
+        } else if (strValue === "no" || strValue === "n" || strValue === "false" || strValue === "0") {
+          answer = "No";
+        }
+      }
       
       if (answer) {
         doc.setFont(undefined, "bold");
         doc.text(answer, answerX, yPos, { align: "right" });
+        doc.setFont(undefined, "normal");
+      } else {
+        doc.setFont(undefined, "bold");
+        doc.text("", answerX, yPos, { align: "right" });
         doc.setFont(undefined, "normal");
       }
 
@@ -160,7 +167,6 @@ const generatePDF = async (visitData, fullApiData) => {
         return;
       }
 
-      // Table headers
       if (showHeader) {
         ensureSpace(10);
         doc.setFontSize(9);
@@ -178,7 +184,6 @@ const generatePDF = async (visitData, fullApiData) => {
         yPos += 5;
       }
 
-      // Table rows
       doc.setFontSize(9);
       doc.setFont(undefined, "normal");
 
@@ -202,7 +207,6 @@ const generatePDF = async (visitData, fullApiData) => {
       yPos += 3;
     };
 
-    // Helper function to load image
     const loadImageToDataURL = async (imageUrl) => {
       try {
         if (imageUrl.startsWith('data:')) {
@@ -244,7 +248,6 @@ const generatePDF = async (visitData, fullApiData) => {
       }
     };
 
-    // Helper to get correct image URL
     const getImageUrl = (imageFileName) => {
       if (!imageFileName) return null;
       
@@ -281,47 +284,34 @@ const generatePDF = async (visitData, fullApiData) => {
     };
 
     /* ----------------------------------
-       HEADER WITH LOGO ON FIRST PAGE
+       HEADER WITH LOGO
     ---------------------------------- */
 
-    // Add logo to first page (top LEFT)
     await addLogoToPage(1);
 
-    // Title - adjust position to avoid logo
     doc.setFontSize(14);
     doc.setFont(undefined, "bold");
-    // Move title slightly to the right to avoid logo
     doc.text("Site Inspection Report", pageWidth / 2 + 10, 20, { align: "center" });
     
-    // Add introductory line - CENTERED
-    doc.setFontSize(11);
-    doc.setFont(undefined, "normal");
-    // doc.text("Dear Customer, the following are our observations from our Visit.", pageWidth / 2, 30, { align: "center" });
-    
-    // Client info - start lower to account for intro text
-    yPos = 40; // Increased to accommodate intro line
+    yPos = 40;
     
     doc.setFontSize(10);
     doc.setFont(undefined, "normal");
     
-    // Client Name - start further to the right to avoid logo
-    const textStartX = margin + 30; // Move right to avoid logo
+    const textStartX = margin + 30;
     doc.text("Client Name:", textStartX, yPos);
     doc.line(textStartX + 25, yPos + 1, textStartX + 85, yPos + 1);
     doc.text(visitData.customer_name || "", textStartX + 26, yPos);
     
-    // Date of Visit
     doc.text("Date of Visit:", pageWidth - 75, yPos);
     doc.line(pageWidth - 45, yPos + 1, pageWidth - 15, yPos + 1);
     doc.text(visitData.created_date || "", pageWidth - 44, yPos);
     
-    // Technician Name below Client Name (NOT bold)
     yPos += 7;
     doc.text("Visited By:", textStartX, yPos);
     doc.line(textStartX + 25, yPos + 1, textStartX + 85, yPos + 1);
     doc.text(visitData.technician_name || "", textStartX + 26, yPos);
     
-    // Add separator line
     yPos += 10;
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.5);
@@ -334,27 +324,68 @@ const generatePDF = async (visitData, fullApiData) => {
     ---------------------------------- */
 
     const siteVisit = fullApiData.site_visit?.[0] || {};
-    const plantProblems = fullApiData.plantProblems || [];
-    const pests = fullApiData.pestTypes || [];
 
     /* ----------------------------------
-       I. BASIC VISUAL INSPECTION
+       I. BASIC VISUAL INSPECTION - UPDATED WITH EQUIPMENT DAMAGE REASON
     ---------------------------------- */
     doc.setFontSize(11);
-doc.setFont(undefined, "normal");
-doc.text("Dear Customer, the following are our observations from our Visit.", pageWidth / 2, yPos, { align: "center" });
+    doc.setFont(undefined, "normal");
+    doc.text("Dear Customer, the following are our observations from our Visit.", pageWidth / 2, yPos, { align: "center" });
 
-yPos += 10; // Add space after the intro line
+    yPos += 10;
 
     drawSection("I. Basic Visual Inspection");
 
     drawYesNo("1. All plants are getting water?", siteVisit.are_plants_getting_water);
     drawYesNo("2. Water above the pump?", siteVisit.water_above_pump);
-    drawYesNo("3. Timer / Motor / Lights working?", siteVisit.timer_working);
-    drawYesNo("4. Any other equipment damaged?", siteVisit.equipment_damage);
-    drawYesNo("5. Any leaks?", siteVisit.any_leaks);
-    drawYesNo("6. Clean growing equipment & surroundings?", siteVisit.cleanliness);
-    drawYesNo("7. Electric connections secured by clients?", siteVisit.electric_secured);
+
+    // Timer question
+    drawYesNo("3. Timer working?", siteVisit.timer_working);
+    if (siteVisit.timer_working && String(siteVisit.timer_working).toLowerCase() === "no") {
+        const reason = siteVisit.timer_issue || "";
+        if (reason) {
+            drawLineField("   If no, reason:", reason, 100);
+        }
+    }
+
+    // Motor question
+    drawYesNo("4. Motor working?", siteVisit.motor_working);
+    if (siteVisit.motor_working && String(siteVisit.motor_working).toLowerCase() === "no") {
+        const reason = siteVisit.motor_issue || "";
+        if (reason) {
+            drawLineField("   If no, reason:", reason, 100);
+        }
+    }
+
+    // Lights question
+    drawYesNo("5. Lights working?", siteVisit.light_working);
+    if (siteVisit.light_working && String(siteVisit.light_working).toLowerCase() === "no") {
+        const reason = siteVisit.light_issue || "";
+        if (reason) {
+            drawLineField("   If no, reason:", reason, 100);
+        }
+    }
+
+    // Equipment damaged question - SHOW REASON IF YES
+    drawYesNo("6. Any other equipment damaged?", siteVisit.equipment_damaged);
+    if (siteVisit.equipment_damaged && String(siteVisit.equipment_damaged).toLowerCase() === "yes") {
+        const reason = siteVisit.damaged_items || siteVisit.equipment_damage_reason || "";
+        if (reason) {
+            drawLineField("   If yes, details:", reason, 100);
+        }
+    }
+
+    // Any leaks question
+    drawYesNo("7. Any leaks?", siteVisit.any_leaks);
+    if (siteVisit.any_leaks && String(siteVisit.any_leaks).toLowerCase() === "yes") {
+        const reason = siteVisit.leaks_details || siteVisit.leaks_reason || "";
+        if (reason) {
+            drawLineField("   If yes, details:", reason, 100);
+        }
+    }
+
+    drawYesNo("8. Clean growing equipment & surroundings?", siteVisit.clean_equipment);
+    drawYesNo("9. Electric connections secured by clients?", siteVisit.electric_connections_secured);
 
     /* ----------------------------------
        II. TECHNICAL OBSERVATIONS
@@ -423,7 +454,7 @@ yPos += 10; // Add space after the intro line
     }
 
     drawLineField("7. Any nutrient deficiency?", siteVisit.nutrient_deficiency);
-    drawLineField("    Other:", siteVisit.other_observation, 120);
+    drawLineField("    Other:", siteVisit.deficiency_details || siteVisit.other_observation, 120);
 
     /* ----------------------------------
        III. CLIENT TRAINING
@@ -653,7 +684,7 @@ yPos += 10; // Add space after the intro line
     }
 
     /* ----------------------------------
-       SETUP PHOTOS - FIXED FOR FOOTER ISSUE
+       SETUP PHOTOS
     ---------------------------------- */
 
     const photos = Array.isArray(fullApiData.suppliedPhotoSetup) ? 
@@ -662,10 +693,8 @@ yPos += 10; // Add space after the intro line
       ) : [];
 
     if (photos.length > 0) {
-      // Check remaining space on page
       const remainingSpace = pageHeight - 25 - yPos;
       
-      // Dynamic calculation based on photo count
       let photosPerRow;
       let imgWidth, imgHeight;
       
@@ -687,13 +716,13 @@ yPos += 10; // Add space after the intro line
       const rowHeight = imgHeight + verticalSpacing;
       
       const rowsNeeded = Math.ceil(photos.length / photosPerRow);
-      const spaceNeeded = (rowsNeeded * rowHeight) + 50; // Increased for footer content
+      const spaceNeeded = (rowsNeeded * rowHeight) + 50;
       
       if (remainingSpace < spaceNeeded) {
         doc.addPage();
         currentPage++;
         totalPages = currentPage;
-        yPos = 20 + 25; // Start lower to avoid logo overlap
+        yPos = 20 + 25;
         await addLogoToPage(currentPage);
       }
       
@@ -766,25 +795,19 @@ yPos += 10; // Add space after the intro line
        SIGNATURE SECTION
     ---------------------------------- */
 
-    // Make sure we're on the last page
     doc.setPage(totalPages);
-    
-    // Ensure space for footer content
-    ensureSpace(70); // More space for footer content
+    ensureSpace(70);
     
     /* ----------------------------------
        CLARIFICATION SECTION
     ---------------------------------- */
 
-    // Add clarification line
     yPos += 10;
     doc.setFontSize(11);
     doc.setFont(undefined, "normal");
     doc.text("Do let us know if you'd like clarity on any of our observations/suggestions.", margin, yPos);
     
     yPos += 10;
-    
-    // Draw separator line
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.2);
     doc.line(margin, yPos, pageWidth - margin, yPos);
@@ -792,28 +815,21 @@ yPos += 10; // Add space after the intro line
     yPos += 10;
 
     /* ----------------------------------
-       HAPPY GROWING SECTION - LEFT ALIGNED
+       HAPPY GROWING SECTION
     ---------------------------------- */
 
-    // "Happy Growing!" - Large and LEFT ALIGNED
     doc.setFontSize(16);
     doc.setFont(undefined, "bold");
     doc.text("Happy Growing!", margin, yPos);
 
     yPos += 10;
-
-    // Contact information in LEFT-ALIGNED column style
     doc.setFontSize(11);
     doc.setFont(undefined, "normal");
-
-    // Email with mailto: link (left aligned)
     doc.textWithLink("Email: sales@growpro.co.in", margin, yPos, {
       url: "mailto:sales@growpro.co.in"
     });
 
     yPos += 8;
-
-    // Phone with tel: link (left aligned)
     doc.textWithLink("Phone: 8591753001", margin, yPos, {
       url: "tel:+918591753001"
     });
@@ -821,44 +837,31 @@ yPos += 10; // Add space after the intro line
     yPos += 15;
 
     /* ----------------------------------
-       FOOTER TABLE AT THE VERY BOTTOM
+       FOOTER TABLE
     ---------------------------------- */
 
-    // Now add the footer table at the very bottom
     yPos = pageHeight - 25;
-
-    // Draw a line above the footer
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.3);
     doc.line(margin, yPos - 2, pageWidth - margin, yPos - 2);
 
-    // Footer table structure
     const footerY = pageHeight - 20;
-
-    // Left column: Phone with tel: link
     doc.setFontSize(9);
     doc.setFont(undefined, "normal");
     doc.textWithLink("Phone: +91 859 175 3001", margin, footerY, {
       url: "tel:+918591753001"
     });
 
-    // Right column: GrowPro Technology with website link
     doc.setFont(undefined, "bold");
-
-    // Use doc.text() for display with right alignment
     doc.text("GrowPro Technology", pageWidth - margin, footerY, { align: "right" });
 
-    // Add the link manually - calculate position based on text width
     const companyText = "GrowPro Technology";
     const textWidth = doc.getTextWidth(companyText);
     doc.link(pageWidth - margin - textWidth, footerY - 4, textWidth, 5, {
       url: "https://growpro.co.in/"
     });
 
-    // Second row of footer
     const footerY2 = pageHeight - 15;
-
-    // Left: Email with mailto: link
     doc.setFont(undefined, "normal");
     doc.textWithLink("Email: sales@growpro.co.in", margin, footerY2, {
       url: "mailto:sales@growpro.co.in"
@@ -868,16 +871,13 @@ yPos += 10; // Add space after the intro line
        FINAL STEP: Ensure logo is on all pages
     ---------------------------------- */
 
-    // Make sure logo is added to all pages
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
-      // Only add logo if not already added
       if (i > 1) {
         await addLogoToPage(i);
       }
     }
 
-    // Make sure we're back on the last page for saving
     doc.setPage(totalPages);
 
     /* ----------------------------------

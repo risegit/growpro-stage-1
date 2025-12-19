@@ -453,69 +453,78 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         };
     }, []);
 
-    function getChangedFields(original, current) {
-        const changes = {};
+//     function getChangedFields(original, current) {
+//     const changes = {};
 
-        const isObject = (v) => v && typeof v === "object" && !Array.isArray(v);
-        const isArray = Array.isArray;
+//     const isObject = (v) => v && typeof v === "object" && !Array.isArray(v);
+//     const isArray = Array.isArray;
 
-        const deepCompare = (orig, curr, keyPath = "") => {
-            if (!isObject(orig) && !isArray(orig)) {
-                if (orig !== curr) {
-                    changes[keyPath] = curr;
-                }
-                return;
-            }
+//     const deepCompare = (orig, curr, keyPath = "") => {
+//         if (!isObject(orig) && !isArray(orig)) {
+//             if (orig !== curr) {
+//                 changes[keyPath] = curr;
+//             }
+//             return;
+//         }
 
-            if (isArray(orig) && isArray(curr)) {
-                if (orig.length !== curr.length) {
-                    changes[keyPath] = curr;
-                    return;
-                }
+//         if (isArray(orig) && isArray(curr)) {
+//             if (orig.length !== curr.length) {
+//                 changes[keyPath] = curr;
+//                 return;
+//             }
 
-                curr.forEach((item, i) => {
-                    const subKey = `${keyPath}[${i}]`;
+//             // Special handling for plantQuantities which is an object, not an array
+//             if (keyPath === "plantQuantities" || keyPath === "chargeableQuantities" || 
+//                 keyPath === "materialNeedPlantQuantities" || keyPath === "chargeableNeedQuantities") {
+//                 if (JSON.stringify(orig) !== JSON.stringify(curr)) {
+//                     changes[keyPath] = curr;
+//                 }
+//                 return;
+//             }
 
-                    if (typeof item === "object") {
-                        if (JSON.stringify(orig[i]) !== JSON.stringify(item)) {
-                            changes[keyPath] = curr;
-                        }
-                    } else {
-                        if (orig[i] !== item) {
-                            changes[keyPath] = curr;
-                        }
-                    }
-                });
+//             curr.forEach((item, i) => {
+//                 const subKey = `${keyPath}[${i}]`;
 
-                return;
-            }
+//                 if (typeof item === "object") {
+//                     if (JSON.stringify(orig[i]) !== JSON.stringify(item)) {
+//                         changes[keyPath] = curr;
+//                     }
+//                 } else {
+//                     if (orig[i] !== item) {
+//                         changes[keyPath] = curr;
+//                     }
+//                 }
+//             });
 
-            if (isObject(orig) && isObject(curr)) {
-                Object.keys(curr).forEach(key => {
-                    const fullKey = keyPath ? `${keyPath}.${key}` : key;
+//             return;
+//         }
 
-                    if (!(key in orig)) {
-                        changes[fullKey] = curr[key];
-                        return;
-                    }
+//         if (isObject(orig) && isObject(curr)) {
+//             Object.keys(curr).forEach(key => {
+//                 const fullKey = keyPath ? `${keyPath}.${key}` : key;
 
-                    if (typeof curr[key] === "object") {
-                        deepCompare(orig[key], curr[key], fullKey);
-                    } else {
-                        if (orig[key] !== curr[key]) {
-                            changes[fullKey] = curr[key];
-                        }
-                    }
-                });
+//                 if (!(key in orig)) {
+//                     changes[fullKey] = curr[key];
+//                     return;
+//                 }
 
-                return;
-            }
-        };
+//                 if (typeof curr[key] === "object") {
+//                     deepCompare(orig[key], curr[key], fullKey);
+//                 } else {
+//                     if (orig[key] !== curr[key]) {
+//                         changes[fullKey] = curr[key];
+//                     }
+//                 }
+//             });
 
-        deepCompare(original, current);
+//             return;
+//         }
+//     };
 
-        return changes;
-    }
+//     deepCompare(original, current);
+
+//     return changes;
+// }
 
     const resetForm = () => {
         setFormData(initialFormState);
@@ -558,15 +567,15 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
         try {
             await new Promise(resolve => setTimeout(resolve, 800));
-            const changedFields = getChangedFields(originalData, formData);
-            changedFields.materialNeedsDelivery = formData.materialNeedsDelivery;
+            // const changedFields = getChangedFields(originalData, formData);
+            // changedFields.materialNeedsDelivery = formData.materialNeedsDelivery;
 
-            const imageDiff = getImageChanges(originalData.setupPhotos, formData.setupPhotos);
-            if (imageDiff.added.length > 0 || imageDiff.removed.length > 0) {
-                changedFields.setupPhotos = imageDiff;
-            }
+            // const imageDiff = getImageChanges(originalData.setupPhotos, formData.setupPhotos);
+            // if (imageDiff.added.length > 0 || imageDiff.removed.length > 0) {
+            //     changedFields.setupPhotos = imageDiff;
+            // }
 
-            console.log("Final data to send:", changedFields);
+            // console.log("Final data to send:", changedFields);
 
             const formPayload = new FormData();
 
@@ -716,45 +725,30 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         setErrors({ ...errors, setupPhoto: "" });
     };
 
-const handleStep4MaterialsSelection = (selected) => {
-    const newMaterials = selected || [];
+    const handleStep4MaterialsSelection = (selected) => {
+        const newMaterials = selected || [];
+        const newQuantities = {};
 
-    // CASE 1: User didn’t touch selector → keep old plants & quantities
-    if (newMaterials.length === 0 && originalPlants.length > 0) {
+        // Only add quantities for selected materials
+        newMaterials.forEach(material => {
+            const key = material.value;
+            // Preserve existing quantity if it exists
+            if (formData.plantQuantities[key] !== undefined) {
+                newQuantities[key] = formData.plantQuantities[key];
+            }
+        });
+
+        // IMPORTANT: Don't add "Others" if it's not in the selection
+        // No else clause to add empty "Others"
+
         setFormData({
             ...formData,
-            plants: originalPlants,
-            plantQuantities: { ...formData.plantQuantities }
+            plants: newMaterials,
+            plantQuantities: newQuantities,
         });
-        return;
-    }
 
-    // CASE 2: User actually made a selection → now process normally
-    const newQuantities = { ...formData.plantQuantities };
-    const selectedValues = newMaterials.map((m) => m.value);
-
-    // Remove unselected items
-    Object.keys(newQuantities).forEach((material) => {
-        if (!selectedValues.includes(material)) {
-            delete newQuantities[material];
-        }
-    });
-
-    // Handle "Others"
-    if (selectedValues.includes("Others")) {
-        newQuantities["Others"] = formData.plantQuantities["Others"] || "";
-    } else {
-        delete newQuantities["Others"];
-    }
-
-    setFormData({
-        ...formData,
-        plants: newMaterials,
-        plantQuantities: newQuantities
-    });
-};
-
-
+        setErrors({ ...errors, plants: "", plantQuantities: "" });
+    };
 
     const handleStep5MaterialsSelection = (selected) => {
         const newMaterials = selected || [];
@@ -788,16 +782,83 @@ const handleStep4MaterialsSelection = (selected) => {
     };
 
     const handleChargeableItemsChange = (selected) => {
+        const newItems = selected || [];
+        
+        // Clean up quantities for items that are no longer selected
+        const newQuantities = {};
+        
+        // Only keep quantities for items that are still selected
+        newItems.forEach(item => {
+            const key = item.value === "Others" ? "Others" : item.value;
+            if (formData.chargeableQuantities?.[key] !== undefined) {
+                newQuantities[key] = formData.chargeableQuantities[key];
+            }
+        });
+        
+        // Clear "Other" input if "Others" is not selected
+        let newOtherValue = formData.materialschargeableItemsOptionsother;
+        if (!newItems.some(item => item.value === "Others")) {
+            newOtherValue = "";
+        }
+        
         setFormData({
             ...formData,
-            material_supplied_chargeable_items: selected || [],
+            material_supplied_chargeable_items: newItems,
+            chargeableQuantities: newQuantities,
+            materialschargeableItemsOptionsother: newOtherValue,
         });
-
+        
         setErrors((prevErrors) => ({
             ...prevErrors,
             material_supplied_chargeable_items: "",
-            materialschargeableItemsOptionsother: selected?.some(item => item.value === "Others") ? prevErrors.materialschargeableItemsOptionsother : ""
+            materialschargeableItemsOptionsother: newItems.some(item => item.value === "Others") ? prevErrors.materialschargeableItemsOptionsother : ""
         }));
+    };
+
+    // Also update the "Other" item name handler to clean up the quantity when the name changes
+    const handleChargeableOtherNameChange = (e) => {
+        const { value } = e.target;
+        // If "Others" name is cleared, also clear its quantity
+        const newQuantities = { ...formData.chargeableQuantities };
+        if (!value.trim() && newQuantities["Others"]) {
+            delete newQuantities["Others"];
+        }
+        
+        setFormData({
+            ...formData,
+            materialschargeableItemsOptionsother: value,
+            chargeableQuantities: newQuantities,
+        });
+    };
+
+    // Also update the quantity handler to clean up quantity when set to empty
+    const handleChargeableQuantityChange = (itemKey, quantity) => {
+        const newQuantities = { ...formData.chargeableQuantities };
+        
+        if (quantity === "" || quantity === undefined) {
+            // Remove the key if quantity is empty
+            delete newQuantities[itemKey];
+        } else {
+            // Otherwise update the quantity
+            newQuantities[itemKey] = quantity;
+        }
+        
+        setFormData({
+            ...formData,
+            chargeableQuantities: newQuantities,
+        });
+        
+        // Clear error if exists
+        setErrors((prevErrors) => {
+            const newErrors = { ...prevErrors };
+            if (newErrors.chargeableQuantities && newErrors.chargeableQuantities[itemKey]) {
+                delete newErrors.chargeableQuantities[itemKey];
+                if (Object.keys(newErrors.chargeableQuantities).length === 0) {
+                    delete newErrors.chargeableQuantities;
+                }
+            }
+            return newErrors;
+        });
     };
 
     const handleStep4QuantityChange = (plantValue, quantity) => {
@@ -931,24 +992,15 @@ const handleStep4MaterialsSelection = (selected) => {
 
     const validateStep4 = () => {
         let newErrors = {};
-
-        // Plants validation (unchanged)
+        
+        // 1. Materials Supplied validation (plants field) - KEEP REQUIRED
         if (!formData.plants || formData.plants.length === 0) {
-            newErrors.plants = "Select at least one plant";
-        }
-
-        if (
-            formData.plants?.some((i) => i.value === "Others") &&
-            !formData.materialsSuppliedPlantData?.trim()
-        ) {
-            newErrors.materialsSuppliedPlantData = "Please specify the other material";
-        }
-
-        // Plants Quantity validation (unchanged)
-        if (formData.plants && formData.plants.length > 0) {
+            newErrors.plants = "Required";
+        } else {
+            // Validate quantities for selected plants
             const quantityErrors = {};
             let hasQuantityErrors = false;
-
+            
             formData.plants.forEach((plant) => {
                 if (plant.value !== "Others") {
                     const quantity = formData.plantQuantities?.[plant.value];
@@ -964,77 +1016,29 @@ const handleStep4MaterialsSelection = (selected) => {
                     }
                 }
             });
-
+            
             if (hasQuantityErrors) {
                 newErrors.plantQuantities = quantityErrors;
             }
         }
-
-        // Nutrients data validation (unchanged)
-        formData.nutrientsData.forEach((field, index) => {
-            const rowErrors = {};
-
-            if (!field.nutrients) {
-                rowErrors.nutrients = "Required";
-            }
-
-            if (!field.tankCapacity) {
-                rowErrors.tankCapacity = "Required";
-            }
-
-            if (!field.numberOfTopups && field.numberOfTopups !== 0) {
-                rowErrors.numberOfTopups = "Required";
-            }
-
-            if (Object.keys(rowErrors).length > 0) {
-                if (!newErrors.nutrientsData) newErrors.nutrientsData = [];
-                newErrors.nutrientsData[index] = rowErrors;
-            }
-        });
-
-        // Neem oil validation (unchanged)
+        
+        // 2. Photo of the Setup validation - KEEP REQUIRED
+        if (!formData.setupPhotos || formData.setupPhotos.length === 0) {
+            newErrors.setupPhoto = "Required";
+        }
+        
+        // 3. Neem Oil validation - KEEP REQUIRED
         if (!formData.material_supplied_neemoil) {
             newErrors.material_supplied_neemoil = "Required";
         }
-
-        // Chargeable items validation - REMOVED mandatory check
-        // Only validate quantities if items are selected
         
-        // Chargeable items quantity validation - only if items are selected
-        if (formData.material_supplied_chargeable_items && formData.material_supplied_chargeable_items.length > 0) {
-            const chargeableQuantityErrors = {};
-            let hasChargeableQuantityErrors = false;
-
-            formData.material_supplied_chargeable_items.forEach((item) => {
-                const key = item.value === "Others" ? "Others" : item.value;
-                const quantity = formData.chargeableQuantities?.[key];
-                if (!quantity || quantity.trim() === "" || isNaN(quantity) || parseInt(quantity) <= 0) {
-                    chargeableQuantityErrors[key] = "Quantity is required";
-                    hasChargeableQuantityErrors = true;
-                }
-            });
-
-            if (hasChargeableQuantityErrors) {
-                newErrors.chargeableQuantities = chargeableQuantityErrors;
-            }
-
-            // Validate "Others" specification if "Others" is selected
-            if (
-                formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") &&
-                !formData.materialschargeableItemsOptionsother?.trim()
-            ) {
-                newErrors.materialschargeableItemsOptionsother = "Please specify other items";
-            }
-        }
-
-        // Setup photo validation (unchanged)
-        if (!formData.setupPhotos || formData.setupPhotos.length === 0) {
-            newErrors.setupPhoto = "At least one photo of the setup is required.";
-        }
-
+        // REMOVED: NutrientsData validation
+        // REMOVED: Chargeable Items validation
+        
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
+
     const validateStep5 = () => {
         let newErrors = {};
 
@@ -1219,14 +1223,22 @@ const handleStep4MaterialsSelection = (selected) => {
         setErrors({ ...errors, [name]: "" });
     };
 
-    const handleStep4OtherInput = (e) => {
-        const { value } = e.target;
-        setFormData({
-            ...formData,
-            materialsSuppliedPlantData: value,
-        });
-        setErrors({ ...errors, materialsSuppliedPlantData: "" });
-    };
+    // const handleStep4OtherInput = (e) => {
+    //     const { value } = e.target;
+    //     // If "Others" name is cleared, also clear its quantity
+    //     const newQuantities = { ...formData.plantQuantities };
+    //     if (!value.trim() && newQuantities["Others"]) {
+    //         delete newQuantities["Others"];
+    //     }
+        
+    //     setFormData({
+    //         ...formData,
+    //         materialsSuppliedPlantData: value,
+    //         plantQuantities: newQuantities,
+    //     });
+        
+    //     setErrors({ ...errors, materialsSuppliedPlantData: "" });
+    // };
 
     const handleStep5OtherInput = (e) => {
         const { value } = e.target;
@@ -1260,10 +1272,10 @@ const handleStep4MaterialsSelection = (selected) => {
         </div>
     );
 
-    const YesNoSimple = ({ name, label }) => (
+    const YesNoSimple = ({ name, label, required = false }) => (
         <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">
-                {label} <span className="text-red-500">*</span>
+                {label} {required && <span className="text-red-500">*</span>}
             </label>
             <div className="flex gap-6">
                 {["yes", "no"].map((v) => (
@@ -1286,7 +1298,7 @@ const handleStep4MaterialsSelection = (selected) => {
     return (
         <div className="w-full min-h-screen bg-gray-100 mt-10">
             <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
-                <h2 className="text-2xl font-bold mb-6 text-gray-800">Observation Form</h2>
+                <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit Observation Form</h2>
                 <StepperHeader />
 
                 <div className="mt-6 space-y-6">
@@ -1300,8 +1312,8 @@ const handleStep4MaterialsSelection = (selected) => {
                                 <label>{formData.customer_name}</label>
                             </div>
 
-                            <YesNoSimple name="plantsWater" label="Are the Plants Getting Water (क्या पौधों को पानी मिल रहा है?)" />
-                            <YesNoSimple name="waterAbovePump" label="Water above the pump (पंप के ऊपर पानी)" />
+                            <YesNoSimple name="plantsWater" label="Are the Plants Getting Water (क्या पौधों को पानी मिल रहा है?)" required={true} />
+                            <YesNoSimple name="waterAbovePump" label="Water above the pump (पंप के ऊपर पानी)" required={true} />
 
                             {/* Timer Working */}
                             <div className="flex flex-col">
@@ -1376,7 +1388,7 @@ const handleStep4MaterialsSelection = (selected) => {
                             {/* Lights Working */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    Lights Working (Light काम कर रही है)
+                                    Lights Working (Light काम कर रही है) <span className="text-red-500">*</span>
                                 </label>
                                 <div className="flex gap-6">
                                     {["yes", "no"].map((v) => (
@@ -1392,6 +1404,7 @@ const handleStep4MaterialsSelection = (selected) => {
                                         </label>
                                     ))}
                                 </div>
+                                {errors.lightsWorking && <span className="text-red-500 text-sm mt-1">{errors.lightsWorking}</span>}
                                 {formData.lightsWorking === "no" && (
                                     <div className="mt-3">
                                         <input
@@ -1442,9 +1455,9 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            <YesNoSimple name="anyLeaks" label="Any leaks (कोई भी लीक)" />
-                            <YesNoSimple name="cleanEnvironment" label="Clean Environment (स्वच्छ वातावरण)" />
-                            <YesNoSimple name="electricSecured" label="Electric Connections Secured (विद्युत कनेक्शन सुरक्षित)" />
+                            <YesNoSimple name="anyLeaks" label="Any leaks (कोई भी लीक)" required={true} />
+                            <YesNoSimple name="cleanEnvironment" label="Clean Environment (स्वच्छ वातावरण)" required={true} />
+                            <YesNoSimple name="electricSecured" label="Electric Connections Secured (विद्युत कनेक्शन सुरक्षित)" required={true} />
                         </div>
                     )}
 
@@ -1526,6 +1539,7 @@ const handleStep4MaterialsSelection = (selected) => {
                                 <label className="mb-1 font-medium text-gray-700">
                                     Plant Problems (पौधों की समस्याएँ) <span className="text-red-500">*</span>
                                 </label>
+                                
                                 <Select
                                     isMulti
                                     options={plantProblemOptions}
@@ -1683,10 +1697,10 @@ const handleStep4MaterialsSelection = (selected) => {
                     {step === 3 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6">
                             {/* Yes/No fields */}
-                            <YesNoSimple name="harvestTraining" label="How & When to Harvest (कटाई कैसे और कब करें)" />
-                            <YesNoSimple name="pestManagement" label="Pest Management (कीट प्रबंधन)" />
-                            <YesNoSimple name="equipmentCleaning" label="Equipment Cleaning (उपकरण की सफ़ाई)" />
-                            <YesNoSimple name="plantMaintenance" label="Plant Maintenance (पौध रखरखाव)" />
+                            <YesNoSimple name="harvestTraining" label="How & When to Harvest (कटाई कैसे और कब करें)" required={true} />
+                            <YesNoSimple name="pestManagement" label="Pest Management (कीट प्रबंधन)" required={true} />
+                            <YesNoSimple name="equipmentCleaning" label="Equipment Cleaning (उपकरण की सफ़ाई)" required={true} />
+                            <YesNoSimple name="plantMaintenance" label="Plant Maintenance (पौध रखरखाव)" required={true} />
 
                             {/* Scopes of Improvement + Site Rating */}
                             <div className="flex flex-col md:flex-row md:space-x-4 md:col-span-2">
@@ -1746,7 +1760,7 @@ const handleStep4MaterialsSelection = (selected) => {
                     {/* STEP 4 */}
                     {step === 4 && (
                         <div className="space-y-6 px-6 py-6 max-w-full overflow-x-hidden">
-                            {/* Materials Supplied */}
+                            {/* Materials Supplied - KEEP REQUIRED */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     Materials Supplied (सप्लाई किए जाने वाले सामान) <span className="text-red-500">*</span>
@@ -1770,7 +1784,25 @@ const handleStep4MaterialsSelection = (selected) => {
                                             type="text"
                                             name="materialsSuppliedPlantData"
                                             value={formData.materialsSuppliedPlantData || ""}
-                                            onChange={handleStep4OtherInput}
+                                            onChange={(e) => {
+                                                const { value } = e.target;
+                                                // If "Others" name is cleared, also clear its quantity
+                                                const newQuantities = { ...formData.plantQuantities };
+                                                if (!value.trim() && newQuantities["Others"]) {
+                                                    delete newQuantities["Others"];
+                                                }
+                                                
+                                                setFormData({
+                                                    ...formData,
+                                                    materialsSuppliedPlantData: value,
+                                                    plantQuantities: newQuantities,
+                                                });
+                                                
+                                                setErrors((prevErrors) => ({
+                                                    ...prevErrors,
+                                                    materialsSuppliedPlantData: "",
+                                                }));
+                                            }}
                                             placeholder="Specify other material"
                                             className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialsSuppliedPlantData
                                                 ? "border-red-500 focus:ring-red-400"
@@ -1803,7 +1835,35 @@ const handleStep4MaterialsSelection = (selected) => {
                                                                 type="number"
                                                                 min="1"
                                                                 value={formData.plantQuantities?.[material.value] || ""}
-                                                                onChange={(e) => handleStep4QuantityChange(material.value, e.target.value)}
+                                                                onChange={(e) => {
+                                                                    const newQuantities = { ...formData.plantQuantities };
+                                                                    const quantity = e.target.value;
+                                                                    
+                                                                    if (quantity === "" || quantity === undefined) {
+                                                                        // Remove the key if quantity is empty
+                                                                        delete newQuantities[material.value];
+                                                                    } else {
+                                                                        // Otherwise update the quantity
+                                                                        newQuantities[material.value] = quantity;
+                                                                    }
+                                                                    
+                                                                    setFormData({
+                                                                        ...formData,
+                                                                        plantQuantities: newQuantities,
+                                                                    });
+
+                                                                    // Clear error if exists
+                                                                    setErrors((prevErrors) => {
+                                                                        const newErrors = { ...prevErrors };
+                                                                        if (newErrors.plantQuantities && newErrors.plantQuantities[material.value]) {
+                                                                            delete newErrors.plantQuantities[material.value];
+                                                                            if (Object.keys(newErrors.plantQuantities).length === 0) {
+                                                                                delete newErrors.plantQuantities;
+                                                                            }
+                                                                        }
+                                                                        return newErrors;
+                                                                    });
+                                                                }}
                                                                 placeholder="Qty"
                                                                 className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.plantQuantities && errors.plantQuantities[material.value]
                                                                     ? 'border-red-500 focus:ring-red-400'
@@ -1828,7 +1888,35 @@ const handleStep4MaterialsSelection = (selected) => {
                                                                 type="number"
                                                                 min="1"
                                                                 value={formData.plantQuantities?.["Others"] || ""}
-                                                                onChange={(e) => handleStep4QuantityChange("Others", e.target.value)}
+                                                                onChange={(e) => {
+                                                                    const newQuantities = { ...formData.plantQuantities };
+                                                                    const quantity = e.target.value;
+                                                                    
+                                                                    if (quantity === "" || quantity === undefined) {
+                                                                        // Remove the key if quantity is empty
+                                                                        delete newQuantities["Others"];
+                                                                    } else {
+                                                                        // Otherwise update the quantity
+                                                                        newQuantities["Others"] = quantity;
+                                                                    }
+                                                                    
+                                                                    setFormData({
+                                                                        ...formData,
+                                                                        plantQuantities: newQuantities,
+                                                                    });
+
+                                                                    // Clear error if exists
+                                                                    setErrors((prevErrors) => {
+                                                                        const newErrors = { ...prevErrors };
+                                                                        if (newErrors.plantQuantities && newErrors.plantQuantities["Others"]) {
+                                                                            delete newErrors.plantQuantities["Others"];
+                                                                            if (Object.keys(newErrors.plantQuantities).length === 0) {
+                                                                                delete newErrors.plantQuantities;
+                                                                            }
+                                                                        }
+                                                                        return newErrors;
+                                                                    });
+                                                                }}
                                                                 placeholder="Qty"
                                                                 className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.plantQuantities && errors.plantQuantities["Others"]
                                                                     ? 'border-red-500 focus:ring-red-400'
@@ -1846,13 +1934,13 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            {/* Dynamic Fields for Nutrients Data */}
+                            {/* Dynamic Fields for Nutrients Data - REMOVE REQUIRED */}
                             {formData.nutrientsData.map((field, index) => (
                                 <div key={index} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                     {/* Nutrients */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Nutrients (पोषक तत्व) <span className="text-red-500">*</span>
+                                            Nutrients (पोषक तत्व)
                                         </label>
                                         <Select
                                             options={nutrientOptions}
@@ -1861,15 +1949,12 @@ const handleStep4MaterialsSelection = (selected) => {
                                             classNamePrefix="react-select"
                                             placeholder="Select nutrient type..."
                                         />
-                                        {errors.nutrientsData && errors.nutrientsData[index]?.nutrients && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index]?.nutrients}</span>
-                                        )}
                                     </div>
 
                                     {/* Tank Capacity */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Tank Capacity in Litre (टैंक क्षमता लीटर में) <span className="text-red-500">*</span>
+                                            Tank Capacity in Litre (टैंक क्षमता लीटर में)
                                         </label>
                                         <input
                                             type="number"
@@ -1878,15 +1963,12 @@ const handleStep4MaterialsSelection = (selected) => {
                                             placeholder="Enter tank capacity in litres"
                                             className="px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-400"
                                         />
-                                        {errors.nutrientsData && errors.nutrientsData[index]?.tankCapacity && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index]?.tankCapacity}</span>
-                                        )}
                                     </div>
 
                                     {/* Number of Top-ups */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Number of Top-ups (टॉप-अप की संख्या) <span className="text-red-500">*</span>
+                                            Number of Top-ups (टॉप-अप की संख्या)
                                         </label>
                                         <input
                                             type="number"
@@ -1894,11 +1976,8 @@ const handleStep4MaterialsSelection = (selected) => {
                                             value={field.numberOfTopups}
                                             onChange={(e) => handleDynamicFieldChange(index, 'numberOfTopups', e.target.value)}
                                             placeholder="Enter number of top-ups"
-                                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.nutrientsData && errors.nutrientsData[index]?.numberOfTopups ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'} w-full`}
+                                            className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:outline-none focus:ring-blue-400 transition w-full"
                                         />
-                                        {errors.nutrientsData && errors.nutrientsData[index]?.numberOfTopups && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index]?.numberOfTopups}</span>
-                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -1923,25 +2002,45 @@ const handleStep4MaterialsSelection = (selected) => {
                                 </button>
                             </div>
 
-                            {/* Neem Oil */}
-                            <YesNoSimple name="material_supplied_neemoil" label="Neem Oil (नीम का तेल)" />
+                            {/* Neem Oil - KEEP REQUIRED */}
+                            <YesNoSimple name="material_supplied_neemoil" label="Neem Oil (नीम का तेल)" required={true} />
 
-                            {/* Chargeable Items */}
+                            {/* Chargeable Items - REMOVE REQUIRED */}
                             <div className="flex flex-col sm:flex-row space-x-0 sm:space-x-4 gap-4">
                                 {/* Chargeable Items Supplied */}
                                 <div className="flex-1">
                                     <label className="mb-1 font-medium text-gray-700">
                                         Chargeable Items Supplied (जो वस्तुएँ पैसे के लिए दी गई हैं)
-                                        {/* REMOVED required asterisk */}
                                     </label>
                                     <Select
                                         isMulti
                                         options={changebleItemsOptions}
                                         value={formData.material_supplied_chargeable_items}
                                         onChange={(selected) => {
+                                            const newItems = selected || [];
+                                            
+                                            // Clean up quantities for items that are no longer selected
+                                            const newQuantities = {};
+                                            
+                                            // Only keep quantities for items that are still selected
+                                            newItems.forEach(item => {
+                                                const key = item.value === "Others" ? "Others" : item.value;
+                                                if (formData.chargeableQuantities?.[key] !== undefined) {
+                                                    newQuantities[key] = formData.chargeableQuantities[key];
+                                                }
+                                            });
+                                            
+                                            // Clear "Other" input if "Others" is not selected
+                                            let newOtherValue = formData.materialschargeableItemsOptionsother;
+                                            if (!newItems.some(item => item.value === "Others")) {
+                                                newOtherValue = "";
+                                            }
+                                            
                                             setFormData({
                                                 ...formData,
-                                                material_supplied_chargeable_items: selected || [],
+                                                material_supplied_chargeable_items: newItems,
+                                                chargeableQuantities: newQuantities,
+                                                materialschargeableItemsOptionsother: newOtherValue,
                                             });
                                         }}
                                         classNamePrefix="react-select"
@@ -1956,16 +2055,23 @@ const handleStep4MaterialsSelection = (selected) => {
                                                 type="text"
                                                 name="materialschargeableItemsOptionsother"
                                                 value={formData.materialschargeableItemsOptionsother || ""}
-                                                onChange={handleChange}
+                                                onChange={(e) => {
+                                                    const { value } = e.target;
+                                                    // If "Others" name is cleared, also clear its quantity
+                                                    const newQuantities = { ...formData.chargeableQuantities };
+                                                    if (!value.trim() && newQuantities["Others"]) {
+                                                        delete newQuantities["Others"];
+                                                    }
+                                                    
+                                                    setFormData({
+                                                        ...formData,
+                                                        materialschargeableItemsOptionsother: value,
+                                                        chargeableQuantities: newQuantities,
+                                                    });
+                                                }}
                                                 placeholder="Specify other item"
-                                                className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialschargeableItemsOptionsother
-                                                    ? "border-red-500 focus:ring-red-400"
-                                                    : "border-gray-300 focus:ring-blue-400"
-                                                    }`}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none focus:ring-blue-400 transition"
                                             />
-                                            {errors.materialschargeableItemsOptionsother && (
-                                                <span className="text-red-500 text-sm mt-1">{errors.materialschargeableItemsOptionsother}</span>
-                                            )}
                                         </div>
                                     )}
 
@@ -1973,7 +2079,7 @@ const handleStep4MaterialsSelection = (selected) => {
                                     {formData.material_supplied_chargeable_items?.length > 0 && (
                                         <div className="flex flex-col mt-4">
                                             <label className="mb-2 font-medium text-gray-700">
-                                                Quantity of Chargeable Items <span className="text-red-500">*</span>
+                                                Quantity of Chargeable Items
                                             </label>
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {formData.material_supplied_chargeable_items
@@ -1985,24 +2091,26 @@ const handleStep4MaterialsSelection = (selected) => {
                                                                 type="number"
                                                                 min="1"
                                                                 value={formData.chargeableQuantities?.[item.value] || ""}
-                                                                onChange={(e) =>
+                                                                onChange={(e) => {
+                                                                    const newQuantities = { ...formData.chargeableQuantities };
+                                                                    const quantity = e.target.value;
+                                                                    
+                                                                    if (quantity === "" || quantity === undefined) {
+                                                                        // Remove the key if quantity is empty
+                                                                        delete newQuantities[item.value];
+                                                                    } else {
+                                                                        // Otherwise update the quantity
+                                                                        newQuantities[item.value] = quantity;
+                                                                    }
+                                                                    
                                                                     setFormData({
                                                                         ...formData,
-                                                                        chargeableQuantities: {
-                                                                            ...formData.chargeableQuantities,
-                                                                            [item.value]: e.target.value,
-                                                                        },
-                                                                    })
-                                                                }
+                                                                        chargeableQuantities: newQuantities,
+                                                                    });
+                                                                }}
                                                                 placeholder="Qty"
-                                                                className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition ${errors.chargeableQuantities && errors.chargeableQuantities[item.value]
-                                                                    ? 'border-red-500 focus:ring-red-400'
-                                                                    : 'border-gray-300 focus:ring-blue-400'
-                                                                    }`}
+                                                                className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm w-24 focus:ring-2 outline-none focus:ring-blue-400 transition"
                                                             />
-                                                            {errors.chargeableQuantities && errors.chargeableQuantities[item.value] && (
-                                                                <span className="text-red-500 text-sm">{errors.chargeableQuantities[item.value]}</span>
-                                                            )}
                                                         </div>
                                                     ))}
 
@@ -2015,24 +2123,26 @@ const handleStep4MaterialsSelection = (selected) => {
                                                                 type="number"
                                                                 min="1"
                                                                 value={formData.chargeableQuantities?.["Others"] || ""}
-                                                                onChange={(e) =>
+                                                                onChange={(e) => {
+                                                                    const newQuantities = { ...formData.chargeableQuantities };
+                                                                    const quantity = e.target.value;
+                                                                    
+                                                                    if (quantity === "" || quantity === undefined) {
+                                                                        // Remove the key if quantity is empty
+                                                                        delete newQuantities["Others"];
+                                                                    } else {
+                                                                        // Otherwise update the quantity
+                                                                        newQuantities["Others"] = quantity;
+                                                                    }
+                                                                    
                                                                     setFormData({
                                                                         ...formData,
-                                                                        chargeableQuantities: {
-                                                                            ...formData.chargeableQuantities,
-                                                                            Others: e.target.value,
-                                                                        },
-                                                                    })
-                                                                }
+                                                                        chargeableQuantities: newQuantities,
+                                                                    });
+                                                                }}
                                                                 placeholder="Qty"
-                                                                className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition ${errors.chargeableQuantities && errors.chargeableQuantities["Others"]
-                                                                    ? 'border-red-500 focus:ring-red-400'
-                                                                    : 'border-gray-300 focus:ring-blue-400'
-                                                                    }`}
+                                                                className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm w-24 focus:ring-2 outline-none focus:ring-blue-400 transition"
                                                             />
-                                                            {errors.chargeableQuantities && errors.chargeableQuantities["Others"] && (
-                                                                <span className="text-red-500 text-sm">{errors.chargeableQuantities["Others"]}</span>
-                                                            )}
                                                         </div>
                                                     )}
                                             </div>
@@ -2054,7 +2164,7 @@ const handleStep4MaterialsSelection = (selected) => {
                                     </div>
                                 </div>
 
-                                {/* Photo of the Setup */}
+                                {/* Photo of the Setup - KEEP REQUIRED */}
                                 <div className="flex-1">
                                     <label className="mb-1 font-medium text-gray-700">
                                         Photo of the Setup (सेटअप की तस्वीर) <span className="text-red-500">*</span>
@@ -2365,18 +2475,8 @@ const handleStep4MaterialsSelection = (selected) => {
                                                                 })
                                                             }
                                                             placeholder="Qty"
-                                                            className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition ${errors.needChargeableQuantities &&
-                                                                errors.needChargeableQuantities[isOther ? "Others" : item.value]
-                                                                ? "border-red-500 focus:ring-red-400"
-                                                                : "border-gray-300 focus:ring-blue-400"
-                                                                }`}
+                                                            className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm w-24 focus:ring-2 outline-none focus:ring-blue-400 transition"
                                                         />
-                                                        {errors.needChargeableQuantities &&
-                                                            errors.needChargeableQuantities[isOther ? "Others" : item.value] && (
-                                                                <span className="text-red-500 text-sm">
-                                                                    {errors.needChargeableQuantities[isOther ? "Others" : item.value]}
-                                                                </span>
-                                                            )}
                                                     </div>
                                                 );
                                             })}
@@ -2433,3 +2533,4 @@ const handleStep4MaterialsSelection = (selected) => {
         </div>
     );
 }
+

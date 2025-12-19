@@ -678,7 +678,7 @@ switch ($method) {
                 }
                 
                 // material supplied - plants
-                if (!empty($material_plants_supplied) && is_array($material_plants_supplied)) {
+                // if (!empty($material_plants_supplied) && is_array($material_plants_supplied)) {
                     // Delete old records
                     $conn->query("DELETE FROM site_visit_material_supplied_plants WHERE visit_id='$visitId'");
 
@@ -707,12 +707,12 @@ switch ($method) {
                             $conn->query($sql4);
                         }
                     }
-                }
+                // }
 
                 
                 
                 // material supplied - nutrients
-                if (!empty($material_nutrients_data_supplied) && is_array($material_nutrients_data_supplied)) {
+                // if (!empty($material_nutrients_data_supplied) && is_array($material_nutrients_data_supplied)) {
                     $conn->query("DELETE FROM site_visit_material_supplied_nutrients WHERE visit_id='$visitId'");
                     foreach ($material_nutrients_data_supplied as $nutrientInfo) {
                         if($nutrientInfo['nutrients'] === "Others"){
@@ -724,10 +724,10 @@ switch ($method) {
                         }
                         $conn->query($sql5);
                     }
-                }
+                // }
                 
                 // chargeable items
-                if (!empty($material_chargeable_Item_supplied) && is_array($material_chargeable_Item_supplied)) {
+                // if (!empty($material_chargeable_Item_supplied) && is_array($material_chargeable_Item_supplied)) {
                     $conn->query("DELETE FROM site_visit_material_supplied_chargeable_items WHERE visit_id='$visitId'");
                     foreach ($material_chargeable_Item_supplied as $materialSChargeableItems => $qty) {
                         if($materialSChargeableItems === "Others"){
@@ -737,7 +737,7 @@ switch ($method) {
                         }
                         $conn->query($sql6);
                     }
-                }
+                // }
                 
                 // echo json_encode(["status" => "success", "message" => $sql5]);
                 
