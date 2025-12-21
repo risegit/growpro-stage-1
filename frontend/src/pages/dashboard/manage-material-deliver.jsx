@@ -15,6 +15,10 @@ export default function UserTable() {
     direction: 'ascending' // 'ascending' or 'descending'
   });
 
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userRole = user?.role;
+  const isAdmin = userRole === "admin"; // Check if user is admin
+
   // Helper function to calculate supplies
   const calculateSupplies = (tankCapacity, topups) => {
     if (!tankCapacity || !topups) return "-";
@@ -920,10 +924,16 @@ const filteredUsers = useMemo(() => {
                           <SortIndicator columnKey="delivery_status" />
                         </div>
                       </th>
-                      <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-center">PDF Report</th>
-                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">
-                        Action
-                      </th>
+                      {userRole !== "technician" && (
+                      <>
+                        <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-center">
+                          PDF Report
+                        </th>
+                        <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">
+                          Action
+                        </th>
+                      </>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -978,32 +988,35 @@ const filteredUsers = useMemo(() => {
                           <td className="py-4 px-4 text-gray-700 truncate">
                             {user.delivery_status?.toUpperCase()}
                           </td>
-
-                          <td className="py-4 px-4 text-center">
-                            <button
-                              onClick={() => generatePDF(user)}
-                              disabled={!pdfLoaded}
-                              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-                                pdfLoaded 
-                                  ? 'bg-red-600 text-white hover:bg-red-700' 
-                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                              }`}
-                              title={pdfLoaded ? "Download PDF Report" : "Loading PDF library..."}
-                            >
-                              <FileText size={16} />
-                              PDF
-                            </button>
-                          </td>
+                          {userRole !== "technician" && (
+                            <td className="py-4 px-4 text-center">
+                              <button
+                                onClick={() => generatePDF(user)}
+                                disabled={!pdfLoaded}
+                                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+                                  pdfLoaded 
+                                    ? 'bg-red-600 text-white hover:bg-red-700' 
+                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                }`}
+                                title={pdfLoaded ? "Download PDF Report" : "Loading PDF library..."}
+                              >
+                                <FileText size={16} />
+                                PDF
+                              </button>
+                            </td>
+                          )}
 
                           {/* Action */}
-                          <td className="py-4 px-4 text-right">
-                            <button
-                              onClick={() => handleEdit(user.id)}
-                              className="px-4 py-2 btn-primary"
-                            >
-                              Edit
-                            </button>
-                          </td>
+                          {userRole !== "technician" && (
+                            <td className="py-4 px-4 text-right">
+                              <button
+                                onClick={() => handleEdit(user.id)}
+                                className="px-4 py-2 btn-primary"
+                              >
+                                Edit
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
