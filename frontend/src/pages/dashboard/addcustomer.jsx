@@ -17,6 +17,7 @@ const StepperCustomerForm = () => {
     pincode: '',
     isActive: true
   });
+  const [phoneExists, setPhoneExists] = useState(false);
   const [checking, setChecking] = useState(false);
   const plantOptions = [
     { value: 'Spinach', label: 'Spinach' },
@@ -72,6 +73,8 @@ const StepperCustomerForm = () => {
     growerQuantity: '',
     numPlants: '',
     numLevels: '',
+    numChannelPerLevel: '',
+    numHolesPerChannel: '',
     setupDimension: '',
     motorType: '',
     motorTypeOther: '',
@@ -129,44 +132,62 @@ const StepperCustomerForm = () => {
       setProfilePreview(URL.createObjectURL(file)); // Set preview
     }
   };
-
+  
 
   useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      if (formData.email && formData.email.includes("@")) {
-        checkEmailExists(formData.email);
-      }
-    }, 600); // Wait 600ms after typing stops
+  if (
+    (!formData.email || !formData.email.includes("@")) &&
+    (!formData.phoneNumber || formData.phoneNumber.length < 10)
+  ) {
+    return;
+  }
 
-    return () => clearTimeout(delayDebounce);
-  }, [formData.email]);
+  const delayDebounce = setTimeout(() => {
+    checkEmailPhoneExists(formData.email, formData.phoneNumber);
+  }, 600);
+
+  return () => clearTimeout(delayDebounce);
+}, [formData.email, formData.phoneNumber]);
+
 
   // 👇 Function to check email existence in backend
-  const checkEmailExists = async (email) => {
+  const checkEmailPhoneExists = async (email, phone) => {
     setChecking(true);
+    setPhoneExists(false); // Reset phone exists state
+
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?email=${encodeURIComponent(email)}`);
+      const query = new URLSearchParams();
+      if (email) query.append("email", email);
+      if (phone) query.append("phone", phone);
+      query.append("custId", '');
+
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}api/customer.php?${query.toString()}`
+      );
+
       const data = await res.json();
 
-      if (data.status === "error") {
-        // toast.error(data.message);
-        setErrors((prev) => ({
-          ...prev,
-          email: "An account with this email already exists. Please use a different email.",
-        }));
-        // setTimeout(() => {
-        //   setFormData((prev) => ({
-        //     ...prev,
-        //     email: "",
-        //   }));
-        // }, 2000);
+      // Set phone exists state
+      if (data.phoneExists) {
+        setPhoneExists(true);
       }
+
+      setErrors((prev) => ({
+        ...prev,
+        email: data.emailExists
+          ? "An account with this email already exists."
+          : "",
+        phoneNumber: data.phoneExists
+          ? "An account with this phone number already exists."
+          : "",
+      }));
     } catch (error) {
-      console.error("Error checking email:", error);
+      console.error("Error checking email/phone:", error);
     } finally {
       setChecking(false);
     }
   };
+
 
 
 
@@ -194,6 +215,8 @@ const StepperCustomerForm = () => {
       growerQuantity: '',
       numPlants: '',
       numLevels: '',
+      numChannelPerLevel: '',
+      numHolesPerChannel: '',
       setupDimension: '',
       motorType: '',
       motorTypeOther: '',
@@ -263,6 +286,10 @@ const StepperCustomerForm = () => {
         else if (parseInt(grower.numPlants) < 0) stepErrors[`numPlants_${index}`] = 'Number of plants cannot be negative';
         if (!grower.numLevels) stepErrors[`numLevels_${index}`] = 'Number of levels is required';
         else if (parseInt(grower.numLevels) < 0) stepErrors[`numLevels_${index}`] = 'Number of levels cannot be negative';
+        if (!grower.numChannelPerLevel) stepErrors[`numChannelPerLevel_${index}`] = 'Number of levels is required';
+        else if (parseInt(grower.numChannelPerLevel) < 0) stepErrors[`numChannelPerLevel_${index}`] = 'Number of channel per levels cannot be negative';
+        if (!grower.numHolesPerChannel) stepErrors[`numHolesPerChannel_${index}`] = 'Number of levels is required';
+        else if (parseInt(grower.numHolesPerChannel) < 0) stepErrors[`numHolesPerChannel_${index}`] = 'Number of holes per channel cannot be negative';
         if (!grower.setupDimension.trim()) stepErrors[`setupDimension_${index}`] = 'Setup dimension is required';
         if (!grower.motorType) stepErrors[`motorType_${index}`] = 'Motor type is required';
         if (grower.motorType === 'Other' && !grower.motorTypeOther.trim()) stepErrors[`motorTypeOther_${index}`] = 'Please specify other motor type';
@@ -276,7 +303,7 @@ const StepperCustomerForm = () => {
         if (grower.tankCapacity === 'Other' && !grower.tankCapacityOther.trim()) stepErrors[`tankCapacityOther_${index}`] = 'Please specify other tank capacity';
         if (!grower.nutritionGiven) stepErrors[`nutritionGiven_${index}`] = 'Nutrition Given is required';
         if (!grower.otherSpecifications) stepErrors[`otherSpecifications_${index}`] = 'Other Specification is required';
-        if (!grower.photoAtInstallation) stepErrors[`photoAtInstallation_${index}`] = 'Photo At Installation is required';
+        // if (!grower.photoAtInstallation) stepErrors[`photoAtInstallation_${index}`] = 'Photo At Installation is required';
 
         // ✅ Plant chosen validation
         if (!grower.selectedPlants || grower.selectedPlants.length === 0) {
@@ -436,6 +463,10 @@ const StepperCustomerForm = () => {
     setCities(statesAndCities[selectedState] || []);
   };
   const nextStep = () => {
+    if (phoneExists) {
+      toast.error("Phone number already exists. Please use a different number.");
+      return;
+    }
     if (validateStep()) setCurrentStep(prev => Math.min(prev + 1, 3));
   };
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
@@ -776,6 +807,36 @@ const StepperCustomerForm = () => {
 
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
+                      No. of Channels per Level <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="numChannelPerLevel"
+                      value={grower.numChannelPerLevel}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      min="1"
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`numChannelPerLevel_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    />
+                    {errors[`numChannelPerLevel_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`numChannelPerLevel_${index}`]}</span>}
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className="mb-1 font-medium text-gray-700">
+                     No. of Holes per Channel <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="numHolesPerChannel"
+                      value={grower.numHolesPerChannel}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      min="1"
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`numHolesPerChannel_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    />
+                    {errors[`numHolesPerChannel_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`numHolesPerChannel_${index}`]}</span>}
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className="mb-1 font-medium text-gray-700">
                       Setup Dimension (सेटअप आयाम) <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -970,7 +1031,7 @@ const StepperCustomerForm = () => {
 
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
-                      Photo at Time of Installation <span className="text-red-500">*</span>
+                      Photo at Time of Installation
                     </label>
 
                     <div className="flex items-center gap-3">
@@ -996,11 +1057,11 @@ const StepperCustomerForm = () => {
                     </div>
 
                     {/* Error Message */}
-                    {errors[`photoAtInstallation_${index}`] && (
+                    {/* {errors[`photoAtInstallation_${index}`] && (
                       <span className="text-red-500 text-sm mt-1">
                         {errors[`photoAtInstallation_${index}`]}
                       </span>
-                    )}
+                    )} */}
                   </div>
 
 
@@ -1181,6 +1242,18 @@ const StepperCustomerForm = () => {
                       </div>
                       <div>
                         <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">No. of Channels per Level: </span>
+                          {grower.numChannelPerLevel}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">No. of Holes per Channel: </span>
+                          {grower.numHolesPerChannel}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
                           <span className="font-medium text-gray-600">Setup Dimension: </span>
                           {grower.setupDimension}
                         </p>
@@ -1336,9 +1409,10 @@ const StepperCustomerForm = () => {
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="btn-primary "
+                    disabled={phoneExists} // Disable if phone exists
+                    className={`btn-primary ${phoneExists ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    Next(आगे)
+                    Next (आगे)
                   </button>
                 </div>
               </div>
@@ -1359,7 +1433,8 @@ const StepperCustomerForm = () => {
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="btn-primary"
+                    disabled={phoneExists} // Disable if phone exists
+                    className={`btn-primary ${phoneExists ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     Next (आगे)
                   </button>

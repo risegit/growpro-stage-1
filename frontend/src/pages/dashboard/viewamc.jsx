@@ -556,9 +556,11 @@ const generatePDF = (visitData) => {
                       <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">
                         AMC Status
                       </th>
+                      {userRole !== "technician" && (
                       <th className="w-[9%] py-4 px-4 font-medium text-gray-700 text-left">
                         Report
                       </th>
+                      )}
                       <th className="w-[5%] py-4 px-4 font-medium text-gray-700 text-left">
                         Status
                       </th>
@@ -636,22 +638,24 @@ const generatePDF = (visitData) => {
                               {status}
                             </span>
                           </td>
-
-                          <td className="py-4 px-4 text-center">
-                            <button
-                              onClick={() => generatePDF(user)}
-                              disabled={!pdfLoaded}
-                              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-                                pdfLoaded 
-                                  ? 'bg-red-600 text-white hover:bg-red-700' 
-                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                              }`}
-                              title={pdfLoaded ? "Download PDF Report" : "Loading PDF library..."}
-                            >
-                              <FileText size={16} />
-                              PDF
-                            </button>
-                          </td>
+                          
+                          {userRole !== "technician" && (
+                            <td className="py-4 px-4 text-center">
+                              <button
+                                onClick={() => generatePDF(user)}
+                                disabled={!pdfLoaded}
+                                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+                                  pdfLoaded 
+                                    ? 'bg-red-600 text-white hover:bg-red-700' 
+                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                }`}
+                                title={pdfLoaded ? "Download PDF Report" : "Loading PDF library..."}
+                              >
+                                <FileText size={16} />
+                                PDF
+                              </button>
+                            </td>
+                          )}
 
                           <td className="py-4 px-4">
                             <span

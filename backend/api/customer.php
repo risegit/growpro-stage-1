@@ -9,6 +9,8 @@ $method = $_SERVER['REQUEST_METHOD'];
 $userId = $_GET['id'] ?? null;
 $userStatus = $_GET['status'] ?? null;
 $emailId = $_GET['email'] ?? null;
+$phone = $_GET['phone'] ?? null;
+$custId = $_GET['custId'] ?? '';
 $input = json_decode(file_get_contents("php://input"), true);
 
 if ($method === 'POST' && isset($_POST['_method'])) {
@@ -39,14 +41,21 @@ switch ($method) {
                 $customerPlantData[] = $row2;
             }
             echo json_encode(["status" => "success", "data" => $data, "grower" => $growerData, "customer_plant" => $customerPlantData]);
-        }elseif ($emailId) {
-            $userResult = $conn->query("SELECT * FROM users where email='$emailId'");
-            if ($userResult && $userResult->num_rows > 0) {
-                echo json_encode(["status" => "error", "message" => 'An account with this email already exists']);
-            }else{
-                echo json_encode(["status" => "success", "message" => 'An account with this email not exists']);
+        }elseif ($emailId or $phone) {
+            $sql = "SELECT email, phone FROM users WHERE (email = '$emailId' OR phone = '$phone') and id != '$custId' Limit 1";
+            $result = $conn->query($sql);
+
+            while ($row = $result->fetch_assoc()) {
+                if ($emailId && $row['email'] === $emailId) {
+                    $response['emailExists'] = true;
+                }
+                if ($phone && $row['phone'] === $phone) {
+                    $response['phoneExists'] = true;
+                }
             }
             
+            echo json_encode($response);
+
         }else{
             $result = $conn->query("SELECT cd.user_id, u.name, u.phone, cd.locality, cd.landmark, u.status, SUM(g.no_of_plants) AS total_no_of_plants FROM users u INNER JOIN customers_details cd ON u.id = cd.user_id INNER JOIN growers g ON u.id = g.customer_id WHERE u.role = 'customer' $whereAddition GROUP BY cd.user_id, u.name, u.phone, cd.locality, cd.landmark, u.status ORDER BY u.id DESC;");
             $data = [];
@@ -166,7 +175,7 @@ switch ($method) {
                                 $photoAtInstallationPath = null;
                             }
 
-                            $sql2 = "INSERT INTO growers (customer_id, system_type, system_type_other, grower_qty, no_of_plants, no_of_levels, setup_dimension, motor_used, motor_used_other, timer_used, timer_used_other, no_of_lights, model_of_lights, model_of_lights_other, length_of_lights, length_of_lights_other, tank_capacity, tank_capacity_other, nutrition_given, other_specifications, installation_photo_url, status, date, time) VALUES ('$user_id', '{$grower['systemType']}', '{$grower['systemTypeOther']}', '{$grower['growerQuantity']}', '{$grower['numPlants']}', '{$grower['numLevels']}', '{$grower['setupDimension']}', '{$grower['motorType']}', '{$grower['motorTypeOther']}', '{$grower['timerUsed']}', '{$grower['timerUsedOther']}', '{$grower['numLights']}', '{$grower['modelOfLight']}', '{$grower['modelOfLightOther']}', '{$grower['lengthOfLight']}', '{$grower['lengthOfLightOther']}', '{$grower['tankCapacity']}', '{$grower['tankCapacityOther']}', '{$grower['nutritionGiven']}', '{$grower['otherSpecifications']}', '$newName', 'active', '$date', '$time')";
+                            $sql2 = "INSERT INTO growers (customer_id, system_type, system_type_other, grower_qty, no_of_plants, no_of_levels, channel_per_level, holes_per_channel, setup_dimension, motor_used, motor_used_other, timer_used, timer_used_other, no_of_lights, model_of_lights, model_of_lights_other, length_of_lights, length_of_lights_other, tank_capacity, tank_capacity_other, nutrition_given, other_specifications, installation_photo_url, status, date, time) VALUES ('$user_id', '{$grower['systemType']}', '{$grower['systemTypeOther']}', '{$grower['growerQuantity']}', '{$grower['numPlants']}', '{$grower['numLevels']}', '{$grower['numChannelPerLevel']}', '{$grower['numHolesPerChannel']}', '{$grower['setupDimension']}', '{$grower['motorType']}', '{$grower['motorTypeOther']}', '{$grower['timerUsed']}', '{$grower['timerUsedOther']}', '{$grower['numLights']}', '{$grower['modelOfLight']}', '{$grower['modelOfLightOther']}', '{$grower['lengthOfLight']}', '{$grower['lengthOfLightOther']}', '{$grower['tankCapacity']}', '{$grower['tankCapacityOther']}', '{$grower['nutritionGiven']}', '{$grower['otherSpecifications']}', '$newName', 'active', '$date', '$time')";
 
                             $conn->query($sql2);
 
@@ -323,7 +332,7 @@ switch ($method) {
                                 }
                                 $grower['systemTypeOther']=$grower['systemType'] == 'Other' ? $grower['systemTypeOther'] : '';
                                 
-                                $updateSQL = "UPDATE growers SET system_type='{$grower['systemType']}', system_type_other='{$grower['systemTypeOther']}', grower_qty='{$grower['growerQuantity']}', no_of_plants='{$grower['numPlants']}', no_of_levels='{$grower['numLevels']}', setup_dimension='{$grower['setupDimension']}', motor_used='{$grower['motorType']}', motor_used_other='{$grower['motorTypeOther']}', timer_used='{$grower['timerUsed']}', timer_used_other='{$grower['timerUsedOther']}', no_of_lights='{$grower['numLights']}', model_of_lights='{$grower['modelOfLight']}', model_of_lights_other='{$grower['modelOfLightOther']}', length_of_lights='{$grower['lengthOfLight']}', length_of_lights_other='{$grower['lengthOfLightOther']}', tank_capacity='{$grower['tankCapacity']}', tank_capacity_other='{$grower['tankCapacityOther']}', nutrition_given='{$grower['nutritionGiven']}',other_specifications='{$grower['otherSpecifications']}', date='$date',time='$time' " . (!empty($newName) ? ", installation_photo_url='$newName'" : "") . " WHERE id='$grower_id' AND customer_id='$user_id'";
+                                $updateSQL = "UPDATE growers SET system_type='{$grower['systemType']}', system_type_other='{$grower['systemTypeOther']}', grower_qty='{$grower['growerQuantity']}', no_of_plants='{$grower['numPlants']}', no_of_levels='{$grower['numLevels']}', channel_per_level='{$grower['numChannelPerLevel']}', holes_per_channel='{$grower['numHolesPerChannel']}', setup_dimension='{$grower['setupDimension']}', motor_used='{$grower['motorType']}', motor_used_other='{$grower['motorTypeOther']}', timer_used='{$grower['timerUsed']}', timer_used_other='{$grower['timerUsedOther']}', no_of_lights='{$grower['numLights']}', model_of_lights='{$grower['modelOfLight']}', model_of_lights_other='{$grower['modelOfLightOther']}', length_of_lights='{$grower['lengthOfLight']}', length_of_lights_other='{$grower['lengthOfLightOther']}', tank_capacity='{$grower['tankCapacity']}', tank_capacity_other='{$grower['tankCapacityOther']}', nutrition_given='{$grower['nutritionGiven']}',other_specifications='{$grower['otherSpecifications']}', date='$date',time='$time' " . (!empty($newName) ? ", installation_photo_url='$newName'" : "") . " WHERE id='$grower_id' AND customer_id='$user_id'";
                                 $conn->query($updateSQL);
                                 // echo json_encode(["status" => "success", "message" => "Growerid".$updateSQL]);
                             } else {
@@ -340,7 +349,7 @@ switch ($method) {
                                     $photoAtInstallationPath = 'uploads/customers/' . $newName;
                                 }
                                 // ✅ Otherwise, insert new grower
-                                $insertSQL ="INSERT INTO growers (customer_id, system_type, grower_qty, no_of_plants, no_of_levels, setup_dimension, motor_used, timer_used, no_of_lights, model_of_lights, length_of_lights, tank_capacity, nutrition_given, other_specifications, installation_photo_url, status, date, time) VALUES ('$user_id', '{$grower['systemType']}', '{$grower['growerQuantity']}', '{$grower['numPlants']}', '{$grower['numLevels']}', '{$grower['setupDimension']}', '{$grower['motorType']}', '{$grower['timerUsed']}', '{$grower['numLights']}', '{$grower['modelOfLight']}', '{$grower['lengthOfLight']}', '{$grower['tankCapacity']}', '{$grower['nutritionGiven']}', '{$grower['otherSpecifications']}', '$newName', 'active', '$date', '$time')";
+                                $insertSQL ="INSERT INTO growers (customer_id, system_type, grower_qty, no_of_plants, no_of_levels, channel_per_level, holes_per_channel, setup_dimension, motor_used, timer_used, no_of_lights, model_of_lights, length_of_lights, tank_capacity, nutrition_given, other_specifications, installation_photo_url, status, date, time) VALUES ('$user_id', '{$grower['systemType']}', '{$grower['growerQuantity']}', '{$grower['numPlants']}', '{$grower['numLevels']}', '{$grower['numChannelPerLevel']}', '{$grower['numHolesPerChannel']}', '{$grower['setupDimension']}', '{$grower['motorType']}', '{$grower['timerUsed']}', '{$grower['numLights']}', '{$grower['modelOfLight']}', '{$grower['lengthOfLight']}', '{$grower['tankCapacity']}', '{$grower['nutritionGiven']}', '{$grower['otherSpecifications']}', '$newName', 'active', '$date', '$time')";
                                 $conn->query($insertSQL);
                                 $grower_id = $conn->insert_id;
                                 

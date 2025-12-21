@@ -12,8 +12,7 @@ export default function UserTable() {
   const usersPerPage = 10;
   const navigate = useNavigate();
 
-  // Mock user data - replace with actual localStorage
-  const user = { role: "admin", user_code: "AD0001" };
+  const user = JSON.parse(localStorage.getItem("user"));
   const userRole = user?.role;
   const user_code = user?.user_code;
 
@@ -1065,7 +1064,9 @@ const generatePDF = async (visitData, fullApiData) => {
                       <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">Phone</th>
                       <th className="w-[18%] py-4 px-4 font-medium text-gray-700 text-left">Visited By</th>
                       <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left">Visit Date</th>
-                      <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-center">PDF Report</th>
+                      {userRole !== "technician" && (
+                        <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-center">PDF Report</th>
+                      )}
                       {userRole !== "technician" && (
                         <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">Action</th>
                       )}
@@ -1113,21 +1114,22 @@ const generatePDF = async (visitData, fullApiData) => {
                           <td className="py-4 px-4 text-gray-700 truncate">
                             {formatDate(user.created_date)}
                           </td>
-
-                          <td className="py-4 px-4 text-center">
-                            <button
-                              onClick={() => generatePDF(user, allFullData)}
-                              disabled={!pdfLoaded}
-                              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition ${pdfLoaded
-                                  ? 'bg-red-600 text-white hover:bg-red-700'
-                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                }`}
-                              title={pdfLoaded ? "Download PDF Report" : "Loading PDF library..."}
-                            >
-                              <FileText size={16} />
-                              PDF
-                            </button>
-                          </td>
+                          {userRole !== "technician" && (
+                            <td className="py-4 px-4 text-center">
+                              <button
+                                onClick={() => generatePDF(user, allFullData)}
+                                disabled={!pdfLoaded}
+                                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition ${pdfLoaded
+                                    ? 'bg-red-600 text-white hover:bg-red-700'
+                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  }`}
+                                title={pdfLoaded ? "Download PDF Report" : "Loading PDF library..."}
+                              >
+                                <FileText size={16} />
+                                PDF
+                              </button>
+                            </td>
+                          )}
 
                           {userRole !== "technician" && (
                             <td className="py-4 px-4 text-right">
