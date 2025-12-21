@@ -37,7 +37,7 @@ import ManageSchedulevisit from "@/pages/dashboard/viewschedulevisit";
 import EditScheduleVisit from "@/pages/dashboard/editschedulevisit";
 import Createvisits from "@/pages/dashboard/createvisits-old";
 import Viewvisits from "@/pages/dashboard/viewvisits";
-import Editvisit from "@/pages/dashboard/editvisit-old";
+import Editvisit from "@/pages/dashboard/editvisit";
 import Schedulevisit from "@/pages/dashboard/schedulevisit";
 import ManageMaterialDeliver from "@/pages/dashboard/manage-material-deliver";
 import EditMaterialDeliver from "@/pages/dashboard/editmaterialdeliver";
@@ -294,11 +294,11 @@ const routes = [
         icon: <FileText {...icon} />,
         name: "Reports",
         path: "/reports",
-        allowedRoles: ["admin", "co-ordinator", "technician"],
+        allowedRoles: ["admin", "co-ordinator"],
         element: (
           <RoleProtectedRoute
             element={<Reports />}
-            allowedRoles={["admin", "co-ordinator", "technician"]}
+            allowedRoles={["admin", "co-ordinator"]}
           />
         ),
       },

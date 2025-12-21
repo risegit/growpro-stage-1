@@ -591,7 +591,7 @@ switch ($method) {
 
             $jsonChargeableItemsSupplied = isset($_POST['chargeableQuantities']) ? $_POST['chargeableQuantities'] : '';
             $material_chargeable_Item_supplied = json_decode($jsonChargeableItemsSupplied, true);
-            // $growerdata=var_dump($material_chargeable_Item_supplied);
+            // echo var_dump($material_chargeable_Item_supplied);
 
             // Material Need To Deliver
             if(!empty($materialNeedsDelivery)){
@@ -608,8 +608,9 @@ switch ($method) {
                 $jsonMaterialNeedNutrientsData = isset($_POST['material_need_nutrientsData']) ? $_POST['material_need_nutrientsData'] : '';
                 $material_need_nutrients_data = json_decode($jsonMaterialNeedNutrientsData, true);
 
-                $jsonMaterialNeedChargeableItemsDelivered = isset($_POST['chargeableNeedQuantities']) ? $_POST['chargeableNeedQuantities'] : '';
+                $jsonMaterialNeedChargeableItemsDelivered = isset($_POST['needChargeableQuantities']) ? $_POST['needChargeableQuantities'] : '';
                 $material_chargeable_Item_delivered = json_decode($jsonMaterialNeedChargeableItemsDelivered, true);
+                // echo var_dump($material_chargeable_Item_delivered);
             }
 
             
@@ -738,6 +739,7 @@ switch ($method) {
                         }else{
                             $sql6 = "INSERT INTO `site_visit_material_supplied_chargeable_items`(`visit_id`, `item_name`, `other_item_name`,`quantity`) VALUES ('$visitId','$materialSChargeableItems','','$qty')";
                         }
+                        // echo json_encode(["status" => "success", "message" => $sql6]);
                         $conn->query($sql6);
                     }
                 // }
@@ -845,12 +847,13 @@ switch ($method) {
                         // if (!empty($material_chargeable_Item_delivered) && is_array($material_chargeable_Item_delivered)) {
 
                             $conn->query("DELETE FROM site_visit_material_need_chargeable_items WHERE visit_id='$visitId'");
-                            foreach ($material_chargeable_Item_delivered as $materialDChargeableItems) {
+                            foreach ($material_chargeable_Item_delivered as $materialDChargeableItems=>$qty) {
                                 if($materialDChargeableItems === "Others"){
-                                    $sql11 = "INSERT INTO `site_visit_material_need_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visitId','$materialDChargeableItems','$materialsNeedChargeableItemsOptionsother')";    
+                                    $sql11 = "INSERT INTO `site_visit_material_need_chargeable_items`(`visit_id`, `item_name`, `other_item_name`,`quantity`) VALUES ('$visitId','$materialDChargeableItems','$materialsNeedChargeableItemsOptionsother','$qty')";    
                                 }else{
-                                    $sql11 = "INSERT INTO `site_visit_material_need_chargeable_items`(`visit_id`, `item_name`, `other_item_name`) VALUES ('$visitId','$materialDChargeableItems','')";
+                                    $sql11 = "INSERT INTO `site_visit_material_need_chargeable_items`(`visit_id`, `item_name`, `other_item_name`,`quantity`) VALUES ('$visitId','$materialDChargeableItems','','$qty')";
                                 }
+                                // echo json_encode(["status" => "success", "message" => $sql11]);
                                 $conn->query($sql11);
                             }
 

@@ -222,228 +222,240 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         { label: "200", value: "200" }
     ];
 
+    const [originalPlants, setOriginalPlants] = useState([]);
+
+    useEffect(() => {
+    console.log("Current chargeableQuantities:", formData.chargeableQuantities);
+    console.log("Current needChargeableQuantities:", formData.needChargeableQuantities);
+    console.log("Selected chargeable items:", formData.material_supplied_chargeable_items);
+}, [formData.chargeableQuantities, formData.needChargeableQuantities, formData.material_supplied_chargeable_items]);
+
     const loadCustomers = async () => {
-        setLoadingCustomers(true);
-        try {
-            let selectedPlantProblems = [];
-            let selectedPestTypes = [];
-            let selectedOtherPest = "";
-            let selectedsuppliedPlants = [];
-            let selectedSuppliedQuantities = [];
-            let selectedOtherSuppliedPlant = "";
-            let selectedSuppliedChargeableItem = [];
-            let selectedNutrientsData = [];
-            let selectedSuppliedPhotoSetup = [];
-            let selectedNeedPlants = [];
-            let selectedOtherNeedPlant = "";
-            let selectedNeedQuantities = [];
-            let selectedNeedNutrientsData = [];
-            let selectedNeedChargeableItem = [];
+    setLoadingCustomers(true);
+    try {
+        let originalPlants = [];
+        let selectedPlantProblems = [];
+        let selectedPestTypes = [];
+        let selectedOtherPest = "";
+        let selectedsuppliedPlants = [];
+        let selectedSuppliedQuantities = {}; // CHANGE FROM [] TO {}
+        let selectedOtherSuppliedPlant = "";
+        let selectedSuppliedChargeableItem = [];
+        let selectedNutrientsData = [];
+        let selectedSuppliedPhotoSetup = [];
+        let selectedNeedPlants = [];
+        let selectedOtherNeedPlant = "";
+        let selectedNeedQuantities = {}; // CHANGE FROM [] TO {}
+        let selectedNeedNutrientsData = [];
+        let selectedNeedChargeableItem = [];
 
-            // ADD THESE FOR CHARGEABLE ITEMS
-            let selectedChargeableQuantities = {};
-            let selectedNeedChargeableQuantities = {};
-            let selectedOtherSuppliedItemName = "";
-            let selectedOtherNeedItemName = "";
+        // ADD THESE FOR CHARGEABLE ITEMS
+        let selectedChargeableQuantities = {};
+        let selectedNeedChargeableQuantities = {};
+        let selectedOtherSuppliedItemName = "";
+        let selectedOtherNeedItemName = "";
 
-            const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?editSiteVisit='active'&user_code=${user_code}&schId=${id}`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?editSiteVisit='active'&user_code=${user_code}&schId=${id}`);
 
-            const data = await res.json();
-            console.log("Fetched user data:", data);
+        const data = await res.json();
+        console.log("Fetched user data:", data);
 
-            if (data.status === "success" && data.data) {
-                const user = data.data[0];
+        if (data.status === "success" && data.data) {
+            const user = data.data[0];
 
-                if (Array.isArray(data.plantProblems)) {
-                    selectedPlantProblems = data.plantProblems.map(p => ({
-                        value: p.problem_name,
-                        label: p.problem_name
-                    }));
-                }
-                if (Array.isArray(data.pestTypes)) {
-                    selectedPestTypes = data.pestTypes.map(p => {
-                        if (p.pest_name === "Others") {
-                            selectedOtherPest = p.other_pest_name || "";
-                            return {
-                                value: "Others",
-                                label: "Others"
-                            };
-                        }
+            if (Array.isArray(data.plantProblems)) {
+                selectedPlantProblems = data.plantProblems.map(p => ({
+                    value: p.problem_name,
+                    label: p.problem_name
+                }));
+            }
+            if (Array.isArray(data.pestTypes)) {
+                selectedPestTypes = data.pestTypes.map(p => {
+                    if (p.pest_name === "Others") {
+                        selectedOtherPest = p.other_pest_name || "";
                         return {
-                            value: p.pest_name,
-                            label: p.pest_name
+                            value: "Others",
+                            label: "Others"
                         };
-                    });
-                }
-
-                if (Array.isArray(data.suppliedPlants)) {
-                    selectedsuppliedPlants = data.suppliedPlants.map(p => {
-                        if (p.plant_name === "Others") {
-                            selectedOtherSuppliedPlant = p.other_plant_name || "";
-                            selectedSuppliedQuantities["Others"] = p.quantity || "";
-                            return {
-                                value: "Others",
-                                label: "Others"
-                            };
-                        }
-                        selectedSuppliedQuantities[p.plant_name] = p.quantity || "";
-                        return {
-                            value: p.plant_name,
-                            label: p.plant_name
-                        };
-                    });
-                }
-
-                // UPDATED THIS SECTION FOR SUPPLIED CHARGEABLE ITEMS
-                if (Array.isArray(data.suppliedChargeableItem)) {
-                    selectedSuppliedChargeableItem = data.suppliedChargeableItem.map(p => {
-                        if (p.item_name === "Others") {
-                            selectedOtherSuppliedItemName = p.other_item_name || "";
-                            selectedChargeableQuantities["Others"] = p.quantity || "";
-                            return {
-                                value: "Others",
-                                label: "Others"
-                            };
-                        }
-                        selectedChargeableQuantities[p.item_name] = p.quantity || "";
-                        return {
-                            value: p.item_name,
-                            label: p.item_name
-                        };
-                    });
-                }
-
-                if (Array.isArray(data.suppliedNutrients)) {
-                    selectedNutrientsData = data.suppliedNutrients.map(n => ({
-                        nutrients: n.nutrient_type === "Others"
-                            ? "Others"
-                            : n.nutrient_type,
-                        tankCapacity: n.tank_capacity || "",
-                        numberOfTopups: n.topups || "",
-                        otherNutrient: n.other_nutrient_name || "",
-                    }));
-                }
-
-                if (Array.isArray(data.suppliedPhotoSetup)) {
-                    selectedSuppliedPhotoSetup = data.suppliedPhotoSetup.map(p => ({
-                        id: p.id,
-                        image_url: p.image_url,
-                        preview: `${import.meta.env.VITE_API_URL}uploads/site-visit/${p.image_url}`,
-                        file: null
-                    }));
-                }
-
-                if (Array.isArray(data.needPlants)) {
-                    selectedNeedPlants = data.needPlants.map(p => {
-                        if (p.plant_name === "Others") {
-                            selectedOtherNeedPlant = p.other_plant_name || "";
-                            selectedNeedQuantities["Others"] = p.quantity || "";
-                            return {
-                                value: "Others",
-                                label: "Others"
-                            };
-                        }
-                        selectedNeedQuantities[p.plant_name] = p.quantity || "";
-                        return {
-                            value: p.plant_name,
-                            label: p.plant_name
-                        };
-                    });
-                }
-
-                if (Array.isArray(data.needNutrients)) {
-                    selectedNeedNutrientsData = data.needNutrients.map(n => ({
-                        nutrients: n.nutrient_type === "Others"
-                            ? "Others"
-                            : n.nutrient_type,
-                        tankCapacity: n.tank_capacity || "",
-                        numberOfTopups: n.topups || "",
-                        otherNutrient: n.other_nutrient_name || "",
-                    }));
-                }
-
-                // UPDATED THIS SECTION FOR NEED CHARGEABLE ITEMS
-                if (Array.isArray(data.needChargeableItem)) {
-                    selectedNeedChargeableItem = data.needChargeableItem.map(p => {
-                        if (p.item_name === "Others") {
-                            selectedOtherNeedItemName = p.other_item_name || "";
-                            selectedNeedChargeableQuantities["Others"] = p.quantity || "";
-                            return {
-                                value: "Others",
-                                label: "Others"
-                            };
-                        }
-                        selectedNeedChargeableQuantities[p.item_name] = p.quantity || "";
-                        return {
-                            value: p.item_name,
-                            label: p.item_name
-                        };
-                    });
-                }
-
-                const finalFormData = {
-                    customer_name: user.customer_name || '',
-                    plantsWater: user.are_plants_getting_water || "",
-                    waterAbovePump: user.water_above_pump || "",
-                    timerWorking: user.timer_working || "",
-                    timerIssue: user.timer_issue || "",
-                    motorWorking: user.motor_working || "",
-                    motorIssue: user.motor_issue || "",
-                    lightsWorking: user.light_working || "",
-                    lightsIssue: user.light_issue || "",
-                    equipmentDamaged: user.equipment_damaged || "",
-                    equipmentDamageDetails: user.damaged_items || "",
-                    anyLeaks: user.any_leaks || "",
-                    cleanEnvironment: user.clean_equipment || "",
-                    electricSecured: user.electric_connections_secured || "",
-                    initialPh: user.initial_ph || "",
-                    correctedPh: user.corrected_ph || "",
-                    initialTds: user.initial_tds || "",
-                    correctedTds: user.corrected_tds || "",
-                    pestsPresent: user.presence_of_pests || "",
-                    pestOther: user.pest_other || "",
-                    nutrientDeficiency: user.nutrient_deficiency || "",
-                    deficiencyDetails: user.deficiency_details || "",
-                    plantProblems: selectedPlantProblems,
-                    pestTypes: selectedPestTypes,
-                    pestOther: selectedOtherPest,
-                    cropNames: user.which_crop || "",
-                    harvestTraining: user.client_training_harvest || "",
-                    pestManagement: user.pest_management || "",
-                    equipmentCleaning: user.equipment_cleaning || "",
-                    plantMaintenance: user.plant_maintenance || "",
-                    scopesOfImprovement: user.scope_of_improvement || "",
-                    siteRating: user.site_rating || "",
-                    plants: selectedsuppliedPlants,
-                    materialsSuppliedPlantData: selectedOtherSuppliedPlant,
-                    plantQuantities: selectedSuppliedQuantities,
-                    material_supplied_neemoil: user.material_supplied_neemoil || "",
-                    material_supplied_chargeable_items: selectedSuppliedChargeableItem,
-                    materialschargeableItemsOptionsother: selectedOtherSuppliedItemName, // ADDED
-                    chargeableQuantities: selectedChargeableQuantities, // ADDED
-                    materialNeedsDelivery: user.material_needs_delivery === "true" || "",
-                    nutrientsData: selectedNutrientsData.length > 0 ? selectedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
-                    setupPhotos: selectedSuppliedPhotoSetup,
-                    step5Plants: selectedNeedPlants,
-                    materialsDeliveredPlantData: selectedOtherNeedPlant,
-                    materialNeedPlantQuantities: selectedNeedQuantities,
-                    material_need_nutrientsData: selectedNeedNutrientsData.length > 0 ? selectedNeedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
-                    material_need_neemoil: user.material_delivered_neemoil || "",
-                    material_need_chargeable_items: selectedNeedChargeableItem,
-                    materialsNeedChargeableItemsOptionsother: selectedOtherNeedItemName, // ADDED
-                    needChargeableQuantities: selectedNeedChargeableQuantities // ADDED
-                };
-
-                setFormData(finalFormData);
-                setOriginalData(JSON.parse(JSON.stringify(finalFormData)));
+                    }
+                    return {
+                        value: p.pest_name,
+                        label: p.pest_name
+                    };
+                });
             }
 
-        } catch (err) {
-            console.error('Error loading customers:', err);
-        } finally {
-            setLoadingCustomers(false);
+            if (Array.isArray(data.suppliedPlants)) {
+                selectedsuppliedPlants = data.suppliedPlants.map(p => {
+                    if (p.plant_name === "Others") {
+                        selectedOtherSuppliedPlant = p.other_plant_name || "";
+                        selectedSuppliedQuantities["Others"] = p.quantity || "";
+                        return {
+                            value: "Others",
+                            label: "Others"
+                        };
+                    }
+                    selectedSuppliedQuantities[p.plant_name] = p.quantity || "";
+                    return {
+                        value: p.plant_name,
+                        label: p.plant_name
+                    };
+                });
+            }
+
+            // UPDATED THIS SECTION FOR SUPPLIED CHARGEABLE ITEMS
+            if (Array.isArray(data.suppliedChargeableItem)) {
+                selectedSuppliedChargeableItem = data.suppliedChargeableItem.map(p => {
+                    if (p.item_name === "Others") {
+                        selectedOtherSuppliedItemName = p.other_item_name || "";
+                        selectedChargeableQuantities["Others"] = p.quantity || "";
+                        return {
+                            value: "Others",
+                            label: "Others"
+                        };
+                    }
+                    selectedChargeableQuantities[p.item_name] = p.quantity || "";
+                    return {
+                        value: p.item_name,
+                        label: p.item_name
+                    };
+                });
+            }
+
+            if (Array.isArray(data.suppliedNutrients)) {
+                selectedNutrientsData = data.suppliedNutrients.map(n => ({
+                    nutrients: n.nutrient_type === "Others"
+                        ? "Others"
+                        : n.nutrient_type,
+                    tankCapacity: n.tank_capacity || "",
+                    numberOfTopups: n.topups || "",
+                    otherNutrient: n.other_nutrient_name || "",
+                }));
+            }
+
+            if (Array.isArray(data.suppliedPhotoSetup)) {
+                selectedSuppliedPhotoSetup = data.suppliedPhotoSetup.map(p => ({
+                    id: p.id,
+                    image_url: p.image_url,
+                    preview: `${import.meta.env.VITE_API_URL}uploads/site-visit/${p.image_url}`,
+                    file: null
+                }));
+            }
+
+            if (Array.isArray(data.needPlants)) {
+                selectedNeedPlants = data.needPlants.map(p => {
+                    if (p.plant_name === "Others") {
+                        selectedOtherNeedPlant = p.other_plant_name || "";
+                        selectedNeedQuantities["Others"] = p.quantity || "";
+                        return {
+                            value: "Others",
+                            label: "Others"
+                        };
+                    }
+                    selectedNeedQuantities[p.plant_name] = p.quantity || "";
+                    return {
+                        value: p.plant_name,
+                        label: p.plant_name
+                    };
+                });
+            }
+
+            if (Array.isArray(data.needNutrients)) {
+                selectedNeedNutrientsData = data.needNutrients.map(n => ({
+                    nutrients: n.nutrient_type === "Others"
+                        ? "Others"
+                        : n.nutrient_type,
+                    tankCapacity: n.tank_capacity || "",
+                    numberOfTopups: n.topups || "",
+                    otherNutrient: n.other_nutrient_name || "",
+                }));
+            }
+
+            // UPDATED THIS SECTION FOR NEED CHARGEABLE ITEMS
+            if (Array.isArray(data.needChargeableItem)) {
+                selectedNeedChargeableItem = data.needChargeableItem.map(p => {
+                    if (p.item_name === "Others") {
+                        selectedOtherNeedItemName = p.other_item_name || "";
+                        selectedNeedChargeableQuantities["Others"] = p.quantity || "";
+                        return {
+                            value: "Others",
+                            label: "Others"
+                        };
+                    }
+                    selectedNeedChargeableQuantities[p.item_name] = p.quantity || "";
+                    return {
+                        value: p.item_name,
+                        label: p.item_name
+                    };
+                });
+            }
+
+            const finalFormData = {
+                customer_name: user.customer_name || '',
+                plantsWater: user.are_plants_getting_water || "",
+                waterAbovePump: user.water_above_pump || "",
+                timerWorking: user.timer_working || "",
+                timerIssue: user.timer_issue || "",
+                motorWorking: user.motor_working || "",
+                motorIssue: user.motor_issue || "",
+                lightsWorking: user.light_working || "",
+                lightsIssue: user.light_issue || "",
+                equipmentDamaged: user.equipment_damaged || "",
+                equipmentDamageDetails: user.damaged_items || "",
+                anyLeaks: user.any_leaks || "",
+                cleanEnvironment: user.clean_equipment || "",
+                electricSecured: user.electric_connections_secured || "",
+                initialPh: user.initial_ph || "",
+                correctedPh: user.corrected_ph || "",
+                initialTds: user.initial_tds || "",
+                correctedTds: user.corrected_tds || "",
+                pestsPresent: user.presence_of_pests || "",
+                pestOther: user.pest_other || "",
+                nutrientDeficiency: user.nutrient_deficiency || "",
+                deficiencyDetails: user.deficiency_details || "",
+                plantProblems: selectedPlantProblems,
+                pestTypes: selectedPestTypes,
+                pestOther: selectedOtherPest,
+                cropNames: user.which_crop || "",
+                harvestTraining: user.client_training_harvest || "",
+                pestManagement: user.pest_management || "",
+                equipmentCleaning: user.equipment_cleaning || "",
+                plantMaintenance: user.plant_maintenance || "",
+                scopesOfImprovement: user.scope_of_improvement || "",
+                siteRating: user.site_rating || "",
+                plants: selectedsuppliedPlants,
+                materialsSuppliedPlantData: selectedOtherSuppliedPlant,
+                plantQuantities: selectedSuppliedQuantities,
+                material_supplied_neemoil: user.material_supplied_neemoil || "",
+                material_supplied_chargeable_items: selectedSuppliedChargeableItem,
+                materialschargeableItemsOptionsother: selectedOtherSuppliedItemName,
+                chargeableQuantities: selectedChargeableQuantities,
+                materialNeedsDelivery: user.material_needs_delivery === "true" || "",
+                nutrientsData: selectedNutrientsData.length > 0 ? selectedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
+                setupPhotos: selectedSuppliedPhotoSetup,
+                step5Plants: selectedNeedPlants,
+                materialsDeliveredPlantData: selectedOtherNeedPlant,
+                materialNeedPlantQuantities: selectedNeedQuantities,
+                material_need_nutrientsData: selectedNeedNutrientsData.length > 0 ? selectedNeedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
+                material_need_neemoil: user.material_delivered_neemoil || "",
+                material_need_chargeable_items: selectedNeedChargeableItem,
+                materialsNeedChargeableItemsOptionsother: selectedOtherNeedItemName,
+                needChargeableQuantities: selectedNeedChargeableQuantities
+            };
+
+            console.log("Loaded plantQuantities:", selectedSuppliedQuantities); // Debug log
+            console.log("Loaded materialNeedPlantQuantities:", selectedNeedQuantities); // Debug log
+            
+            setFormData(finalFormData);
+            setOriginalData(JSON.parse(JSON.stringify(finalFormData)));
         }
-    };
+
+    } catch (err) {
+        console.error('Error loading customers:', err);
+    } finally {
+        setLoadingCustomers(false);
+    }
+};
 
     useEffect(() => {
         let mounted = true;
@@ -453,69 +465,69 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         };
     }, []);
 
-    function getChangedFields(original, current) {
-        const changes = {};
+    // function getChangedFields(original, current) {
+    //     const changes = {};
 
-        const isObject = (v) => v && typeof v === "object" && !Array.isArray(v);
-        const isArray = Array.isArray;
+    //     const isObject = (v) => v && typeof v === "object" && !Array.isArray(v);
+    //     const isArray = Array.isArray;
 
-        const deepCompare = (orig, curr, keyPath = "") => {
-            if (!isObject(orig) && !isArray(orig)) {
-                if (orig !== curr) {
-                    changes[keyPath] = curr;
-                }
-                return;
-            }
+    //     const deepCompare = (orig, curr, keyPath = "") => {
+    //         if (!isObject(orig) && !isArray(orig)) {
+    //             if (orig !== curr) {
+    //                 changes[keyPath] = curr;
+    //             }
+    //             return;
+    //         }
 
-            if (isArray(orig) && isArray(curr)) {
-                if (orig.length !== curr.length) {
-                    changes[keyPath] = curr;
-                    return;
-                }
+    //         if (isArray(orig) && isArray(curr)) {
+    //             if (orig.length !== curr.length) {
+    //                 changes[keyPath] = curr;
+    //                 return;
+    //             }
 
-                curr.forEach((item, i) => {
-                    const subKey = `${keyPath}[${i}]`;
+    //             curr.forEach((item, i) => {
+    //                 const subKey = `${keyPath}[${i}]`;
 
-                    if (typeof item === "object") {
-                        if (JSON.stringify(orig[i]) !== JSON.stringify(item)) {
-                            changes[keyPath] = curr;
-                        }
-                    } else {
-                        if (orig[i] !== item) {
-                            changes[keyPath] = curr;
-                        }
-                    }
-                });
+    //                 if (typeof item === "object") {
+    //                     if (JSON.stringify(orig[i]) !== JSON.stringify(item)) {
+    //                         changes[keyPath] = curr;
+    //                     }
+    //                 } else {
+    //                     if (orig[i] !== item) {
+    //                         changes[keyPath] = curr;
+    //                     }
+    //                 }
+    //             });
 
-                return;
-            }
+    //             return;
+    //         }
 
-            if (isObject(orig) && isObject(curr)) {
-                Object.keys(curr).forEach(key => {
-                    const fullKey = keyPath ? `${keyPath}.${key}` : key;
+    //         if (isObject(orig) && isObject(curr)) {
+    //             Object.keys(curr).forEach(key => {
+    //                 const fullKey = keyPath ? `${keyPath}.${key}` : key;
 
-                    if (!(key in orig)) {
-                        changes[fullKey] = curr[key];
-                        return;
-                    }
+    //                 if (!(key in orig)) {
+    //                     changes[fullKey] = curr[key];
+    //                     return;
+    //                 }
 
-                    if (typeof curr[key] === "object") {
-                        deepCompare(orig[key], curr[key], fullKey);
-                    } else {
-                        if (orig[key] !== curr[key]) {
-                            changes[fullKey] = curr[key];
-                        }
-                    }
-                });
+    //                 if (typeof curr[key] === "object") {
+    //                     deepCompare(orig[key], curr[key], fullKey);
+    //                 } else {
+    //                     if (orig[key] !== curr[key]) {
+    //                         changes[fullKey] = curr[key];
+    //                     }
+    //                 }
+    //             });
 
-                return;
-            }
-        };
+    //             return;
+    //         }
+    //     };
 
-        deepCompare(original, current);
+    //     deepCompare(original, current);
 
-        return changes;
-    }
+    //     return changes;
+    // }
 
     const resetForm = () => {
         setFormData(initialFormState);
@@ -529,6 +541,61 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                 }
             });
         }
+    };
+
+    // Add this function for handling step 5 chargeable items
+    const handleStep5ChargeableItemsChange = (selected) => {
+        const newItems = selected || [];
+        
+        // Create a copy of current needChargeableQuantities
+        const newQuantities = { ...formData.needChargeableQuantities };
+        
+        // Get values of selected items
+        const selectedValues = newItems.map(item => item.value);
+        
+        // Remove quantities for unselected items
+        Object.keys(newQuantities).forEach(key => {
+            if (!selectedValues.includes(key)) {
+                delete newQuantities[key];
+            }
+        });
+        
+        // Add empty quantities for newly selected items that don't have one yet
+        newItems.forEach(item => {
+            if (!newQuantities[item.value]) {
+                newQuantities[item.value] = formData.needChargeableQuantities[item.value] || "";
+            }
+        });
+        
+        // Handle "Others" specifically
+        if (selectedValues.includes("Others")) {
+            if (!newQuantities["Others"]) {
+                newQuantities["Others"] = formData.needChargeableQuantities["Others"] || "";
+            }
+        } else {
+            delete newQuantities["Others"];
+            // Also clear the "other" text input when "Others" is unselected
+            setFormData({
+                ...formData,
+                material_need_chargeable_items: newItems,
+                needChargeableQuantities: newQuantities,
+                materialsNeedChargeableItemsOptionsother: "" // Clear the other text input
+            });
+            return;
+        }
+        
+        setFormData({
+            ...formData,
+            material_need_chargeable_items: newItems,
+            needChargeableQuantities: newQuantities
+        });
+
+        // Clear errors
+        setErrors((prevErrors) => ({
+            ...prevErrors,
+            material_need_chargeable_items: "",
+            materialsNeedChargeableItemsOptionsother: ""
+        }));
     };
 
     function getImageChanges(originalImages, currentImages) {
@@ -558,15 +625,15 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
         try {
             await new Promise(resolve => setTimeout(resolve, 800));
-            const changedFields = getChangedFields(originalData, formData);
-            changedFields.materialNeedsDelivery = formData.materialNeedsDelivery;
+            // const changedFields = getChangedFields(originalData, formData);
+            // changedFields.materialNeedsDelivery = formData.materialNeedsDelivery;
 
-            const imageDiff = getImageChanges(originalData.setupPhotos, formData.setupPhotos);
-            if (imageDiff.added.length > 0 || imageDiff.removed.length > 0) {
-                changedFields.setupPhotos = imageDiff;
-            }
+            // const imageDiff = getImageChanges(originalData.setupPhotos, formData.setupPhotos);
+            // if (imageDiff.added.length > 0 || imageDiff.removed.length > 0) {
+            //     changedFields.setupPhotos = imageDiff;
+            // }
 
-            console.log("Final data to send:", changedFields);
+            // console.log("Final data to send:", changedFields);
 
             const formPayload = new FormData();
 
@@ -587,6 +654,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                     formPayload.append(key, value.toString());
                 }
             };
+            // Debug: Log the plant quantities before sending
+            console.log("Plant Quantities before submit:", formData.plantQuantities);
 
             Object.keys(formData).forEach((key) => {
                 const value = formData[key];
@@ -683,9 +752,26 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         }
     };
 
+    // Update your handleChange function to clear quantities when "other" name is cleared
     const handleChange = (e) => {
         const { name, value } = e.target;
         let updated = { ...formData, [name]: value };
+
+        // Clear chargeable quantity if "Others" text input is cleared
+        if (name === "materialschargeableItemsOptionsother" && !value.trim()) {
+            updated.chargeableQuantities = {
+                ...updated.chargeableQuantities,
+                "Others": ""
+            };
+        }
+        
+        // Clear need chargeable quantity if "Others" text input is cleared
+        if (name === "materialsNeedChargeableItemsOptionsother" && !value.trim()) {
+            updated.needChargeableQuantities = {
+                ...updated.needChargeableQuantities,
+                "Others": ""
+            };
+        }
 
         if (name === "timerWorking" && value === "yes") updated.timerIssue = "";
         if (name === "motorWorking" && value === "yes") updated.motorIssue = "";
@@ -718,67 +804,80 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
 const handleStep4MaterialsSelection = (selected) => {
     const newMaterials = selected || [];
-
-    // CASE 1: User didn’t touch selector → keep old plants & quantities
-    if (newMaterials.length === 0 && originalPlants.length > 0) {
-        setFormData({
-            ...formData,
-            plants: originalPlants,
-            plantQuantities: { ...formData.plantQuantities }
-        });
-        return;
-    }
-
-    // CASE 2: User actually made a selection → now process normally
     const newQuantities = { ...formData.plantQuantities };
-    const selectedValues = newMaterials.map((m) => m.value);
-
-    // Remove unselected items
-    Object.keys(newQuantities).forEach((material) => {
-        if (!selectedValues.includes(material)) {
-            delete newQuantities[material];
+    
+    // Get values of selected plants
+    const selectedValues = newMaterials.map(item => item.value);
+    
+    // Remove quantities for unselected items
+    Object.keys(newQuantities).forEach(key => {
+        if (!selectedValues.includes(key)) {
+            delete newQuantities[key];
         }
     });
-
-    // Handle "Others"
-    if (selectedValues.includes("Others")) {
+    
+    // Add empty quantities for newly selected items that don't have one yet
+    newMaterials.forEach(item => {
+        if (!newQuantities[item.value]) {
+            newQuantities[item.value] = formData.plantQuantities[item.value] || "";
+        }
+    });
+    
+    // If "Others" is selected but was not previously, initialize its quantity
+    if (selectedValues.includes("Others") && !newQuantities["Others"]) {
         newQuantities["Others"] = formData.plantQuantities["Others"] || "";
-    } else {
-        delete newQuantities["Others"];
     }
-
+    
     setFormData({
         ...formData,
         plants: newMaterials,
         plantQuantities: newQuantities
     });
+    
+    // Clear any errors
+    setErrors((prevErrors) => ({
+        ...prevErrors,
+        plants: "",
+        plantQuantities: ""
+    }));
 };
 
 
 
     const handleStep5MaterialsSelection = (selected) => {
-        const newMaterials = selected || [];
-        const newQuantities = {};
+    const newMaterials = selected || [];
+    const newQuantities = { ...formData.materialNeedPlantQuantities };
+    
+    // Get values of selected plants
+    const selectedValues = newMaterials.map(item => item.value);
+    
+    // Remove quantities for unselected items
+    Object.keys(newQuantities).forEach(key => {
+        if (!selectedValues.includes(key)) {
+            delete newQuantities[key];
+        }
+    });
+    
+    // Add empty quantities for newly selected items that don't have one yet
+    newMaterials.forEach(item => {
+        if (!newQuantities[item.value]) {
+            newQuantities[item.value] = formData.materialNeedPlantQuantities[item.value] || "";
+        }
+    });
+    
+    // If "Others" is selected but was not previously, initialize its quantity
+    if (selectedValues.includes("Others") && !newQuantities["Others"]) {
+        newQuantities["Others"] = formData.materialNeedPlantQuantities["Others"] || "";
+    }
+    
+    setFormData({
+        ...formData,
+        step5Plants: newMaterials,
+        materialNeedPlantQuantities: newQuantities
+    });
 
-        // Only add quantities for selected materials
-        newMaterials.forEach(material => {
-            const key = material.value;
-            // Preserve existing quantity if it exists
-            if (formData.materialNeedPlantQuantities[key] !== undefined) {
-                newQuantities[key] = formData.materialNeedPlantQuantities[key];
-            }
-        });
-
-        // IMPORTANT: Don't add "Others" if it's not in the selection
-
-        setFormData({
-            ...formData,
-            step5Plants: newMaterials,
-            materialNeedPlantQuantities: newQuantities,
-        });
-
-        setErrors({ ...errors, step5Plants: "", materialNeedPlantQuantities: "" });
-    };
+    setErrors({ ...errors, step5Plants: "", materialNeedPlantQuantities: "" });
+};
 
     const handleCustomerChange = (selected) => {
         setFormData(prev => ({
@@ -788,17 +887,57 @@ const handleStep4MaterialsSelection = (selected) => {
     };
 
     const handleChargeableItemsChange = (selected) => {
+    const newItems = selected || [];
+    
+    // Create a copy of current chargeableQuantities
+    const newQuantities = { ...formData.chargeableQuantities };
+    
+    // Get values of selected items
+    const selectedValues = newItems.map(item => item.value);
+    
+    // Remove quantities for unselected items
+    Object.keys(newQuantities).forEach(key => {
+        if (!selectedValues.includes(key)) {
+            delete newQuantities[key];
+        }
+    });
+    
+    // Add empty quantities for newly selected items that don't have one yet
+    newItems.forEach(item => {
+        if (!newQuantities[item.value]) {
+            newQuantities[item.value] = formData.chargeableQuantities[item.value] || "";
+        }
+    });
+    
+    // Handle "Others" specifically
+    if (selectedValues.includes("Others")) {
+        if (!newQuantities["Others"]) {
+            newQuantities["Others"] = formData.chargeableQuantities["Others"] || "";
+        }
+    } else {
+        delete newQuantities["Others"];
+        // Also clear the "other" text input when "Others" is unselected
         setFormData({
             ...formData,
-            material_supplied_chargeable_items: selected || [],
+            material_supplied_chargeable_items: newItems,
+            chargeableQuantities: newQuantities,
+            materialschargeableItemsOptionsother: "" // Clear the other text input
         });
+        return;
+    }
+    
+    setFormData({
+        ...formData,
+        material_supplied_chargeable_items: newItems,
+        chargeableQuantities: newQuantities
+    });
 
-        setErrors((prevErrors) => ({
-            ...prevErrors,
-            material_supplied_chargeable_items: "",
-            materialschargeableItemsOptionsother: selected?.some(item => item.value === "Others") ? prevErrors.materialschargeableItemsOptionsother : ""
-        }));
-    };
+    setErrors((prevErrors) => ({
+        ...prevErrors,
+        material_supplied_chargeable_items: "",
+        materialschargeableItemsOptionsother: ""
+    }));
+};
 
     const handleStep4QuantityChange = (plantValue, quantity) => {
         setFormData({
@@ -1938,14 +2077,9 @@ const handleStep4MaterialsSelection = (selected) => {
                                         isMulti
                                         options={changebleItemsOptions}
                                         value={formData.material_supplied_chargeable_items}
-                                        onChange={(selected) => {
-                                            setFormData({
-                                                ...formData,
-                                                material_supplied_chargeable_items: selected || [],
-                                            });
-                                        }}
+                                        onChange={handleChargeableItemsChange} // Use the new handler
                                         classNamePrefix="react-select"
-                                        placeholder="Select items (optional)..."
+                                        placeholder="Select items..."
                                         styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
                                     />
 
@@ -2303,17 +2437,11 @@ const handleStep4MaterialsSelection = (selected) => {
                                 <label className="mb-2 font-medium text-gray-700">
                                     Chargeable Items Deliver (जो वस्तुएँ पैसे के लिए दी गई हैं)
                                 </label>
-
                                 <Select
                                     isMulti
                                     options={changebleItemsOptions}
                                     value={formData.material_need_chargeable_items}
-                                    onChange={(selected) => {
-                                        setFormData({
-                                            ...formData,
-                                            material_need_chargeable_items: selected || [],
-                                        });
-                                    }}
+                                    onChange={handleStep5ChargeableItemsChange} // Use the new handler
                                     classNamePrefix="react-select"
                                     placeholder="Select items..."
                                     styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
