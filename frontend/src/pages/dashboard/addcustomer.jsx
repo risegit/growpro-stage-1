@@ -17,6 +17,7 @@ const StepperCustomerForm = () => {
     pincode: '',
     isActive: true
   });
+  const [phoneExists, setPhoneExists] = useState(false);
   const [checking, setChecking] = useState(false);
   const plantOptions = [
     { value: 'Spinach', label: 'Spinach' },
@@ -72,10 +73,13 @@ const StepperCustomerForm = () => {
     growerQuantity: '',
     numPlants: '',
     numLevels: '',
+    numChannelPerLevel: '',
+    numHolesPerChannel: '',
     setupDimension: '',
     motorType: '',
     motorTypeOther: '',
-    timerUsed: '',
+    // timerUsed: [],
+    timerQuantities: {},
     timerUsedOther: '',
     numLights: "",
     modelOfLight: "",
@@ -86,7 +90,9 @@ const StepperCustomerForm = () => {
     tankCapacityOther: "",
     nutritionGiven: "",
     otherSpecifications: "",
-    photoAtInstallation: null
+    photoAtInstallation: null,
+    selectedPlants: [],
+    selectedPlantsOther: '',
   }]);
 
   const systemTypes = ['Small Grower', 'Long Grower', 'Mini Pro Grower',
@@ -129,44 +135,62 @@ const StepperCustomerForm = () => {
       setProfilePreview(URL.createObjectURL(file)); // Set preview
     }
   };
-
+  
 
   useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      if (formData.email && formData.email.includes("@")) {
-        checkEmailExists(formData.email);
-      }
-    }, 600); // Wait 600ms after typing stops
+  if (
+    (!formData.email || !formData.email.includes("@")) &&
+    (!formData.phoneNumber || formData.phoneNumber.length < 10)
+  ) {
+    return;
+  }
 
-    return () => clearTimeout(delayDebounce);
-  }, [formData.email]);
+  const delayDebounce = setTimeout(() => {
+    checkEmailPhoneExists(formData.email, formData.phoneNumber);
+  }, 600);
+
+  return () => clearTimeout(delayDebounce);
+}, [formData.email, formData.phoneNumber]);
+
 
   // 👇 Function to check email existence in backend
-  const checkEmailExists = async (email) => {
+  const checkEmailPhoneExists = async (email, phone) => {
     setChecking(true);
+    setPhoneExists(false); // Reset phone exists state
+
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?email=${encodeURIComponent(email)}`);
+      const query = new URLSearchParams();
+      if (email) query.append("email", email);
+      if (phone) query.append("phone", phone);
+      query.append("custId", '');
+
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}api/customer.php?${query.toString()}`
+      );
+
       const data = await res.json();
 
-      if (data.status === "error") {
-        // toast.error(data.message);
-        setErrors((prev) => ({
-          ...prev,
-          email: "An account with this email already exists. Please use a different email.",
-        }));
-        // setTimeout(() => {
-        //   setFormData((prev) => ({
-        //     ...prev,
-        //     email: "",
-        //   }));
-        // }, 2000);
+      // Set phone exists state
+      if (data.phoneExists) {
+        setPhoneExists(true);
       }
+
+      setErrors((prev) => ({
+        ...prev,
+        email: data.emailExists
+          ? "An account with this email already exists."
+          : "",
+        phoneNumber: data.phoneExists
+          ? "An account with this phone number already exists."
+          : "",
+      }));
     } catch (error) {
-      console.error("Error checking email:", error);
+      console.error("Error checking email/phone:", error);
     } finally {
       setChecking(false);
     }
   };
+
 
 
 
@@ -182,6 +206,16 @@ const StepperCustomerForm = () => {
 
     const { name, value } = e.target;
     updatedGrowers[index][name] = value;
+    
+    // If changing timerUsedOther and timerUsed doesn't include 'Other', add it
+    if (name === 'timerUsedOther' && !updatedGrowers[index].timerUsed?.includes('Other')) {
+      updatedGrowers[index].timerUsed = [...(updatedGrowers[index].timerUsed || []), 'Other'];
+      if (!updatedGrowers[index].timerQuantities) {
+        updatedGrowers[index].timerQuantities = {};
+      }
+      updatedGrowers[index].timerQuantities['Other'] = updatedGrowers[index].timerQuantities['Other'] || '';
+    }
+    
     setGrowers(updatedGrowers);
     setErrors(prev => ({ ...prev, [`${name}_${index}`]: '' }));
   };
@@ -194,10 +228,13 @@ const StepperCustomerForm = () => {
       growerQuantity: '',
       numPlants: '',
       numLevels: '',
+      numChannelPerLevel: '',
+      numHolesPerChannel: '',
       setupDimension: '',
       motorType: '',
       motorTypeOther: '',
-      timerUsed: '',
+      timerUsed: [],
+      timerQuantities: {},
       timerUsedOther: '',
       numLights: "",
       modelOfLight: "",
@@ -263,11 +300,32 @@ const StepperCustomerForm = () => {
         else if (parseInt(grower.numPlants) < 0) stepErrors[`numPlants_${index}`] = 'Number of plants cannot be negative';
         if (!grower.numLevels) stepErrors[`numLevels_${index}`] = 'Number of levels is required';
         else if (parseInt(grower.numLevels) < 0) stepErrors[`numLevels_${index}`] = 'Number of levels cannot be negative';
+        if (!grower.numChannelPerLevel) stepErrors[`numChannelPerLevel_${index}`] = 'Number of levels is required';
+        else if (parseInt(grower.numChannelPerLevel) < 0) stepErrors[`numChannelPerLevel_${index}`] = 'Number of channel per levels cannot be negative';
+        if (!grower.numHolesPerChannel) stepErrors[`numHolesPerChannel_${index}`] = 'Number of levels is required';
+        else if (parseInt(grower.numHolesPerChannel) < 0) stepErrors[`numHolesPerChannel_${index}`] = 'Number of holes per channel cannot be negative';
         if (!grower.setupDimension.trim()) stepErrors[`setupDimension_${index}`] = 'Setup dimension is required';
         if (!grower.motorType) stepErrors[`motorType_${index}`] = 'Motor type is required';
         if (grower.motorType === 'Other' && !grower.motorTypeOther.trim()) stepErrors[`motorTypeOther_${index}`] = 'Please specify other motor type';
-        if (!grower.timerUsed) stepErrors[`timerUsed_${index}`] = 'Timer used is required';
-        if (grower.timerUsed === 'Other' && !grower.timerUsedOther.trim()) stepErrors[`timerUsedOther_${index}`] = 'Please specify other timer';
+        
+        // Timer validation
+        if (!grower.timerUsed || grower.timerUsed.length === 0) {
+          stepErrors[`timerUsed_${index}`] = 'At least one timer type is required';
+        } else {
+          // Validate quantities for each selected timer
+          grower.timerUsed.forEach(timer => {
+            if (!grower.timerQuantities?.[timer]) {
+              stepErrors[`timerQuantity_${timer}_${index}`] = `Quantity for ${timer} is required`;
+            } else if (parseInt(grower.timerQuantities[timer]) < 1) {
+              stepErrors[`timerQuantity_${timer}_${index}`] = `Quantity for ${timer} must be at least 1`;
+            }
+          });
+        }
+        
+        if (grower.timerUsed?.includes('Other') && !grower.timerUsedOther.trim()) {
+          stepErrors[`timerUsedOther_${index}`] = 'Please specify other timer';
+        }
+        
         if (!grower.modelOfLight) stepErrors[`modelOfLight_${index}`] = 'Model of Light is required';
         if (grower.modelOfLight === 'Other' && !grower.modelOfLightOther.trim()) stepErrors[`modelOfLightOther_${index}`] = 'Please specify other model of light';
         if (!grower.lengthOfLight) stepErrors[`lengthOfLight_${index}`] = 'Length of Light is required';
@@ -276,7 +334,7 @@ const StepperCustomerForm = () => {
         if (grower.tankCapacity === 'Other' && !grower.tankCapacityOther.trim()) stepErrors[`tankCapacityOther_${index}`] = 'Please specify other tank capacity';
         if (!grower.nutritionGiven) stepErrors[`nutritionGiven_${index}`] = 'Nutrition Given is required';
         if (!grower.otherSpecifications) stepErrors[`otherSpecifications_${index}`] = 'Other Specification is required';
-        if (!grower.photoAtInstallation) stepErrors[`photoAtInstallation_${index}`] = 'Photo At Installation is required';
+        // if (!grower.photoAtInstallation) stepErrors[`photoAtInstallation_${index}`] = 'Photo At Installation is required';
 
         // ✅ Plant chosen validation
         if (!grower.selectedPlants || grower.selectedPlants.length === 0) {
@@ -393,7 +451,8 @@ const StepperCustomerForm = () => {
         //   setupDimension: '',
         //   motorType: '',
         //   motorTypeOther: '',
-        //   timerUsed: '',
+        //   timerUsed: [],
+        //   timerQuantities: {},
         //   timerUsedOther: '',
         //   numLights: "",
         //   modelOfLight: "",
@@ -436,6 +495,10 @@ const StepperCustomerForm = () => {
     setCities(statesAndCities[selectedState] || []);
   };
   const nextStep = () => {
+    if (phoneExists) {
+      toast.error("Phone number already exists. Please use a different number.");
+      return;
+    }
     if (validateStep()) setCurrentStep(prev => Math.min(prev + 1, 3));
   };
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
@@ -776,6 +839,36 @@ const StepperCustomerForm = () => {
 
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
+                      No. of Channels per Level <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="numChannelPerLevel"
+                      value={grower.numChannelPerLevel}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      min="1"
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`numChannelPerLevel_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    />
+                    {errors[`numChannelPerLevel_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`numChannelPerLevel_${index}`]}</span>}
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className="mb-1 font-medium text-gray-700">
+                     No. of Holes per Channel <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="numHolesPerChannel"
+                      value={grower.numHolesPerChannel}
+                      onChange={(e) => handleGrowerChange(index, e)}
+                      min="1"
+                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`numHolesPerChannel_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    />
+                    {errors[`numHolesPerChannel_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`numHolesPerChannel_${index}`]}</span>}
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className="mb-1 font-medium text-gray-700">
                       Setup Dimension (सेटअप आयाम) <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -816,31 +909,117 @@ const StepperCustomerForm = () => {
                     {errors[`motorTypeOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`motorTypeOther_${index}`]}</span>}
                   </div>
 
-                  <div className="flex flex-col">
+                  {/* Timer Used Field - Multiple Select with Quantity */}
+                  <div className="flex flex-col md:col-span-2">
                     <label className="mb-1 font-medium text-gray-700">
                       Timer Used (टाइमर उपयोग) <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      name="timerUsed"
-                      value={grower.timerUsed}
-                      onChange={(e) => handleGrowerChange(index, e)}
-                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`timerUsed_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                    >
-                      <option value="" disabled>Select timer</option>
-                      {timerOptions.map((t, i) => <option key={i} value={t}>{t}</option>)}
-                    </select>
+                    
+                    {/* Multiple Select Dropdown */}
+                    <Select
+                      isMulti
+                      options={timerOptions.map(option => ({ value: option, label: option }))}
+                      value={grower.timerUsed?.map(option => ({ value: option, label: option })) || []}
+                      onChange={(selectedOptions) => {
+                        const selectedValues = selectedOptions ? selectedOptions.map(opt => opt.value) : [];
+                        
+                        // Update the timerUsed array
+                        const updatedGrowers = [...growers];
+                        updatedGrowers[index].timerUsed = selectedValues;
+                        
+                        // Initialize or update timer quantities
+                        if (updatedGrowers[index].timerQuantities) {
+                          // Remove quantities for deselected timers
+                          const updatedQuantities = { ...updatedGrowers[index].timerQuantities };
+                          Object.keys(updatedQuantities).forEach(timer => {
+                            if (!selectedValues.includes(timer)) {
+                              delete updatedQuantities[timer];
+                            }
+                          });
+                          updatedGrowers[index].timerQuantities = updatedQuantities;
+                        } else {
+                          updatedGrowers[index].timerQuantities = {};
+                        }
+                        
+                        // Initialize quantities for new selections
+                        selectedValues.forEach(timer => {
+                          if (!updatedGrowers[index].timerQuantities[timer]) {
+                            updatedGrowers[index].timerQuantities[timer] = '';
+                          }
+                        });
+                        
+                        setGrowers(updatedGrowers);
+                        setErrors(prev => ({ ...prev, [`timerUsed_${index}`]: '' }));
+                      }}
+                      classNamePrefix="react-select"
+                      placeholder="Select timer(s)..."
+                      styles={{
+                        menu: (provided) => ({ ...provided, zIndex: 9999 }),
+                      }}
+                    />
                     {errors[`timerUsed_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`timerUsed_${index}`]}</span>}
-                    {grower.timerUsed === 'Other' && (
-                      <input
-                        type="text"
-                        name="timerUsedOther"
-                        value={grower.timerUsedOther}
-                        onChange={(e) => handleGrowerChange(index, e)}
-                        placeholder="Specify other"
-                        className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`timerUsedOther_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                      />
+                    
+                    {/* Quantity fields for selected timers */}
+                    {grower.timerUsed && grower.timerUsed.length > 0 && (
+                      <div className="mt-4 space-y-3">
+                        <h4 className="font-medium text-gray-700 mb-2">Timer Quantities:</h4>
+                        {grower.timerUsed.map((timer, timerIndex) => (
+                          <div key={timerIndex} className="flex items-center gap-3">
+                            <div className="w-1/3">
+                              <label className="mb-1 text-sm font-medium text-gray-600">
+                                {timer === 'Other' ? 'Other Timer' : timer}
+                              </label>
+                            </div>
+                            <div className="w-2/3">
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="Quantity"
+                                value={grower.timerQuantities?.[timer] || ''}
+                                onChange={(e) => {
+                                  const updatedGrowers = [...growers];
+                                  if (!updatedGrowers[index].timerQuantities) {
+                                    updatedGrowers[index].timerQuantities = {};
+                                  }
+                                  updatedGrowers[index].timerQuantities[timer] = e.target.value;
+                                  setGrowers(updatedGrowers);
+                                  setErrors(prev => ({ ...prev, [`timerQuantity_${timer}_${index}`]: '' }));
+                                }}
+                                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${
+                                  errors[`timerQuantity_${timer}_${index}`] 
+                                  ? 'border-red-500 focus:ring-red-400' 
+                                  : 'border-gray-300 focus:ring-blue-400'
+                                }`}
+                              />
+                              {errors[`timerQuantity_${timer}_${index}`] && (
+                                <span className="text-red-500 text-sm mt-1">{errors[`timerQuantity_${timer}_${index}`]}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                    {errors[`timerUsedOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`timerUsedOther_${index}`]}</span>}
+                    
+                    {/* Other timer specification field */}
+                    {grower.timerUsed?.includes('Other') && (
+                      <div className="mt-4">
+                        <input
+                          type="text"
+                          name="timerUsedOther"
+                          value={grower.timerUsedOther || ''}
+                          onChange={(e) => handleGrowerChange(index, e)}
+                          placeholder="Specify other timer"
+                          className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${
+                            errors[`timerUsedOther_${index}`] 
+                            ? 'border-red-500 focus:ring-red-400' 
+                            : 'border-gray-300 focus:ring-blue-400'
+                          }`}
+                        />
+                        {errors[`timerUsedOther_${index}`] && (
+                          <span className="text-red-500 text-sm mt-1">{errors[`timerUsedOther_${index}`]}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col">
@@ -970,7 +1149,7 @@ const StepperCustomerForm = () => {
 
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
-                      Photo at Time of Installation <span className="text-red-500">*</span>
+                      Photo at Time of Installation
                     </label>
 
                     <div className="flex items-center gap-3">
@@ -996,11 +1175,11 @@ const StepperCustomerForm = () => {
                     </div>
 
                     {/* Error Message */}
-                    {errors[`photoAtInstallation_${index}`] && (
+                    {/* {errors[`photoAtInstallation_${index}`] && (
                       <span className="text-red-500 text-sm mt-1">
                         {errors[`photoAtInstallation_${index}`]}
                       </span>
-                    )}
+                    )} */}
                   </div>
 
 
@@ -1181,6 +1360,18 @@ const StepperCustomerForm = () => {
                       </div>
                       <div>
                         <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">No. of Channels per Level: </span>
+                          {grower.numChannelPerLevel}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
+                          <span className="font-medium text-gray-600">No. of Holes per Channel: </span>
+                          {grower.numHolesPerChannel}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-800">
                           <span className="font-medium text-gray-600">Setup Dimension: </span>
                           {grower.setupDimension}
                         </p>
@@ -1194,7 +1385,18 @@ const StepperCustomerForm = () => {
                       <div>
                         <p className="text-gray-800">
                           <span className="font-medium text-gray-600">Timer Used: </span>
-                          {grower.timerUsed === 'Other' ? grower.timerUsedOther : grower.timerUsed}
+                          {grower.timerUsed && grower.timerUsed.length > 0 ? (
+                            <ul className="list-disc pl-5 mt-1">
+                              {grower.timerUsed.map((timer, idx) => (
+                                <li key={idx} className="text-gray-800">
+                                  {timer === 'Other' ? grower.timerUsedOther : timer}: 
+                                  <span className="font-semibold ml-1">
+                                    {grower.timerQuantities?.[timer] || '0'} qty
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : 'N/A'}
                         </p>
                       </div>
                       <div>
@@ -1336,9 +1538,10 @@ const StepperCustomerForm = () => {
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="btn-primary "
+                    disabled={phoneExists} // Disable if phone exists
+                    className={`btn-primary ${phoneExists ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    Next(आगे)
+                    Next (आगे)
                   </button>
                 </div>
               </div>
@@ -1359,7 +1562,8 @@ const StepperCustomerForm = () => {
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="btn-primary"
+                    disabled={phoneExists} // Disable if phone exists
+                    className={`btn-primary ${phoneExists ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     Next (आगे)
                   </button>
@@ -1384,7 +1588,3 @@ const StepperCustomerForm = () => {
   );
 };
 export default StepperCustomerForm;
-
-
-
-
