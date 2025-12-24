@@ -155,6 +155,7 @@ const generatePDF = (visitData) => {
     { label:"Customer Name:", value: visitData.name },
     { label:"Customer ID:", value: visitData.customer_id },
     { label:"Phone Number:", value: visitData.phone },
+    { label:"Locality:", value: visitData.locality },
   ];
 
   customerDetails.forEach(item=>{
@@ -371,6 +372,7 @@ const generatePDF = (visitData) => {
     return sortedUsers.filter(
       (user) =>
         user.name.toLowerCase().includes(query) ||
+        user.locality.toLowerCase().includes(query) ||
         user.visits_per_month.toLowerCase().includes(query) ||
         user.pending_visits.toLowerCase().includes(query) ||
         user.phone.includes(query)
@@ -397,6 +399,201 @@ const generatePDF = (visitData) => {
       </span>
     );
   };
+
+  // Export all visible AMC records to CSV
+const exportAllAMCToCSV = () => {
+  if (filteredUsers.length === 0) {
+    alert('No data to export.');
+    return;
+  }
+
+  // Prepare headers for CSV
+  const headers = [
+    'Customer ID',
+    'Customer Name',
+    'Phone',
+    'Locality',
+    'Visits per Month',
+    'Completed This Month',
+    'Pending This Month',
+    'Total Completed',
+    'Total Allowed',
+    'Validity From',
+    'Validity Upto',
+    'Days Left',
+    'AMC Status',
+    'AMC Free/Paid'
+  ];
+
+  // Prepare data rows
+  const rows = filteredUsers.map(user => {
+    const daysLeft = Math.ceil((new Date(user.validity_upto) - new Date()) / (1000 * 60 * 60 * 24));
+    const status = getAMCStatus(user.validity_upto);
+    
+    return [
+      user.customer_id || '',
+      user.name || '',
+      user.phone || '',
+      user.locality || '',
+      user.visits_per_month || '',
+      user.current_month_visits_done || '0',
+      user.remaining_visits_current_month || '0',
+      user.total_visits_done || '0',
+      user.total_allowed_visits || '0',
+      formatDate(user.validity_from) || '',
+      formatDate(user.validity_upto) || '',
+      daysLeft > 0 ? `${daysLeft} days` : 'Expired',
+      status,
+      user.amc_free_paid || ''
+    ];
+  });
+
+  // Combine headers and rows
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => 
+      row.map(cell => {
+        // Escape quotes and wrap in quotes if contains comma or quotes
+        const cellStr = String(cell);
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+          return `"${cellStr.replace(/"/g, '""')}"`;
+        }
+        return cellStr;
+      }).join(',')
+    )
+  ].join('\n');
+
+  // Create and download CSV file
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+  const filename = `All_AMC_Records_${timestamp}.csv`;
+  
+  if (navigator.msSaveBlob) { // IE 10+
+    navigator.msSaveBlob(blob, filename);
+  } else {
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+};
+
+// Alternative: Export to Excel format using SheetJS (if you want Excel files)
+const exportAllAMCToExcel = () => {
+  if (filteredUsers.length === 0) {
+    alert('No data to export.');
+    return;
+  }
+
+  // For Excel export, you would need to include a library like SheetJS (xlsx)
+  // Here's a simple implementation if you include the library
+  
+  // You'll need to add this script to your HTML or install via npm:
+  // <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+  
+  if (typeof XLSX === 'undefined') {
+    alert('Excel export requires SheetJS library. Falling back to CSV export.');
+    exportAllAMCToCSV();
+    return;
+  }
+
+  try {
+    const wsData = [
+      [
+        'Customer Name',
+        'Customer ID',
+        'Phone',
+        'Locality',
+        'Visits per Month',
+        'Completed This Month',
+        'Pending This Month',
+        'Total Completed',
+        'Total Allowed',
+        'Validity From',
+        'Validity Upto',
+        'Days Left',
+        'AMC Status',
+        'AMC Free/Paid'
+      ],
+      ...filteredUsers.map(user => {
+        const daysLeft = Math.ceil((new Date(user.validity_upto) - new Date()) / (1000 * 60 * 60 * 24));
+        const status = getAMCStatus(user.validity_upto);
+        
+        return [
+          user.name || '',
+          user.customer_id || '',
+          user.phone || '',
+          user.locality || '',
+          user.amc_type || '',
+          user.visits_per_month || '',
+          user.current_month_visits_done || '0',
+          user.remaining_visits_current_month || '0',
+          user.total_visits_done || '0',
+          user.total_allowed_visits || '0',
+          formatDate(user.validity_from) || '',
+          formatDate(user.validity_upto) || '',
+          daysLeft > 0 ? `${daysLeft} days` : 'Expired',
+          status,
+          user.amc_free_paid || ''
+        ];
+      })
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    
+    // Set column widths
+    const wscols = [
+      { wch: 25 }, // Customer Name
+      { wch: 15 }, // Customer ID
+      { wch: 15 }, // Phone
+      { wch: 20 }, // Locality
+      { wch: 15 }, // AMC Type
+      { wch: 15 }, // Visits per Month
+      { wch: 20 }, // Completed This Month
+      { wch: 20 }, // Pending This Month
+      { wch: 18 }, // Total Completed
+      { wch: 18 }, // Total Allowed
+      { wch: 15 }, // Validity From
+      { wch: 15 }, // Validity Upto
+      { wch: 12 }, // Days Left
+      { wch: 15 }, // AMC Status
+      { wch: 15 }  // AMC Free/Paid
+    ];
+    ws['!cols'] = wscols;
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'AMC Records');
+    
+    // Add header row styling
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
+      if (!ws[cellAddress]) continue;
+      ws[cellAddress].s = {
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        fill: { fgColor: { rgb: "4F81BD" } },
+        alignment: { horizontal: "center" }
+      };
+    }
+
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    const filename = `All_AMC_Records_${timestamp}.xlsx`;
+    
+    // Download
+    XLSX.writeFile(wb, filename);
+    
+  } catch (error) {
+    console.error('Error exporting to Excel:', error);
+    alert('Error exporting to Excel. Falling back to CSV.');
+    exportAllAMCToCSV();
+  }
+};
 
   // Pagination logic
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
@@ -447,403 +644,462 @@ const generatePDF = (visitData) => {
 
   return (
     <div className="w-full min-h-screen bg-gray-100 mt-10">
-      <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
-        {/* Header with Search */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 sm:px-6 py-5 sm:py-4 border-b">
-          <div>
-            <h2 className="text-2xl font-bold mb-2 text-gray-800">
-              AMC Management
-            </h2>
-            <p className="text-sm sm:text-base text-gray-600">
-              View and manage AMC
-            </p>
-          </div>
+  <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
+    {/* Header with Search and Export Button */}
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 sm:px-6 py-5 sm:py-4 border-b">
+      <div>
+        <h2 className="text-2xl font-bold mb-2 text-gray-800">
+          AMC Management
+        </h2>
+        <p className="text-sm sm:text-base text-gray-600">
+          View and manage AMC
+        </p>
+      </div>
 
-          <div className="mt-3 sm:mt-0 w-full sm:w-1/3 relative">
-            <input
-              type="text"
-              placeholder="Search by name, contact, visit per month, or visit pending..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                aria-label="Clear search"
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-2/3 mt-3 sm:mt-0">
+        {/* Search Input */}
+        <div className="relative w-full sm:w-auto sm:flex-1">
+          <input
+            type="text"
+            placeholder="Search by name, contact, visit per month, or visit pending..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Clear search"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="p-4 sm:p-6">
-          {currentUsers.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">No users found</p>
-              <p className="text-gray-400 text-sm mt-2">Try adjusting your search</p>
-            </div>
-          ) : (
-            <>
-              {/* Desktop Table */}
-              <div className="overflow-x-auto hidden lg:block">
-                <table className="w-full table-fixed text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th
-                        className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
-                        onClick={() => handleSort('name')}
-                      >
-                        <div className="flex items-center">
-                          Name 
-                          <SortArrow columnKey="name" />
-                        </div>
-                      </th>
-                      <th
-                        className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
-                        onClick={() => handleSort('phone')}
-                      >
-                        <div className="flex items-center">
-                          Contact
-                          <SortArrow columnKey="phone" />
-                        </div>
-                      </th>
-                      <th
-                        className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
-                        onClick={() => handleSort('visits_per_month')}
-                      >
-                        <div className="flex items-center">
-                          Visits per Month
-                          <SortArrow columnKey="visits_per_month" />
-                        </div>
-                      </th>
-                      <th
-                        className="w-[16%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
-                        onClick={() => handleSort('remaining_visits_current_month')}
-                      >
-                        <div className="flex items-center">
-                          Visit Pending For This Month
-                          <SortArrow columnKey="remaining_visits_current_month" />
-                        </div>
-                      </th>
-                      {/* Show Days Left column only for admin */}
-                      {isAdmin && (
-                        <th
-                          className="w-[11%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
-                          onClick={() => handleSort('validity_upto')}
-                        >
-                          <div className="flex items-center">
-                            Days Left
-                            <SortArrow columnKey="validity_upto" />
-                          </div>
-                        </th>
-                      )}
-                      <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">
-                        AMC Status
-                      </th>
-                      {userRole !== "technician" && (
-                      <th className="w-[9%] py-4 px-4 font-medium text-gray-700 text-left">
-                        Report
-                      </th>
-                      )}
-                      <th className="w-[5%] py-4 px-4 font-medium text-gray-700 text-left">
-                        Status
-                      </th>
-                      {userRole !== "technician" && (
-                        <th className="py-4 px-4 font-medium text-gray-700 text-right">Action</th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentUsers.map((user) => {
-                      const daysLeft = Math.ceil((new Date(user.validity_upto) - new Date()) / (1000 * 60 * 60 * 24));
-                      const status = getAMCStatus(user.validity_upto);
-
-                      return (
-                        <tr
-                          key={user.id}
-                          className="border-b border-gray-200 hover:bg-gray-50 transition"
-                        >
-                          {/* Name */}
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-3">
-                              <span className="font-medium text-gray-800 truncate">
-                                {user.name}<br/>({user.amc_free_paid})
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Phone */}
-                          <td className="py-4 px-4 text-gray-700 truncate">
-                            <a
-                              href={`tel:${user.phone}`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              {user.phone}
-                            </a>
-                          </td>
-
-                          {/* Visits per Month */}
-                          <td className="py-4 px-4 text-gray-700 text-left truncate">
-                            {user.visits_per_month}
-                          </td>
-
-                          {/* Pending Visits */}
-                          <td className="py-4 px-4 text-gray-700 text-left truncate">
-                            {user.remaining_visits_current_month}
-                          </td>
-
-                          {/* Days Left - Only show for admin */}
-                          {isAdmin && (
-                            <td className="py-4 px-4 text-gray-700 truncate">
-                              <p>
-                                {daysLeft} Days
-                              </p>
-                              <em
-                                className={`small-text py-1 rounded 
-                                  ${status === "On-going" ? " text-green-400" : ""}
-                                  ${status === "Renew Soon" ? "text-red-300" : ""}
-                                  ${status === "Expired" ? " text-red-600" : ""}
-                                `}
-                              >
-                                ({formatDate(user.validity_upto)})
-                              </em>
-                            </td>
-                          )}
-
-                          {/* Status */}
-                          <td className="py-4 px-4 text-gray-700 truncate">
-                            <span
-                              className={`px-3 py-1 rounded-lg text-sm font-medium cust-status-label
-                                ${status === "On-going" ? "bg-green-400 text-white" : ""}
-                                ${status === "Renew Soon" ? "bg-red-300 text-white" : ""}
-                                ${status === "Expired" ? "bg-red-600 text-white" : ""}
-                              `}
-                            >
-                              {status}
-                            </span>
-                          </td>
-                          
-                          {userRole !== "technician" && (
-                            <td className="py-4 px-4 text-center">
-                              <button
-                                onClick={() => generatePDF(user)}
-                                disabled={!pdfLoaded}
-                                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-                                  pdfLoaded 
-                                    ? 'bg-red-600 text-white hover:bg-red-700' 
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                }`}
-                                title={pdfLoaded ? "Download PDF Report" : "Loading PDF library..."}
-                              >
-                                <FileText size={16} />
-                                PDF
-                              </button>
-                            </td>
-                          )}
-
-                          <td className="py-4 px-4">
-                            <span
-                              className={`px-3 py-1 rounded-2xl text-sm font-medium ${user.status === "active"
-                                  ? "bg-green-600 text-white"
-                                  : "bg-red-600 text-white"
-                                }`}
-                            >
-                              {/* {user.status} */}
-                            </span>
-                          </td>
-
-                          {/* Action */}
-                          {userRole !== "technician" && (
-                            <td className="py-4 px-4 text-right">
-                              <button
-                                onClick={() => handleEdit(user.amc_id)}
-                                className="px-4 py-2 btn-primary"
-                              >
-                                Edit
-                              </button>
-                            </td>
-                          )}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile View */}
-              <div className="block lg:hidden space-y-5">
-                {currentUsers.map((user) => {
-                  const daysLeft = Math.ceil(
-                    (new Date(user.validity_upto) - new Date()) / (1000 * 60 * 60 * 24)
-                  );
-                  const status = getAMCStatus(user.validity_upto);
-
-                  return (
-                    <div
-                      key={user.id}
-                      className="border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition bg-white"
-                    >
-                      <h3 className="font-semibold text-gray-800 text-lg mb-3">
-                        {user.name}
-                      </h3>
-
-                      <div className="space-y-3 mb-5">
-                        {/* Phone */}
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Contact
-                          </span>
-                          <a
-                            href={`tel:${user.phone}`}
-                            className="text-sm text-blue-600 hover:underline"
-                          >
-                            {user.phone}
-                          </a>
-                        </div>
-
-                        {/* Visits per Month */}
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Visits / Month
-                          </span>
-                          <span className="text-sm text-gray-700">
-                            {user.visits_per_month}
-                          </span>
-                        </div>
-
-                        {/* Pending Visits */}
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Pending Visits / Month
-                          </span>
-                          <span className="text-sm text-gray-700">
-                            {user.remaining_visits_current_month}
-                          </span>
-                        </div>
-
-                        {/* Days Left - Only show for admin */}
-                        {isAdmin && (
-                          <>
-                            <div className="flex flex-col">
-                              <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                                Days Left
-                              </span>
-                              <span className="text-sm text-gray-700">
-                                {daysLeft} days
-                              </span>
-                            </div>
-
-                            {/* Expiry date */}
-                            <div className="flex flex-col">
-                              <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                                Expiry Date
-                              </span>
-                              <span className="text-sm text-gray-700">
-                                {formatDate(user.validity_upto)}
-                              </span>
-                            </div>
-                          </>
-                        )}
-
-                        {/* Status */}
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                            Status
-                          </span>
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-bold w-fit
-                              ${status === "Active"
-                                ? "bg-green-600 text-white"
-                                : status === "Renew Soon"
-                                  ? "bg-orange-500 text-white"
-                                  : "bg-red-600 text-white"
-                              }
-                            `}
-                          >
-                            {status}
-                          </span>
-                        </div>
-                      </div>
-
-                      {userRole !== "technician" && (
-                        <button
-                          onClick={() => handleEdit(user.amc_id)}
-                          className="w-full px-4 py-2.5 btn-primary"
-                        >
-                          Edit
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
           )}
         </div>
 
-        {/* Pagination */}
-        {filteredUsers.length > 0 && (
-          <div className="px-5 sm:px-6 py-4 border-t bg-gray-50">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-gray-600">
-                Showing {indexOfFirstUser + 1} to{" "}
-                {Math.min(indexOfLastUser, filteredUsers.length)} of{" "}
-                {filteredUsers.length} users
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={goToPrevious}
-                  disabled={currentPage === 1}
-                  className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === 1
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                    }`}
-                >
-                  Previous
-                </button>
-                {[...Array(totalPages)].map((_, index) => (
-                  <button
-                    key={index + 1}
-                    onClick={() => goToPage(index + 1)}
-                    className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === index + 1
-                      ? "bg-blue-500 text-white"
-                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                      }`}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
-                <button
-                  onClick={goToNext}
-                  disabled={currentPage === totalPages}
-                  className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === totalPages
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                    }`}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </div>
+        {/* Export All Button - Only show for non-technician roles */}
+        {userRole !== "technician" && (
+          <button
+            onClick={() => exportAllAMCToCSV()}
+            disabled={!pdfLoaded || filteredUsers.length === 0}
+            className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition whitespace-nowrap ${
+              pdfLoaded && filteredUsers.length > 0
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+            title={
+              filteredUsers.length === 0
+                ? 'No data to export'
+                : !pdfLoaded
+                ? 'Loading PDF library...'
+                : `Export all ${filteredUsers.length} visible AMC records`
+            }
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            Export All ({filteredUsers.length})
+          </button>
         )}
       </div>
     </div>
+
+    <div className="p-4 sm:p-6">
+      {currentUsers.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">No users found</p>
+          <p className="text-gray-400 text-sm mt-2">Try adjusting your search</p>
+        </div>
+      ) : (
+        <>
+          {/* Desktop Table */}
+          <div className="overflow-x-auto hidden lg:block">
+            <table className="w-full table-fixed text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th
+                    className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                    onClick={() => handleSort('name')}
+                  >
+                    <div className="flex items-center">
+                      Name 
+                      <SortArrow columnKey="name" />
+                    </div>
+                  </th>
+                  <th
+                    className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                    onClick={() => handleSort('phone')}
+                  >
+                    <div className="flex items-center">
+                      Contact
+                      <SortArrow columnKey="phone" />
+                    </div>
+                  </th>
+                  <th
+                    className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                    onClick={() => handleSort('locality')}
+                  >
+                    <div className="flex items-center">
+                      Locality
+                      <SortArrow columnKey="locality" />
+                    </div>
+                  </th>
+                  <th
+                    className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                    onClick={() => handleSort('visits_per_month')}
+                  >
+                    <div className="flex items-center">
+                      Visits per Month
+                      <SortArrow columnKey="visits_per_month" />
+                    </div>
+                  </th>
+                  <th
+                    className="w-[16%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                    onClick={() => handleSort('remaining_visits_current_month')}
+                  >
+                    <div className="flex items-center">
+                      Visit Pending For This Month
+                      <SortArrow columnKey="remaining_visits_current_month" />
+                    </div>
+                  </th>
+                  {/* Show Days Left column only for admin */}
+                  {isAdmin && (
+                    <th
+                      className="w-[11%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                      onClick={() => handleSort('validity_upto')}
+                    >
+                      <div className="flex items-center">
+                        Days Left
+                        <SortArrow columnKey="validity_upto" />
+                      </div>
+                    </th>
+                  )}
+                  <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">
+                    AMC Status
+                  </th>
+                  {userRole !== "technician" && (
+                  <th className="w-[9%] py-4 px-4 font-medium text-gray-700 text-left">
+                    Report
+                  </th>
+                  )}
+                  <th className="w-[5%] py-4 px-4 font-medium text-gray-700 text-left">
+                    Status
+                  </th>
+                  {userRole !== "technician" && (
+                    <th className="py-4 px-4 font-medium text-gray-700 text-right">Action</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {currentUsers.map((user) => {
+                  const daysLeft = Math.ceil((new Date(user.validity_upto) - new Date()) / (1000 * 60 * 60 * 24));
+                  const status = getAMCStatus(user.validity_upto);
+
+                  return (
+                    <tr
+                      key={user.id}
+                      className="border-b border-gray-200 hover:bg-gray-50 transition"
+                    >
+                      {/* Name */}
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium text-gray-800 truncate">
+                            {user.name}<br/>({user.amc_free_paid})
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Phone */}
+                      <td className="py-4 px-4 text-gray-700 truncate">
+                        <a
+                          href={`tel:${user.phone}`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {user.phone}
+                        </a>
+                      </td>
+
+                      <td className="py-4 px-4 text-gray-700 truncate">
+                          {user.locality}
+                      </td>
+
+                      {/* Visits per Month */}
+                      <td className="py-4 px-4 text-gray-700 text-left truncate">
+                        {user.visits_per_month}
+                      </td>
+
+                      {/* Pending Visits */}
+                      <td className="py-4 px-4 text-gray-700 text-left truncate">
+                        {user.remaining_visits_current_month}
+                      </td>
+
+                      {/* Days Left - Only show for admin */}
+                      {isAdmin && (
+                        <td className="py-4 px-4 text-gray-700 truncate">
+                          <p>
+                            {daysLeft} Days
+                          </p>
+                          <em
+                            className={`small-text py-1 rounded 
+                              ${status === "On-going" ? " text-green-400" : ""}
+                              ${status === "Renew Soon" ? "text-red-300" : ""}
+                              ${status === "Expired" ? " text-red-600" : ""}
+                            `}
+                          >
+                            ({formatDate(user.validity_upto)})
+                          </em>
+                        </td>
+                      )}
+
+                      {/* Status */}
+                      <td className="py-4 px-4 text-gray-700 truncate">
+                        <span
+                          className={`px-3 py-1 rounded-lg text-sm font-medium cust-status-label
+                            ${status === "On-going" ? "bg-green-400 text-white" : ""}
+                            ${status === "Renew Soon" ? "bg-red-300 text-white" : ""}
+                            ${status === "Expired" ? "bg-red-600 text-white" : ""}
+                          `}
+                        >
+                          {status}
+                        </span>
+                      </td>
+                      
+                      {userRole !== "technician" && (
+                        <td className="py-4 px-4 text-center">
+                          <button
+                            onClick={() => generatePDF(user)}
+                            disabled={!pdfLoaded}
+                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+                              pdfLoaded 
+                                ? 'bg-red-600 text-white hover:bg-red-700' 
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
+                            title={pdfLoaded ? "Download PDF Report" : "Loading PDF library..."}
+                          >
+                            <FileText size={16} />
+                            PDF
+                          </button>
+                        </td>
+                      )}
+
+                      <td className="py-4 px-4">
+                        <span
+                          className={`px-3 py-1 rounded-2xl text-sm font-medium ${user.status === "active"
+                              ? "bg-green-600 text-white"
+                              : "bg-red-600 text-white"
+                            }`}
+                        >
+                          {/* {user.status} */}
+                        </span>
+                      </td>
+
+                      {/* Action */}
+                      {userRole !== "technician" && (
+                        <td className="py-4 px-4 text-right">
+                          <button
+                            onClick={() => handleEdit(user.amc_id)}
+                            className="px-4 py-2 btn-primary"
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile View */}
+          <div className="block lg:hidden space-y-5">
+            {currentUsers.map((user) => {
+              const daysLeft = Math.ceil(
+                (new Date(user.validity_upto) - new Date()) / (1000 * 60 * 60 * 24)
+              );
+              const status = getAMCStatus(user.validity_upto);
+
+              return (
+                <div
+                  key={user.id}
+                  className="border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition bg-white"
+                >
+                  <h3 className="font-semibold text-gray-800 text-lg mb-3">
+                    {user.name}
+                  </h3>
+
+                  <div className="space-y-3 mb-5">
+                    {/* Phone */}
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                        Contact
+                      </span>
+                      <a
+                        href={`tel:${user.phone}`}
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        {user.phone}
+                      </a>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                        Locality
+                      </span>
+                        {user.locality}
+                    </div>
+
+                    {/* Visits per Month */}
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                        Visits / Month
+                      </span>
+                      <span className="text-sm text-gray-700">
+                        {user.visits_per_month}
+                      </span>
+                    </div>
+
+                    {/* Pending Visits */}
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                        Pending Visits / Month
+                      </span>
+                      <span className="text-sm text-gray-700">
+                        {user.remaining_visits_current_month}
+                      </span>
+                    </div>
+
+                    {/* Days Left - Only show for admin */}
+                    {isAdmin && (
+                      <>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                            Days Left
+                          </span>
+                          <span className="text-sm text-gray-700">
+                            {daysLeft} days
+                          </span>
+                        </div>
+
+                        {/* Expiry date */}
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                            Expiry Date
+                          </span>
+                          <span className="text-sm text-gray-700">
+                            {formatDate(user.validity_upto)}
+                          </span>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Status */}
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+                        Status
+                      </span>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold w-fit
+                          ${status === "Active"
+                            ? "bg-green-600 text-white"
+                            : status === "Renew Soon"
+                              ? "bg-orange-500 text-white"
+                              : "bg-red-600 text-white"
+                          }
+                        `}
+                      >
+                        {status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {userRole !== "technician" && (
+                    <button
+                      onClick={() => handleEdit(user.amc_id)}
+                      className="w-full px-4 py-2.5 btn-primary"
+                    >
+                      Edit
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+
+    {/* Pagination */}
+    {filteredUsers.length > 0 && (
+      <div className="px-5 sm:px-6 py-4 border-t bg-gray-50">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-gray-600">
+            Showing {indexOfFirstUser + 1} to{" "}
+            {Math.min(indexOfLastUser, filteredUsers.length)} of{" "}
+            {filteredUsers.length} users
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={goToPrevious}
+              disabled={currentPage === 1}
+              className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === 1
+                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+            >
+              Previous
+            </button>
+            {[...Array(totalPages)].map((_, index) => (
+              <button
+                key={index + 1}
+                onClick={() => goToPage(index + 1)}
+                className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === index + 1
+                  ? "bg-blue-500 text-white"
+                  : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
+              >
+                {index + 1}
+              </button>
+            ))}
+            <button
+              onClick={goToNext}
+              disabled={currentPage === totalPages}
+              className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === totalPages
+                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+</div>
   );
 }

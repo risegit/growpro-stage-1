@@ -47,7 +47,7 @@ switch ($method) {
                     "need_nutrients" => $need_nutrients
                 ]);
             }else{
-                $sql1 = "SELECT u.name,sv.id,sv.site_rating,sv.created_date,sv.created_time FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id WHERE sv.created_date BETWEEN '$startDate' and '$endDate' and u.status='active'";
+                $sql1 = "SELECT u.name,sv.id,AVG(sv.site_rating) site_rating,sv.created_date,sv.created_time FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id WHERE sv.created_date BETWEEN '$startDate' and '$endDate' and u.status='active' GROUP BY u.name;";
                 $result1 = $conn->query($sql1);
 
                 $client_performance = [];

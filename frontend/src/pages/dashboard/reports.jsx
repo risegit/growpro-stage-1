@@ -594,7 +594,9 @@ export default function ReportTable() {
             className="px-4 py-2 border rounded-lg"
           >
             <option value="Client Performance">Client Performance</option>
+            {user?.role === "admin" && (
             <option value="RAW Material">RAW Material</option>
+            )}
           </select>
 
           <input
