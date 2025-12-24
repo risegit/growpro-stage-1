@@ -334,8 +334,7 @@ switch ($method) {
 
             $jsonChargeableItemsSupplied = isset($_POST['chargeableQuantities']) ? $_POST['chargeableQuantities'] : '';
             $material_chargeable_Item_supplied = json_decode($jsonChargeableItemsSupplied, true);
-            $growerdata=var_dump($material_chargeable_Item_supplied);
-            echo json_encode(["status" => "success", "message" => $growerdata]);
+            // $growerdata=var_dump($material_chargeable_Item_supplied);
             // Material Need To Deliver
             if(!empty($materialNeedsDelivery)){
                 $material_need_neemoil = $_POST['material_need_neemoil'] ?? '';
@@ -439,7 +438,7 @@ switch ($method) {
                         $sql6 = "INSERT INTO `site_visit_material_supplied_chargeable_items`(`visit_id`, `item_name`, `other_item_name`,`quantity`) VALUES ('$visit_id','$materialSChargeableItems','','$qty')";
                     }
                     $conn->query($sql6);
-                    echo json_encode(["status" => "success", "message" => $sql6]);
+                    // echo json_encode(["status" => "success", "message" => $sql6]);
                 }
 
                 $uploadDir = dirname(__DIR__) . '/uploads/site-visit/';
@@ -491,7 +490,7 @@ switch ($method) {
                                 $sql10 = "INSERT INTO `site_visit_material_need_nutrients`(`visit_id`, `nutrient_type`, `tank_capacity`, `topups`, `other_nutrient_name`, `other_tank_capacity`) VALUES ('$visit_id','{$needNutrientInfo['nutrients']}','{$needNutrientInfo['tankCapacity']}','{$needNutrientInfo['numberOfTopups']}','','')";
                             }
                             $conn->query($sql10);
-                            echo json_encode(["status" => "success", "message" => $sql10]);
+                            // echo json_encode(["status" => "success", "message" => $sql10]);
                         }
                         foreach ($material_chargeable_Item_delivered as $materialDChargeableItems => $qty) {
                             if($materialDChargeableItems === "Others"){

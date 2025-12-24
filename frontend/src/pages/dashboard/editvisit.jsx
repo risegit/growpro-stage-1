@@ -126,7 +126,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         material_need_neemoil: "",
         materialNeedPlantQuantities: {},
 
-        // ADD THIS FOR CHARGEABLE ITEMS QUANTITIES
         chargeableQuantities: {},
         needChargeableQuantities: {}
     };
@@ -164,7 +163,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         { label: "Improper Maintenance", value: "Improper Maintenance" },
         { label: "Overgrown crops", value: "Overgrown crops" },
         { label: "Improper Harvesting", value: "Improper Harvesting" },
-        { label: "Bolting", value: "Bolting" }
+        { label: "Bolting", value: "Bolting" },
+        { label: "Root Rot", value: "Root Rot" }
     ];
 
     const plantOptions = [
@@ -222,240 +222,225 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         { label: "200", value: "200" }
     ];
 
-    const [originalPlants, setOriginalPlants] = useState([]);
-
-    useEffect(() => {
-    console.log("Current chargeableQuantities:", formData.chargeableQuantities);
-    console.log("Current needChargeableQuantities:", formData.needChargeableQuantities);
-    console.log("Selected chargeable items:", formData.material_supplied_chargeable_items);
-}, [formData.chargeableQuantities, formData.needChargeableQuantities, formData.material_supplied_chargeable_items]);
-
     const loadCustomers = async () => {
-    setLoadingCustomers(true);
-    try {
-        let originalPlants = [];
-        let selectedPlantProblems = [];
-        let selectedPestTypes = [];
-        let selectedOtherPest = "";
-        let selectedsuppliedPlants = [];
-        let selectedSuppliedQuantities = {}; // CHANGE FROM [] TO {}
-        let selectedOtherSuppliedPlant = "";
-        let selectedSuppliedChargeableItem = [];
-        let selectedNutrientsData = [];
-        let selectedSuppliedPhotoSetup = [];
-        let selectedNeedPlants = [];
-        let selectedOtherNeedPlant = "";
-        let selectedNeedQuantities = {}; // CHANGE FROM [] TO {}
-        let selectedNeedNutrientsData = [];
-        let selectedNeedChargeableItem = [];
+        setLoadingCustomers(true);
+        try {
+            let selectedPlantProblems = [];
+            let selectedPestTypes = [];
+            let selectedOtherPest = "";
+            let selectedsuppliedPlants = [];
+            let selectedSuppliedQuantities = {};
+            let selectedOtherSuppliedPlant = "";
+            let selectedSuppliedChargeableItem = [];
+            let selectedNutrientsData = [];
+            let selectedSuppliedPhotoSetup = [];
+            let selectedNeedPlants = [];
+            let selectedOtherNeedPlant = "";
+            let selectedNeedQuantities = {};
+            let selectedNeedNutrientsData = [];
+            let selectedNeedChargeableItem = [];
 
-        // ADD THESE FOR CHARGEABLE ITEMS
-        let selectedChargeableQuantities = {};
-        let selectedNeedChargeableQuantities = {};
-        let selectedOtherSuppliedItemName = "";
-        let selectedOtherNeedItemName = "";
+            let selectedChargeableQuantities = {};
+            let selectedNeedChargeableQuantities = {};
+            let selectedOtherSuppliedItemName = "";
+            let selectedOtherNeedItemName = "";
 
-        const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?editSiteVisit='active'&user_code=${user_code}&schId=${id}`);
+            const res = await fetch(`${import.meta.env.VITE_API_URL}api/site-visit.php?editSiteVisit='active'&user_code=${user_code}&schId=${id}`);
 
-        const data = await res.json();
-        console.log("Fetched user data:", data);
+            const data = await res.json();
+            console.log("Fetched user data:", data);
 
-        if (data.status === "success" && data.data) {
-            const user = data.data[0];
+            if (data.status === "success" && data.data) {
+                const user = data.data[0];
 
-            if (Array.isArray(data.plantProblems)) {
-                selectedPlantProblems = data.plantProblems.map(p => ({
-                    value: p.problem_name,
-                    label: p.problem_name
-                }));
-            }
-            if (Array.isArray(data.pestTypes)) {
-                selectedPestTypes = data.pestTypes.map(p => {
-                    if (p.pest_name === "Others") {
-                        selectedOtherPest = p.other_pest_name || "";
+                if (Array.isArray(data.plantProblems)) {
+                    selectedPlantProblems = data.plantProblems.map(p => ({
+                        value: p.problem_name,
+                        label: p.problem_name
+                    }));
+                }
+                if (Array.isArray(data.pestTypes)) {
+                    selectedPestTypes = data.pestTypes.map(p => {
+                        if (p.pest_name === "Others") {
+                            selectedOtherPest = p.other_pest_name || "";
+                            return {
+                                value: "Others",
+                                label: "Others"
+                            };
+                        }
                         return {
-                            value: "Others",
-                            label: "Others"
+                            value: p.pest_name,
+                            label: p.pest_name
                         };
-                    }
-                    return {
-                        value: p.pest_name,
-                        label: p.pest_name
-                    };
-                });
-            }
+                    });
+                }
 
-            if (Array.isArray(data.suppliedPlants)) {
-                selectedsuppliedPlants = data.suppliedPlants.map(p => {
-                    if (p.plant_name === "Others") {
-                        selectedOtherSuppliedPlant = p.other_plant_name || "";
-                        selectedSuppliedQuantities["Others"] = p.quantity || "";
+                if (Array.isArray(data.suppliedPlants)) {
+                    selectedsuppliedPlants = data.suppliedPlants.map(p => {
+                        if (p.plant_name === "Others") {
+                            selectedOtherSuppliedPlant = p.other_plant_name || "";
+                            selectedSuppliedQuantities["Others"] = p.quantity || "";
+                            return {
+                                value: "Others",
+                                label: "Others"
+                            };
+                        }
+                        selectedSuppliedQuantities[p.plant_name] = p.quantity || "";
                         return {
-                            value: "Others",
-                            label: "Others"
+                            value: p.plant_name,
+                            label: p.plant_name
                         };
-                    }
-                    selectedSuppliedQuantities[p.plant_name] = p.quantity || "";
-                    return {
-                        value: p.plant_name,
-                        label: p.plant_name
-                    };
-                });
-            }
+                    });
+                }
 
-            // UPDATED THIS SECTION FOR SUPPLIED CHARGEABLE ITEMS
-            if (Array.isArray(data.suppliedChargeableItem)) {
-                selectedSuppliedChargeableItem = data.suppliedChargeableItem.map(p => {
-                    if (p.item_name === "Others") {
-                        selectedOtherSuppliedItemName = p.other_item_name || "";
-                        selectedChargeableQuantities["Others"] = p.quantity || "";
+                if (Array.isArray(data.suppliedChargeableItem)) {
+                    selectedSuppliedChargeableItem = data.suppliedChargeableItem.map(p => {
+                        if (p.item_name === "Others") {
+                            selectedOtherSuppliedItemName = p.other_item_name || "";
+                            selectedChargeableQuantities["Others"] = p.quantity || "";
+                            return {
+                                value: "Others",
+                                label: "Others"
+                            };
+                        }
+                        selectedChargeableQuantities[p.item_name] = p.quantity || "";
                         return {
-                            value: "Others",
-                            label: "Others"
+                            value: p.item_name,
+                            label: p.item_name
                         };
-                    }
-                    selectedChargeableQuantities[p.item_name] = p.quantity || "";
-                    return {
-                        value: p.item_name,
-                        label: p.item_name
-                    };
-                });
-            }
+                    });
+                }
 
-            if (Array.isArray(data.suppliedNutrients)) {
-                selectedNutrientsData = data.suppliedNutrients.map(n => ({
-                    nutrients: n.nutrient_type === "Others"
-                        ? "Others"
-                        : n.nutrient_type,
-                    tankCapacity: n.tank_capacity || "",
-                    numberOfTopups: n.topups || "",
-                    otherNutrient: n.other_nutrient_name || "",
-                }));
-            }
+                if (Array.isArray(data.suppliedNutrients)) {
+                    selectedNutrientsData = data.suppliedNutrients.map(n => ({
+                        nutrients: n.nutrient_type === "Others"
+                            ? "Others"
+                            : n.nutrient_type,
+                        tankCapacity: n.tank_capacity || "",
+                        numberOfTopups: n.topups || "",
+                        otherNutrient: n.other_nutrient_name || "",
+                    }));
+                }
 
-            if (Array.isArray(data.suppliedPhotoSetup)) {
-                selectedSuppliedPhotoSetup = data.suppliedPhotoSetup.map(p => ({
-                    id: p.id,
-                    image_url: p.image_url,
-                    preview: `${import.meta.env.VITE_API_URL}uploads/site-visit/${p.image_url}`,
-                    file: null
-                }));
-            }
+                if (Array.isArray(data.suppliedPhotoSetup)) {
+                    selectedSuppliedPhotoSetup = data.suppliedPhotoSetup.map(p => ({
+                        id: p.id,
+                        image_url: p.image_url,
+                        preview: `${import.meta.env.VITE_API_URL}uploads/site-visit/${p.image_url}`,
+                        file: null
+                    }));
+                }
 
-            if (Array.isArray(data.needPlants)) {
-                selectedNeedPlants = data.needPlants.map(p => {
-                    if (p.plant_name === "Others") {
-                        selectedOtherNeedPlant = p.other_plant_name || "";
-                        selectedNeedQuantities["Others"] = p.quantity || "";
+                if (Array.isArray(data.needPlants)) {
+                    selectedNeedPlants = data.needPlants.map(p => {
+                        if (p.plant_name === "Others") {
+                            selectedOtherNeedPlant = p.other_plant_name || "";
+                            selectedNeedQuantities["Others"] = p.quantity || "";
+                            return {
+                                value: "Others",
+                                label: "Others"
+                            };
+                        }
+                        selectedNeedQuantities[p.plant_name] = p.quantity || "";
                         return {
-                            value: "Others",
-                            label: "Others"
+                            value: p.plant_name,
+                            label: p.plant_name
                         };
-                    }
-                    selectedNeedQuantities[p.plant_name] = p.quantity || "";
-                    return {
-                        value: p.plant_name,
-                        label: p.plant_name
-                    };
-                });
-            }
+                    });
+                }
 
-            if (Array.isArray(data.needNutrients)) {
-                selectedNeedNutrientsData = data.needNutrients.map(n => ({
-                    nutrients: n.nutrient_type === "Others"
-                        ? "Others"
-                        : n.nutrient_type,
-                    tankCapacity: n.tank_capacity || "",
-                    numberOfTopups: n.topups || "",
-                    otherNutrient: n.other_nutrient_name || "",
-                }));
-            }
+                if (Array.isArray(data.needNutrients)) {
+                    selectedNeedNutrientsData = data.needNutrients.map(n => ({
+                        nutrients: n.nutrient_type === "Others"
+                            ? "Others"
+                            : n.nutrient_type,
+                        tankCapacity: n.tank_capacity || "",
+                        numberOfTopups: n.topups || "",
+                        otherNutrient: n.other_nutrient_name || "",
+                    }));
+                }
 
-            // UPDATED THIS SECTION FOR NEED CHARGEABLE ITEMS
-            if (Array.isArray(data.needChargeableItem)) {
-                selectedNeedChargeableItem = data.needChargeableItem.map(p => {
-                    if (p.item_name === "Others") {
-                        selectedOtherNeedItemName = p.other_item_name || "";
-                        selectedNeedChargeableQuantities["Others"] = p.quantity || "";
+                if (Array.isArray(data.needChargeableItem)) {
+                    selectedNeedChargeableItem = data.needChargeableItem.map(p => {
+                        if (p.item_name === "Others") {
+                            selectedOtherNeedItemName = p.other_item_name || "";
+                            selectedNeedChargeableQuantities["Others"] = p.quantity || "";
+                            return {
+                                value: "Others",
+                                label: "Others"
+                            };
+                        }
+                        selectedNeedChargeableQuantities[p.item_name] = p.quantity || "";
                         return {
-                            value: "Others",
-                            label: "Others"
+                            value: p.item_name,
+                            label: p.item_name
                         };
-                    }
-                    selectedNeedChargeableQuantities[p.item_name] = p.quantity || "";
-                    return {
-                        value: p.item_name,
-                        label: p.item_name
-                    };
-                });
+                    });
+                }
+
+                const finalFormData = {
+                    customer_name: user.customer_name || '',
+                    plantsWater: user.are_plants_getting_water || "",
+                    waterAbovePump: user.water_above_pump || "",
+                    timerWorking: user.timer_working || "",
+                    timerIssue: user.timer_issue || "",
+                    motorWorking: user.motor_working || "",
+                    motorIssue: user.motor_issue || "",
+                    lightsWorking: user.light_working || "",
+                    lightsIssue: user.light_issue || "",
+                    equipmentDamaged: user.equipment_damaged || "",
+                    equipmentDamageDetails: user.damaged_items || "",
+                    anyLeaks: user.any_leaks || "",
+                    cleanEnvironment: user.clean_equipment || "",
+                    electricSecured: user.electric_connections_secured || "",
+                    initialPh: user.initial_ph || "",
+                    correctedPh: user.corrected_ph || "",
+                    initialTds: user.initial_tds || "",
+                    correctedTds: user.corrected_tds || "",
+                    pestsPresent: user.presence_of_pests || "",
+                    pestOther: user.pest_other || "",
+                    nutrientDeficiency: user.nutrient_deficiency || "",
+                    deficiencyDetails: user.deficiency_details || "",
+                    plantProblems: selectedPlantProblems,
+                    pestTypes: selectedPestTypes,
+                    pestOther: selectedOtherPest,
+                    cropNames: user.which_crop || "",
+                    harvestTraining: user.client_training_harvest || "",
+                    pestManagement: user.pest_management || "",
+                    equipmentCleaning: user.equipment_cleaning || "",
+                    plantMaintenance: user.plant_maintenance || "",
+                    scopesOfImprovement: user.scope_of_improvement || "",
+                    siteRating: user.site_rating || "",
+                    plants: selectedsuppliedPlants,
+                    materialsSuppliedPlantData: selectedOtherSuppliedPlant,
+                    plantQuantities: selectedSuppliedQuantities,
+                    material_supplied_neemoil: user.material_supplied_neemoil || "",
+                    material_supplied_chargeable_items: selectedSuppliedChargeableItem,
+                    materialschargeableItemsOptionsother: selectedOtherSuppliedItemName,
+                    chargeableQuantities: selectedChargeableQuantities,
+                    materialNeedsDelivery: user.material_needs_delivery === "true" || "",
+                    nutrientsData: selectedNutrientsData.length > 0 ? selectedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
+                    setupPhotos: selectedSuppliedPhotoSetup,
+                    step5Plants: selectedNeedPlants,
+                    materialsDeliveredPlantData: selectedOtherNeedPlant,
+                    materialNeedPlantQuantities: selectedNeedQuantities,
+                    material_need_nutrientsData: selectedNeedNutrientsData.length > 0 ? selectedNeedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
+                    material_need_neemoil: user.material_delivered_neemoil || "",
+                    material_need_chargeable_items: selectedNeedChargeableItem,
+                    materialsNeedChargeableItemsOptionsother: selectedOtherNeedItemName,
+                    needChargeableQuantities: selectedNeedChargeableQuantities
+                };
+
+                setFormData(finalFormData);
+                setOriginalData(JSON.parse(JSON.stringify(finalFormData)));
             }
 
-            const finalFormData = {
-                customer_name: user.customer_name || '',
-                plantsWater: user.are_plants_getting_water || "",
-                waterAbovePump: user.water_above_pump || "",
-                timerWorking: user.timer_working || "",
-                timerIssue: user.timer_issue || "",
-                motorWorking: user.motor_working || "",
-                motorIssue: user.motor_issue || "",
-                lightsWorking: user.light_working || "",
-                lightsIssue: user.light_issue || "",
-                equipmentDamaged: user.equipment_damaged || "",
-                equipmentDamageDetails: user.damaged_items || "",
-                anyLeaks: user.any_leaks || "",
-                cleanEnvironment: user.clean_equipment || "",
-                electricSecured: user.electric_connections_secured || "",
-                initialPh: user.initial_ph || "",
-                correctedPh: user.corrected_ph || "",
-                initialTds: user.initial_tds || "",
-                correctedTds: user.corrected_tds || "",
-                pestsPresent: user.presence_of_pests || "",
-                pestOther: user.pest_other || "",
-                nutrientDeficiency: user.nutrient_deficiency || "",
-                deficiencyDetails: user.deficiency_details || "",
-                plantProblems: selectedPlantProblems,
-                pestTypes: selectedPestTypes,
-                pestOther: selectedOtherPest,
-                cropNames: user.which_crop || "",
-                harvestTraining: user.client_training_harvest || "",
-                pestManagement: user.pest_management || "",
-                equipmentCleaning: user.equipment_cleaning || "",
-                plantMaintenance: user.plant_maintenance || "",
-                scopesOfImprovement: user.scope_of_improvement || "",
-                siteRating: user.site_rating || "",
-                plants: selectedsuppliedPlants,
-                materialsSuppliedPlantData: selectedOtherSuppliedPlant,
-                plantQuantities: selectedSuppliedQuantities,
-                material_supplied_neemoil: user.material_supplied_neemoil || "",
-                material_supplied_chargeable_items: selectedSuppliedChargeableItem,
-                materialschargeableItemsOptionsother: selectedOtherSuppliedItemName,
-                chargeableQuantities: selectedChargeableQuantities,
-                materialNeedsDelivery: user.material_needs_delivery === "true" || "",
-                nutrientsData: selectedNutrientsData.length > 0 ? selectedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
-                setupPhotos: selectedSuppliedPhotoSetup,
-                step5Plants: selectedNeedPlants,
-                materialsDeliveredPlantData: selectedOtherNeedPlant,
-                materialNeedPlantQuantities: selectedNeedQuantities,
-                material_need_nutrientsData: selectedNeedNutrientsData.length > 0 ? selectedNeedNutrientsData : [{ nutrients: "", tankCapacity: "", numberOfTopups: "" }],
-                material_need_neemoil: user.material_delivered_neemoil || "",
-                material_need_chargeable_items: selectedNeedChargeableItem,
-                materialsNeedChargeableItemsOptionsother: selectedOtherNeedItemName,
-                needChargeableQuantities: selectedNeedChargeableQuantities
-            };
-
-            console.log("Loaded plantQuantities:", selectedSuppliedQuantities); // Debug log
-            console.log("Loaded materialNeedPlantQuantities:", selectedNeedQuantities); // Debug log
-            
-            setFormData(finalFormData);
-            setOriginalData(JSON.parse(JSON.stringify(finalFormData)));
+        } catch (err) {
+            console.error('Error loading customers:', err);
+        } finally {
+            setLoadingCustomers(false);
         }
-
-    } catch (err) {
-        console.error('Error loading customers:', err);
-    } finally {
-        setLoadingCustomers(false);
-    }
-};
+    };
 
     useEffect(() => {
         let mounted = true;
@@ -464,70 +449,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
             mounted = false;
         };
     }, []);
-
-    // function getChangedFields(original, current) {
-    //     const changes = {};
-
-    //     const isObject = (v) => v && typeof v === "object" && !Array.isArray(v);
-    //     const isArray = Array.isArray;
-
-    //     const deepCompare = (orig, curr, keyPath = "") => {
-    //         if (!isObject(orig) && !isArray(orig)) {
-    //             if (orig !== curr) {
-    //                 changes[keyPath] = curr;
-    //             }
-    //             return;
-    //         }
-
-    //         if (isArray(orig) && isArray(curr)) {
-    //             if (orig.length !== curr.length) {
-    //                 changes[keyPath] = curr;
-    //                 return;
-    //             }
-
-    //             curr.forEach((item, i) => {
-    //                 const subKey = `${keyPath}[${i}]`;
-
-    //                 if (typeof item === "object") {
-    //                     if (JSON.stringify(orig[i]) !== JSON.stringify(item)) {
-    //                         changes[keyPath] = curr;
-    //                     }
-    //                 } else {
-    //                     if (orig[i] !== item) {
-    //                         changes[keyPath] = curr;
-    //                     }
-    //                 }
-    //             });
-
-    //             return;
-    //         }
-
-    //         if (isObject(orig) && isObject(curr)) {
-    //             Object.keys(curr).forEach(key => {
-    //                 const fullKey = keyPath ? `${keyPath}.${key}` : key;
-
-    //                 if (!(key in orig)) {
-    //                     changes[fullKey] = curr[key];
-    //                     return;
-    //                 }
-
-    //                 if (typeof curr[key] === "object") {
-    //                     deepCompare(orig[key], curr[key], fullKey);
-    //                 } else {
-    //                     if (orig[key] !== curr[key]) {
-    //                         changes[fullKey] = curr[key];
-    //                     }
-    //                 }
-    //             });
-
-    //             return;
-    //         }
-    //     };
-
-    //     deepCompare(original, current);
-
-    //     return changes;
-    // }
 
     const resetForm = () => {
         setFormData(initialFormState);
@@ -541,61 +462,6 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                 }
             });
         }
-    };
-
-    // Add this function for handling step 5 chargeable items
-    const handleStep5ChargeableItemsChange = (selected) => {
-        const newItems = selected || [];
-        
-        // Create a copy of current needChargeableQuantities
-        const newQuantities = { ...formData.needChargeableQuantities };
-        
-        // Get values of selected items
-        const selectedValues = newItems.map(item => item.value);
-        
-        // Remove quantities for unselected items
-        Object.keys(newQuantities).forEach(key => {
-            if (!selectedValues.includes(key)) {
-                delete newQuantities[key];
-            }
-        });
-        
-        // Add empty quantities for newly selected items that don't have one yet
-        newItems.forEach(item => {
-            if (!newQuantities[item.value]) {
-                newQuantities[item.value] = formData.needChargeableQuantities[item.value] || "";
-            }
-        });
-        
-        // Handle "Others" specifically
-        if (selectedValues.includes("Others")) {
-            if (!newQuantities["Others"]) {
-                newQuantities["Others"] = formData.needChargeableQuantities["Others"] || "";
-            }
-        } else {
-            delete newQuantities["Others"];
-            // Also clear the "other" text input when "Others" is unselected
-            setFormData({
-                ...formData,
-                material_need_chargeable_items: newItems,
-                needChargeableQuantities: newQuantities,
-                materialsNeedChargeableItemsOptionsother: "" // Clear the other text input
-            });
-            return;
-        }
-        
-        setFormData({
-            ...formData,
-            material_need_chargeable_items: newItems,
-            needChargeableQuantities: newQuantities
-        });
-
-        // Clear errors
-        setErrors((prevErrors) => ({
-            ...prevErrors,
-            material_need_chargeable_items: "",
-            materialsNeedChargeableItemsOptionsother: ""
-        }));
     };
 
     function getImageChanges(originalImages, currentImages) {
@@ -625,16 +491,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
         try {
             await new Promise(resolve => setTimeout(resolve, 800));
-            // const changedFields = getChangedFields(originalData, formData);
-            // changedFields.materialNeedsDelivery = formData.materialNeedsDelivery;
-
-            // const imageDiff = getImageChanges(originalData.setupPhotos, formData.setupPhotos);
-            // if (imageDiff.added.length > 0 || imageDiff.removed.length > 0) {
-            //     changedFields.setupPhotos = imageDiff;
-            // }
-
-            // console.log("Final data to send:", changedFields);
-
+            
             const formPayload = new FormData();
 
             const appendFormData = (key, value) => {
@@ -654,9 +511,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                     formPayload.append(key, value.toString());
                 }
             };
-            // Debug: Log the plant quantities before sending
-            console.log("Plant Quantities before submit:", formData.plantQuantities);
 
+            // Send ALL form data
             Object.keys(formData).forEach((key) => {
                 const value = formData[key];
 
@@ -692,11 +548,15 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
 
                     case 'nutrientsData':
                     case 'material_need_nutrientsData':
+                        formPayload.append(key, JSON.stringify(value || []));
+                        break;
+
                     case 'plantQuantities':
                     case 'materialNeedPlantQuantities':
-                    case 'chargeableQuantities': // ADD THIS
-                    case 'needChargeableQuantities': // ADD THIS
-                        formPayload.append(key, JSON.stringify(value || []));
+                    case 'chargeableQuantities':
+                    case 'needChargeableQuantities':
+                        // Send as JSON string, use {} for objects
+                        formPayload.append(key, JSON.stringify(value || {}));
                         break;
 
                     default:
@@ -752,26 +612,9 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         }
     };
 
-    // Update your handleChange function to clear quantities when "other" name is cleared
     const handleChange = (e) => {
         const { name, value } = e.target;
         let updated = { ...formData, [name]: value };
-
-        // Clear chargeable quantity if "Others" text input is cleared
-        if (name === "materialschargeableItemsOptionsother" && !value.trim()) {
-            updated.chargeableQuantities = {
-                ...updated.chargeableQuantities,
-                "Others": ""
-            };
-        }
-        
-        // Clear need chargeable quantity if "Others" text input is cleared
-        if (name === "materialsNeedChargeableItemsOptionsother" && !value.trim()) {
-            updated.needChargeableQuantities = {
-                ...updated.needChargeableQuantities,
-                "Others": ""
-            };
-        }
 
         if (name === "timerWorking" && value === "yes") updated.timerIssue = "";
         if (name === "motorWorking" && value === "yes") updated.motorIssue = "";
@@ -802,82 +645,55 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         setErrors({ ...errors, setupPhoto: "" });
     };
 
-const handleStep4MaterialsSelection = (selected) => {
-    const newMaterials = selected || [];
-    const newQuantities = { ...formData.plantQuantities };
-    
-    // Get values of selected plants
-    const selectedValues = newMaterials.map(item => item.value);
-    
-    // Remove quantities for unselected items
-    Object.keys(newQuantities).forEach(key => {
-        if (!selectedValues.includes(key)) {
-            delete newQuantities[key];
-        }
-    });
-    
-    // Add empty quantities for newly selected items that don't have one yet
-    newMaterials.forEach(item => {
-        if (!newQuantities[item.value]) {
-            newQuantities[item.value] = formData.plantQuantities[item.value] || "";
-        }
-    });
-    
-    // If "Others" is selected but was not previously, initialize its quantity
-    if (selectedValues.includes("Others") && !newQuantities["Others"]) {
-        newQuantities["Others"] = formData.plantQuantities["Others"] || "";
-    }
-    
-    setFormData({
-        ...formData,
-        plants: newMaterials,
-        plantQuantities: newQuantities
-    });
-    
-    // Clear any errors
-    setErrors((prevErrors) => ({
-        ...prevErrors,
-        plants: "",
-        plantQuantities: ""
-    }));
-};
+    const handleStep4MaterialsSelection = (selected) => {
+        const newMaterials = selected || [];
+        const newQuantities = {};
 
+        // Only keep quantities for materials that are still selected
+        newMaterials.forEach(material => {
+            const key = material.value === "Others" ? "Others" : material.value;
+            if (formData.plantQuantities?.[key] !== undefined) {
+                newQuantities[key] = formData.plantQuantities[key];
+            }
+        });
+        
+        // Clear "Other" input if "Others" is not selected
+        let newOtherValue = formData.materialsSuppliedPlantData;
+        if (!newMaterials.some(item => item.value === "Others")) {
+            newOtherValue = "";
+        }
 
+        setFormData({
+            ...formData,
+            plants: newMaterials,
+            plantQuantities: newQuantities,
+            materialsSuppliedPlantData: newOtherValue,
+        });
+
+        setErrors({ ...errors, plants: "", plantQuantities: "" });
+    };
 
     const handleStep5MaterialsSelection = (selected) => {
-    const newMaterials = selected || [];
-    const newQuantities = { ...formData.materialNeedPlantQuantities };
-    
-    // Get values of selected plants
-    const selectedValues = newMaterials.map(item => item.value);
-    
-    // Remove quantities for unselected items
-    Object.keys(newQuantities).forEach(key => {
-        if (!selectedValues.includes(key)) {
-            delete newQuantities[key];
-        }
-    });
-    
-    // Add empty quantities for newly selected items that don't have one yet
-    newMaterials.forEach(item => {
-        if (!newQuantities[item.value]) {
-            newQuantities[item.value] = formData.materialNeedPlantQuantities[item.value] || "";
-        }
-    });
-    
-    // If "Others" is selected but was not previously, initialize its quantity
-    if (selectedValues.includes("Others") && !newQuantities["Others"]) {
-        newQuantities["Others"] = formData.materialNeedPlantQuantities["Others"] || "";
-    }
-    
-    setFormData({
-        ...formData,
-        step5Plants: newMaterials,
-        materialNeedPlantQuantities: newQuantities
-    });
+        const newMaterials = selected || [];
+        const newQuantities = {};
 
-    setErrors({ ...errors, step5Plants: "", materialNeedPlantQuantities: "" });
-};
+        // Only keep quantities for materials that are still selected
+        newMaterials.forEach(material => {
+            const key = material.value;
+            // Preserve existing quantity if it exists
+            if (formData.materialNeedPlantQuantities[key] !== undefined) {
+                newQuantities[key] = formData.materialNeedPlantQuantities[key];
+            }
+        });
+
+        setFormData({
+            ...formData,
+            step5Plants: newMaterials,
+            materialNeedPlantQuantities: newQuantities,
+        });
+
+        setErrors({ ...errors, step5Plants: "", materialNeedPlantQuantities: "" });
+    };
 
     const handleCustomerChange = (selected) => {
         setFormData(prev => ({
@@ -887,72 +703,59 @@ const handleStep4MaterialsSelection = (selected) => {
     };
 
     const handleChargeableItemsChange = (selected) => {
-    const newItems = selected || [];
-    
-    // Create a copy of current chargeableQuantities
-    const newQuantities = { ...formData.chargeableQuantities };
-    
-    // Get values of selected items
-    const selectedValues = newItems.map(item => item.value);
-    
-    // Remove quantities for unselected items
-    Object.keys(newQuantities).forEach(key => {
-        if (!selectedValues.includes(key)) {
-            delete newQuantities[key];
+        const newItems = selected || [];
+        
+        // Clean up quantities for items that are no longer selected
+        const newQuantities = {};
+        
+        // Only keep quantities for items that are still selected
+        newItems.forEach(item => {
+            const key = item.value === "Others" ? "Others" : item.value;
+            if (formData.chargeableQuantities?.[key] !== undefined) {
+                newQuantities[key] = formData.chargeableQuantities[key];
+            }
+        });
+        
+        // Clear "Other" input if "Others" is not selected
+        let newOtherValue = formData.materialschargeableItemsOptionsother;
+        if (!newItems.some(item => item.value === "Others")) {
+            newOtherValue = "";
         }
-    });
-    
-    // Add empty quantities for newly selected items that don't have one yet
-    newItems.forEach(item => {
-        if (!newQuantities[item.value]) {
-            newQuantities[item.value] = formData.chargeableQuantities[item.value] || "";
-        }
-    });
-    
-    // Handle "Others" specifically
-    if (selectedValues.includes("Others")) {
-        if (!newQuantities["Others"]) {
-            newQuantities["Others"] = formData.chargeableQuantities["Others"] || "";
-        }
-    } else {
-        delete newQuantities["Others"];
-        // Also clear the "other" text input when "Others" is unselected
+        
         setFormData({
             ...formData,
             material_supplied_chargeable_items: newItems,
             chargeableQuantities: newQuantities,
-            materialschargeableItemsOptionsother: "" // Clear the other text input
+            materialschargeableItemsOptionsother: newOtherValue,
         });
-        return;
-    }
-    
-    setFormData({
-        ...formData,
-        material_supplied_chargeable_items: newItems,
-        chargeableQuantities: newQuantities
-    });
-
-    setErrors((prevErrors) => ({
-        ...prevErrors,
-        material_supplied_chargeable_items: "",
-        materialschargeableItemsOptionsother: ""
-    }));
-};
+        
+        setErrors((prevErrors) => ({
+            ...prevErrors,
+            material_supplied_chargeable_items: "",
+            materialschargeableItemsOptionsother: newItems.some(item => item.value === "Others") ? prevErrors.materialschargeableItemsOptionsother : ""
+        }));
+    };
 
     const handleStep4QuantityChange = (plantValue, quantity) => {
+        const newQuantities = { ...formData.plantQuantities };
+        
+        if (quantity === "" || quantity === undefined) {
+            // Remove the key if quantity is empty
+            delete newQuantities[plantValue];
+        } else {
+            // Otherwise update the quantity
+            newQuantities[plantValue] = quantity;
+        }
+        
         setFormData({
             ...formData,
-            plantQuantities: {
-                ...formData.plantQuantities,
-                [plantValue]: quantity,
-            },
+            plantQuantities: newQuantities,
         });
 
         setErrors((prevErrors) => {
             const newErrors = { ...prevErrors };
             if (newErrors.plantQuantities && newErrors.plantQuantities[plantValue]) {
                 delete newErrors.plantQuantities[plantValue];
-
                 if (Object.keys(newErrors.plantQuantities).length === 0) {
                     delete newErrors.plantQuantities;
                 }
@@ -1070,24 +873,15 @@ const handleStep4MaterialsSelection = (selected) => {
 
     const validateStep4 = () => {
         let newErrors = {};
-
-        // Plants validation (unchanged)
+        
+        // 1. Materials Supplied validation (plants field) - KEEP REQUIRED
         if (!formData.plants || formData.plants.length === 0) {
-            newErrors.plants = "Select at least one plant";
-        }
-
-        if (
-            formData.plants?.some((i) => i.value === "Others") &&
-            !formData.materialsSuppliedPlantData?.trim()
-        ) {
-            newErrors.materialsSuppliedPlantData = "Please specify the other material";
-        }
-
-        // Plants Quantity validation (unchanged)
-        if (formData.plants && formData.plants.length > 0) {
+            newErrors.plants = "Required";
+        } else {
+            // Validate quantities for selected plants
             const quantityErrors = {};
             let hasQuantityErrors = false;
-
+            
             formData.plants.forEach((plant) => {
                 if (plant.value !== "Others") {
                     const quantity = formData.plantQuantities?.[plant.value];
@@ -1103,77 +897,26 @@ const handleStep4MaterialsSelection = (selected) => {
                     }
                 }
             });
-
+            
             if (hasQuantityErrors) {
                 newErrors.plantQuantities = quantityErrors;
             }
         }
-
-        // Nutrients data validation (unchanged)
-        formData.nutrientsData.forEach((field, index) => {
-            const rowErrors = {};
-
-            if (!field.nutrients) {
-                rowErrors.nutrients = "Required";
-            }
-
-            if (!field.tankCapacity) {
-                rowErrors.tankCapacity = "Required";
-            }
-
-            if (!field.numberOfTopups && field.numberOfTopups !== 0) {
-                rowErrors.numberOfTopups = "Required";
-            }
-
-            if (Object.keys(rowErrors).length > 0) {
-                if (!newErrors.nutrientsData) newErrors.nutrientsData = [];
-                newErrors.nutrientsData[index] = rowErrors;
-            }
-        });
-
-        // Neem oil validation (unchanged)
+        
+        // 2. Photo of the Setup validation - KEEP REQUIRED
+        if (!formData.setupPhotos || formData.setupPhotos.length === 0) {
+            newErrors.setupPhoto = "Required";
+        }
+        
+        // 3. Neem Oil validation - KEEP REQUIRED
         if (!formData.material_supplied_neemoil) {
             newErrors.material_supplied_neemoil = "Required";
         }
-
-        // Chargeable items validation - REMOVED mandatory check
-        // Only validate quantities if items are selected
         
-        // Chargeable items quantity validation - only if items are selected
-        if (formData.material_supplied_chargeable_items && formData.material_supplied_chargeable_items.length > 0) {
-            const chargeableQuantityErrors = {};
-            let hasChargeableQuantityErrors = false;
-
-            formData.material_supplied_chargeable_items.forEach((item) => {
-                const key = item.value === "Others" ? "Others" : item.value;
-                const quantity = formData.chargeableQuantities?.[key];
-                if (!quantity || quantity.trim() === "" || isNaN(quantity) || parseInt(quantity) <= 0) {
-                    chargeableQuantityErrors[key] = "Quantity is required";
-                    hasChargeableQuantityErrors = true;
-                }
-            });
-
-            if (hasChargeableQuantityErrors) {
-                newErrors.chargeableQuantities = chargeableQuantityErrors;
-            }
-
-            // Validate "Others" specification if "Others" is selected
-            if (
-                formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") &&
-                !formData.materialschargeableItemsOptionsother?.trim()
-            ) {
-                newErrors.materialschargeableItemsOptionsother = "Please specify other items";
-            }
-        }
-
-        // Setup photo validation (unchanged)
-        if (!formData.setupPhotos || formData.setupPhotos.length === 0) {
-            newErrors.setupPhoto = "At least one photo of the setup is required.";
-        }
-
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
+
     const validateStep5 = () => {
         let newErrors = {};
 
@@ -1358,15 +1101,6 @@ const handleStep4MaterialsSelection = (selected) => {
         setErrors({ ...errors, [name]: "" });
     };
 
-    const handleStep4OtherInput = (e) => {
-        const { value } = e.target;
-        setFormData({
-            ...formData,
-            materialsSuppliedPlantData: value,
-        });
-        setErrors({ ...errors, materialsSuppliedPlantData: "" });
-    };
-
     const handleStep5OtherInput = (e) => {
         const { value } = e.target;
         setFormData({
@@ -1399,10 +1133,10 @@ const handleStep4MaterialsSelection = (selected) => {
         </div>
     );
 
-    const YesNoSimple = ({ name, label }) => (
+    const YesNoSimple = ({ name, label, required = false }) => (
         <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">
-                {label} <span className="text-red-500">*</span>
+                {label} {required && <span className="text-red-500">*</span>}
             </label>
             <div className="flex gap-6">
                 {["yes", "no"].map((v) => (
@@ -1425,7 +1159,7 @@ const handleStep4MaterialsSelection = (selected) => {
     return (
         <div className="w-full min-h-screen bg-gray-100 mt-10">
             <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
-                <h2 className="text-2xl font-bold mb-6 text-gray-800">Observation Form</h2>
+                <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit Observation Form</h2>
                 <StepperHeader />
 
                 <div className="mt-6 space-y-6">
@@ -1439,10 +1173,9 @@ const handleStep4MaterialsSelection = (selected) => {
                                 <label>{formData.customer_name}</label>
                             </div>
 
-                            <YesNoSimple name="plantsWater" label="Are the Plants Getting Water (क्या पौधों को पानी मिल रहा है?)" />
-                            <YesNoSimple name="waterAbovePump" label="Water above the pump (पंप के ऊपर पानी)" />
+                            <YesNoSimple name="plantsWater" label="Are the Plants Getting Water (क्या पौधों को पानी मिल रहा है?)" required={true} />
+                            <YesNoSimple name="waterAbovePump" label="Water above the pump (पंप के ऊपर पानी)" required={true} />
 
-                            {/* Timer Working */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     Timer Working (टाइमर काम कर रही है) <span className="text-red-500">*</span>
@@ -1477,7 +1210,6 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            {/* Motor Working */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     Motor Working (मोटर काम कर रही है) <span className="text-red-500">*</span>
@@ -1512,10 +1244,9 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            {/* Lights Working */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
-                                    Lights Working (Light काम कर रही है)
+                                    Lights Working (Light काम कर रही है) <span className="text-red-500">*</span>
                                 </label>
                                 <div className="flex gap-6">
                                     {["yes", "no"].map((v) => (
@@ -1531,6 +1262,7 @@ const handleStep4MaterialsSelection = (selected) => {
                                         </label>
                                     ))}
                                 </div>
+                                {errors.lightsWorking && <span className="text-red-500 text-sm mt-1">{errors.lightsWorking}</span>}
                                 {formData.lightsWorking === "no" && (
                                     <div className="mt-3">
                                         <input
@@ -1546,7 +1278,6 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            {/* Equipment Damaged */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     Equipment Damaged? (उपकरण ख़राब ?) <span className="text-red-500">*</span>
@@ -1581,23 +1312,21 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            <YesNoSimple name="anyLeaks" label="Any leaks (कोई भी लीक)" />
-                            <YesNoSimple name="cleanEnvironment" label="Clean Environment (स्वच्छ वातावरण)" />
-                            <YesNoSimple name="electricSecured" label="Electric Connections Secured (विद्युत कनेक्शन सुरक्षित)" />
+                            <YesNoSimple name="anyLeaks" label="Any leaks (कोई भी लीक)" required={true} />
+                            <YesNoSimple name="cleanEnvironment" label="Clean Environment (स्वच्छ वातावरण)" required={true} />
+                            <YesNoSimple name="electricSecured" label="Electric Connections Secured (विद्युत कनेक्शन सुरक्षित)" required={true} />
                         </div>
                     )}
 
                     {/* STEP 2 */}
                     {step === 2 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6">
-                            {/* Initial pH */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     Initial pH (प्रारंभिक पीएच)<span className="text-red-500">*</span>
                                 </label>
                                 <input
-                                    type="number"
-                                    step="0.1"
+                                    type="text"
                                     name="initialPh"
                                     value={formData.initialPh}
                                     onChange={handleChange}
@@ -1608,14 +1337,12 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            {/* Corrected pH */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     Corrected pH (सही पीएच) <span className="text-red-500">*</span>
                                 </label>
                                 <input
-                                    type="number"
-                                    step="0.1"
+                                    type="text"
                                     name="correctedPh"
                                     value={formData.correctedPh}
                                     onChange={handleChange}
@@ -1626,13 +1353,12 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            {/* Initial TDS */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     Initial TDS (ppm) (प्रारंभिक टीडीएस (पीपीएम)) <span className="text-red-500">*</span>
                                 </label>
                                 <input
-                                    type="number"
+                                    type="text"
                                     name="initialTds"
                                     value={formData.initialTds}
                                     onChange={handleChange}
@@ -1643,13 +1369,12 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            {/* Corrected TDS */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     Corrected TDS (ppm) (टीडीएस ठीक किया गया) <span className="text-red-500">*</span>
                                 </label>
                                 <input
-                                    type="number"
+                                    type="text"
                                     name="correctedTds"
                                     value={formData.correctedTds}
                                     onChange={handleChange}
@@ -1660,7 +1385,6 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            {/* Plant Problems */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     Plant Problems (पौधों की समस्याएँ) <span className="text-red-500">*</span>
@@ -1681,7 +1405,6 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            {/* Crop Names */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     State which crops (कौन सी फसल बताएं?) <span className="text-red-500">*</span>
@@ -1699,7 +1422,6 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            {/* Presence of Pests */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     Presence of Pests (कीटों की उपस्थिति) <span className="text-red-500">*</span>
@@ -1731,7 +1453,6 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            {/* Which Pests */}
                             {formData.pestsPresent === "yes" && (
                                 <div className="flex flex-col">
                                     <label className="mb-1 font-medium text-gray-700">
@@ -1769,7 +1490,6 @@ const handleStep4MaterialsSelection = (selected) => {
                                 </div>
                             )}
 
-                            {/* Nutrient Deficiency */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     Nutrient Deficiency (पोषक तत्वों की कमी) <span className="text-red-500">*</span>
@@ -1821,15 +1541,12 @@ const handleStep4MaterialsSelection = (selected) => {
                     {/* STEP 3 */}
                     {step === 3 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 py-6">
-                            {/* Yes/No fields */}
-                            <YesNoSimple name="harvestTraining" label="How & When to Harvest (कटाई कैसे और कब करें)" />
-                            <YesNoSimple name="pestManagement" label="Pest Management (कीट प्रबंधन)" />
-                            <YesNoSimple name="equipmentCleaning" label="Equipment Cleaning (उपकरण की सफ़ाई)" />
-                            <YesNoSimple name="plantMaintenance" label="Plant Maintenance (पौध रखरखाव)" />
+                            <YesNoSimple name="harvestTraining" label="How & When to Harvest (कटाई कैसे और कब करें)" required={true} />
+                            <YesNoSimple name="pestManagement" label="Pest Management (कीट प्रबंधन)" required={true} />
+                            <YesNoSimple name="equipmentCleaning" label="Equipment Cleaning (उपकरण की सफ़ाई)" required={true} />
+                            <YesNoSimple name="plantMaintenance" label="Plant Maintenance (पौध रखरखाव)" required={true} />
 
-                            {/* Scopes of Improvement + Site Rating */}
                             <div className="flex flex-col md:flex-row md:space-x-4 md:col-span-2">
-                                {/* Scopes of Improvement */}
                                 <div className="flex-1 mb-4 md:mb-0">
                                     <label className="mb-1 font-medium text-gray-700">
                                         Scopes of Improvement (सुधार की गुंजाइशें) <span className="text-red-500">*</span>
@@ -1848,7 +1565,6 @@ const handleStep4MaterialsSelection = (selected) => {
                                     )}
                                 </div>
 
-                                {/* Site Rating */}
                                 <div className="flex-1">
                                     <label className="mb-1 font-medium text-gray-700">
                                         Site Rating ({formData.siteRating}) (साइट रेटिंग) <span className="text-red-500">*</span>
@@ -1885,7 +1601,7 @@ const handleStep4MaterialsSelection = (selected) => {
                     {/* STEP 4 */}
                     {step === 4 && (
                         <div className="space-y-6 px-6 py-6 max-w-full overflow-x-hidden">
-                            {/* Materials Supplied */}
+                            {/* Materials Supplied - KEEP REQUIRED */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     Materials Supplied (सप्लाई किए जाने वाले सामान) <span className="text-red-500">*</span>
@@ -1909,7 +1625,25 @@ const handleStep4MaterialsSelection = (selected) => {
                                             type="text"
                                             name="materialsSuppliedPlantData"
                                             value={formData.materialsSuppliedPlantData || ""}
-                                            onChange={handleStep4OtherInput}
+                                            onChange={(e) => {
+                                                const { value } = e.target;
+                                                // If "Others" name is cleared, also clear its quantity
+                                                const newQuantities = { ...formData.plantQuantities };
+                                                if (!value.trim() && newQuantities["Others"]) {
+                                                    delete newQuantities["Others"];
+                                                }
+                                                
+                                                setFormData({
+                                                    ...formData,
+                                                    materialsSuppliedPlantData: value,
+                                                    plantQuantities: newQuantities,
+                                                });
+                                                
+                                                setErrors((prevErrors) => ({
+                                                    ...prevErrors,
+                                                    materialsSuppliedPlantData: "",
+                                                }));
+                                            }}
                                             placeholder="Specify other material"
                                             className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialsSuppliedPlantData
                                                 ? "border-red-500 focus:ring-red-400"
@@ -1985,13 +1719,12 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            {/* Dynamic Fields for Nutrients Data */}
+                            {/* Dynamic Fields for Nutrients Data - REMOVE REQUIRED */}
                             {formData.nutrientsData.map((field, index) => (
                                 <div key={index} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                    {/* Nutrients */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Nutrients (पोषक तत्व) <span className="text-red-500">*</span>
+                                            Nutrients (पोषक तत्व)
                                         </label>
                                         <Select
                                             options={nutrientOptions}
@@ -2000,15 +1733,11 @@ const handleStep4MaterialsSelection = (selected) => {
                                             classNamePrefix="react-select"
                                             placeholder="Select nutrient type..."
                                         />
-                                        {errors.nutrientsData && errors.nutrientsData[index]?.nutrients && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index]?.nutrients}</span>
-                                        )}
                                     </div>
 
-                                    {/* Tank Capacity */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Tank Capacity in Litre (टैंक क्षमता लीटर में) <span className="text-red-500">*</span>
+                                            Tank Capacity in Litre (टैंक क्षमता लीटर में)
                                         </label>
                                         <input
                                             type="number"
@@ -2017,15 +1746,11 @@ const handleStep4MaterialsSelection = (selected) => {
                                             placeholder="Enter tank capacity in litres"
                                             className="px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-400"
                                         />
-                                        {errors.nutrientsData && errors.nutrientsData[index]?.tankCapacity && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index]?.tankCapacity}</span>
-                                        )}
                                     </div>
 
-                                    {/* Number of Top-ups */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
-                                            Number of Top-ups (टॉप-अप की संख्या) <span className="text-red-500">*</span>
+                                            Number of Top-ups (टॉप-अप की संख्या)
                                         </label>
                                         <input
                                             type="number"
@@ -2033,16 +1758,12 @@ const handleStep4MaterialsSelection = (selected) => {
                                             value={field.numberOfTopups}
                                             onChange={(e) => handleDynamicFieldChange(index, 'numberOfTopups', e.target.value)}
                                             placeholder="Enter number of top-ups"
-                                            className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.nutrientsData && errors.nutrientsData[index]?.numberOfTopups ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'} w-full`}
+                                            className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:outline-none focus:ring-blue-400 transition w-full"
                                         />
-                                        {errors.nutrientsData && errors.nutrientsData[index]?.numberOfTopups && (
-                                            <span className="text-red-500 text-sm mt-1">{errors.nutrientsData[index]?.numberOfTopups}</span>
-                                        )}
                                     </div>
                                 </div>
                             ))}
 
-                            {/* Add More and Remove Row Buttons */}
                             <div className="flex flex-col sm:flex-row items-center justify-end gap-3 mt-4">
                                 {formData.nutrientsData.length > 1 && (
                                     <button
@@ -2062,52 +1783,79 @@ const handleStep4MaterialsSelection = (selected) => {
                                 </button>
                             </div>
 
-                            {/* Neem Oil */}
-                            <YesNoSimple name="material_supplied_neemoil" label="Neem Oil (नीम का तेल)" />
+                            <YesNoSimple name="material_supplied_neemoil" label="Neem Oil (नीम का तेल)" required={true} />
 
-                            {/* Chargeable Items */}
                             <div className="flex flex-col sm:flex-row space-x-0 sm:space-x-4 gap-4">
-                                {/* Chargeable Items Supplied */}
                                 <div className="flex-1">
                                     <label className="mb-1 font-medium text-gray-700">
                                         Chargeable Items Supplied (जो वस्तुएँ पैसे के लिए दी गई हैं)
-                                        {/* REMOVED required asterisk */}
                                     </label>
                                     <Select
                                         isMulti
                                         options={changebleItemsOptions}
                                         value={formData.material_supplied_chargeable_items}
-                                        onChange={handleChargeableItemsChange} // Use the new handler
+                                        onChange={(selected) => {
+                                            const newItems = selected || [];
+                                            
+                                            // Clean up quantities for items that are no longer selected
+                                            const newQuantities = {};
+                                            
+                                            // Only keep quantities for items that are still selected
+                                            newItems.forEach(item => {
+                                                const key = item.value === "Others" ? "Others" : item.value;
+                                                if (formData.chargeableQuantities?.[key] !== undefined) {
+                                                    newQuantities[key] = formData.chargeableQuantities[key];
+                                                }
+                                            });
+                                            
+                                            // Clear "Other" input if "Others" is not selected
+                                            let newOtherValue = formData.materialschargeableItemsOptionsother;
+                                            if (!newItems.some(item => item.value === "Others")) {
+                                                newOtherValue = "";
+                                            }
+                                            
+                                            setFormData({
+                                                ...formData,
+                                                material_supplied_chargeable_items: newItems,
+                                                chargeableQuantities: newQuantities,
+                                                materialschargeableItemsOptionsother: newOtherValue,
+                                            });
+                                        }}
                                         classNamePrefix="react-select"
-                                        placeholder="Select items..."
+                                        placeholder="Select items (optional)..."
                                         styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
                                     />
 
-                                    {/* Input for "Other" item name */}
                                     {formData.material_supplied_chargeable_items?.some((item) => item.value === "Others") && (
                                         <div className="mt-3">
                                             <input
                                                 type="text"
                                                 name="materialschargeableItemsOptionsother"
                                                 value={formData.materialschargeableItemsOptionsother || ""}
-                                                onChange={handleChange}
+                                                onChange={(e) => {
+                                                    const { value } = e.target;
+                                                    // If "Others" name is cleared, also clear its quantity
+                                                    const newQuantities = { ...formData.chargeableQuantities };
+                                                    if (!value.trim() && newQuantities["Others"]) {
+                                                        delete newQuantities["Others"];
+                                                    }
+                                                    
+                                                    setFormData({
+                                                        ...formData,
+                                                        materialschargeableItemsOptionsother: value,
+                                                        chargeableQuantities: newQuantities,
+                                                    });
+                                                }}
                                                 placeholder="Specify other item"
-                                                className={`px-3 py-2 border rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none transition ${errors.materialschargeableItemsOptionsother
-                                                    ? "border-red-500 focus:ring-red-400"
-                                                    : "border-gray-300 focus:ring-blue-400"
-                                                    }`}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg w-full shadow-sm focus:ring-2 focus:outline-none focus:ring-blue-400 transition"
                                             />
-                                            {errors.materialschargeableItemsOptionsother && (
-                                                <span className="text-red-500 text-sm mt-1">{errors.materialschargeableItemsOptionsother}</span>
-                                            )}
                                         </div>
                                     )}
 
-                                    {/* Quantity inputs for selected items - UPDATED TO USE chargeableQuantities */}
                                     {formData.material_supplied_chargeable_items?.length > 0 && (
                                         <div className="flex flex-col mt-4">
                                             <label className="mb-2 font-medium text-gray-700">
-                                                Quantity of Chargeable Items <span className="text-red-500">*</span>
+                                                Quantity of Chargeable Items
                                             </label>
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {formData.material_supplied_chargeable_items
@@ -2119,28 +1867,29 @@ const handleStep4MaterialsSelection = (selected) => {
                                                                 type="number"
                                                                 min="1"
                                                                 value={formData.chargeableQuantities?.[item.value] || ""}
-                                                                onChange={(e) =>
+                                                                onChange={(e) => {
+                                                                    const newQuantities = { ...formData.chargeableQuantities };
+                                                                    const quantity = e.target.value;
+                                                                    
+                                                                    if (quantity === "" || quantity === undefined) {
+                                                                        // Remove the key if quantity is empty
+                                                                        delete newQuantities[item.value];
+                                                                    } else {
+                                                                        // Otherwise update the quantity
+                                                                        newQuantities[item.value] = quantity;
+                                                                    }
+                                                                    
                                                                     setFormData({
                                                                         ...formData,
-                                                                        chargeableQuantities: {
-                                                                            ...formData.chargeableQuantities,
-                                                                            [item.value]: e.target.value,
-                                                                        },
-                                                                    })
-                                                                }
+                                                                        chargeableQuantities: newQuantities,
+                                                                    });
+                                                                }}
                                                                 placeholder="Qty"
-                                                                className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition ${errors.chargeableQuantities && errors.chargeableQuantities[item.value]
-                                                                    ? 'border-red-500 focus:ring-red-400'
-                                                                    : 'border-gray-300 focus:ring-blue-400'
-                                                                    }`}
+                                                                className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm w-24 focus:ring-2 outline-none focus:ring-blue-400 transition"
                                                             />
-                                                            {errors.chargeableQuantities && errors.chargeableQuantities[item.value] && (
-                                                                <span className="text-red-500 text-sm">{errors.chargeableQuantities[item.value]}</span>
-                                                            )}
                                                         </div>
                                                     ))}
 
-                                                {/* Quantity input for "Others" */}
                                                 {formData.material_supplied_chargeable_items?.some((i) => i.value === "Others") &&
                                                     formData.materialschargeableItemsOptionsother?.trim() !== "" && (
                                                         <div className="flex flex-col gap-2">
@@ -2149,31 +1898,32 @@ const handleStep4MaterialsSelection = (selected) => {
                                                                 type="number"
                                                                 min="1"
                                                                 value={formData.chargeableQuantities?.["Others"] || ""}
-                                                                onChange={(e) =>
+                                                                onChange={(e) => {
+                                                                    const newQuantities = { ...formData.chargeableQuantities };
+                                                                    const quantity = e.target.value;
+                                                                    
+                                                                    if (quantity === "" || quantity === undefined) {
+                                                                        // Remove the key if quantity is empty
+                                                                        delete newQuantities["Others"];
+                                                                    } else {
+                                                                        // Otherwise update the quantity
+                                                                        newQuantities["Others"] = quantity;
+                                                                    }
+                                                                    
                                                                     setFormData({
                                                                         ...formData,
-                                                                        chargeableQuantities: {
-                                                                            ...formData.chargeableQuantities,
-                                                                            Others: e.target.value,
-                                                                        },
-                                                                    })
-                                                                }
+                                                                        chargeableQuantities: newQuantities,
+                                                                    });
+                                                                }}
                                                                 placeholder="Qty"
-                                                                className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition ${errors.chargeableQuantities && errors.chargeableQuantities["Others"]
-                                                                    ? 'border-red-500 focus:ring-red-400'
-                                                                    : 'border-gray-300 focus:ring-blue-400'
-                                                                    }`}
+                                                                className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm w-24 focus:ring-2 outline-none focus:ring-blue-400 transition"
                                                             />
-                                                            {errors.chargeableQuantities && errors.chargeableQuantities["Others"] && (
-                                                                <span className="text-red-500 text-sm">{errors.chargeableQuantities["Others"]}</span>
-                                                            )}
                                                         </div>
                                                     )}
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* Checkbox */}
                                     <div className="flex items-center mt-4">
                                         <input
                                             type="checkbox"
@@ -2188,7 +1938,6 @@ const handleStep4MaterialsSelection = (selected) => {
                                     </div>
                                 </div>
 
-                                {/* Photo of the Setup */}
                                 <div className="flex-1">
                                     <label className="mb-1 font-medium text-gray-700">
                                         Photo of the Setup (सेटअप की तस्वीर) <span className="text-red-500">*</span>
@@ -2226,7 +1975,6 @@ const handleStep4MaterialsSelection = (selected) => {
                         <div className="space-y-6 px-6 py-6 max-w-full">
                             <h3 className="font-semibold text-lg text-gray-800">Material Need To Deliver</h3>
 
-                            {/* Materials Supplied */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     Materials Deliver (डिलीवर किए जाने वाले सामान) <span className="text-red-500">*</span>
@@ -2315,10 +2063,8 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            {/* Dynamic Fields for Step 5 Nutrients Data */}
                             {formData.material_need_nutrientsData.map((field, index) => (
                                 <div key={index} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                    {/* Nutrients */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
                                             Nutrients (पोषक तत्व)
@@ -2332,7 +2078,6 @@ const handleStep4MaterialsSelection = (selected) => {
                                         />
                                     </div>
 
-                                    {/* Tank Capacity */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
                                             Tank Capacity in Litre (टैंक क्षमता लीटर में) {field.nutrients && <span className="text-red-500">*</span>}
@@ -2355,7 +2100,6 @@ const handleStep4MaterialsSelection = (selected) => {
                                         )}
                                     </div>
 
-                                    {/* Number of Top-ups */}
                                     <div className="flex flex-col">
                                         <label className="mb-1 font-medium text-gray-700">
                                             Number of Top-ups (टॉप-अप की संख्या) {field.nutrients && <span className="text-red-500">*</span>}
@@ -2378,7 +2122,6 @@ const handleStep4MaterialsSelection = (selected) => {
                                 </div>
                             ))}
 
-                            {/* Add More and Remove Row Buttons */}
                             <div className="flex flex-col sm:flex-row items-center justify-end gap-3 mt-4">
                                 {formData.material_need_nutrientsData.length > 1 && (
                                     <button
@@ -2398,7 +2141,6 @@ const handleStep4MaterialsSelection = (selected) => {
                                 </button>
                             </div>
 
-                            {/* Neem Oil */}
                             <div className="flex flex-col">
                                 <label className="mb-1 font-medium text-gray-700">
                                     Neem Oil (नीम का तेल) <span className="text-red-500">*</span>
@@ -2432,22 +2174,26 @@ const handleStep4MaterialsSelection = (selected) => {
                                 )}
                             </div>
 
-                            {/* Chargeable Items */}
                             <div className="flex flex-col mt-4">
                                 <label className="mb-2 font-medium text-gray-700">
                                     Chargeable Items Deliver (जो वस्तुएँ पैसे के लिए दी गई हैं)
                                 </label>
+
                                 <Select
                                     isMulti
                                     options={changebleItemsOptions}
                                     value={formData.material_need_chargeable_items}
-                                    onChange={handleStep5ChargeableItemsChange} // Use the new handler
+                                    onChange={(selected) => {
+                                        setFormData({
+                                            ...formData,
+                                            material_need_chargeable_items: selected || [],
+                                        });
+                                    }}
                                     classNamePrefix="react-select"
                                     placeholder="Select items..."
                                     styles={{ menu: (p) => ({ ...p, zIndex: 9999 }) }}
                                 />
 
-                                {/* Input for "Others" name */}
                                 {formData.material_need_chargeable_items?.some((item) => item.value === "Others") && (
                                     <div className="mt-3">
                                         <input
@@ -2461,7 +2207,6 @@ const handleStep4MaterialsSelection = (selected) => {
                                     </div>
                                 )}
 
-                                {/* Dynamic Quantity Inputs - UPDATED TO USE needChargeableQuantities */}
                                 {formData.material_need_chargeable_items?.length > 0 && (
                                     <div className="flex flex-col mt-4">
                                         <label className="mb-2 font-medium text-gray-700">
@@ -2493,18 +2238,8 @@ const handleStep4MaterialsSelection = (selected) => {
                                                                 })
                                                             }
                                                             placeholder="Qty"
-                                                            className={`px-3 py-2 border rounded-lg shadow-sm w-24 focus:ring-2 outline-none transition ${errors.needChargeableQuantities &&
-                                                                errors.needChargeableQuantities[isOther ? "Others" : item.value]
-                                                                ? "border-red-500 focus:ring-red-400"
-                                                                : "border-gray-300 focus:ring-blue-400"
-                                                                }`}
+                                                            className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm w-24 focus:ring-2 outline-none focus:ring-blue-400 transition"
                                                         />
-                                                        {errors.needChargeableQuantities &&
-                                                            errors.needChargeableQuantities[isOther ? "Others" : item.value] && (
-                                                                <span className="text-red-500 text-sm">
-                                                                    {errors.needChargeableQuantities[isOther ? "Others" : item.value]}
-                                                                </span>
-                                                            )}
                                                     </div>
                                                 );
                                             })}
@@ -2515,7 +2250,6 @@ const handleStep4MaterialsSelection = (selected) => {
                         </div>
                     )}
 
-                    {/* BUTTONS */}
                     <div className="mt-6 px-6">
                         <div className="flex flex-col md:flex-row justify-end w-full gap-3">
                             {step > 1 && (

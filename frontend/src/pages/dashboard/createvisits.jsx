@@ -642,53 +642,56 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
     };
 
     const validateStep4 = () => {
-        let newErrors = {};
+    let newErrors = {};
+    
+    // 1. Materials Supplied validation (plants field) - MANDATORY
+    if (!formData.plants || formData.plants.length === 0) {
+        newErrors.plants = "Required";
+    } else {
+        // Validate quantities only for selected plants
+        const quantityErrors = {};
+        let hasQuantityErrors = false;
         
-        // 1. Materials Supplied validation (plants field)
-        if (!formData.plants || formData.plants.length === 0) {
-            newErrors.plants = "Required";
-        } else {
-            // Validate quantities for selected plants
-            const quantityErrors = {};
-            let hasQuantityErrors = false;
-            
-            formData.plants.forEach((plant) => {
-                if (plant.value !== "Others") {
-                    const quantity = formData.plantQuantities?.[plant.value];
-                    if (!quantity || quantity.trim() === "" || isNaN(quantity) || parseInt(quantity) <= 0) {
-                        quantityErrors[plant.value] = "Quantity is required";
-                        hasQuantityErrors = true;
-                    }
-                } else {
-                    const otherQuantity = formData.plantQuantities?.["Others"];
-                    if (!otherQuantity || otherQuantity.trim() === "" || isNaN(otherQuantity) || parseInt(otherQuantity) <= 0) {
-                        quantityErrors["Others"] = "Quantity is required";
-                        hasQuantityErrors = true;
-                    }
+        formData.plants.forEach((plant) => {
+            // Only validate quantity if plant is selected
+            if (plant.value !== "Others") {
+                const quantity = formData.plantQuantities?.[plant.value];
+                // Check if quantity is provided and is a valid positive number
+                if (!quantity || quantity.trim() === "" || isNaN(quantity) || parseInt(quantity) <= 0) {
+                    quantityErrors[plant.value] = "Quantity is required";
+                    hasQuantityErrors = true;
                 }
-            });
-            
-            if (hasQuantityErrors) {
-                newErrors.plantQuantities = quantityErrors;
+            } else {
+                // For "Others" option
+                const otherQuantity = formData.plantQuantities?.["Others"];
+                if (!otherQuantity || otherQuantity.trim() === "" || isNaN(otherQuantity) || parseInt(otherQuantity) <= 0) {
+                    quantityErrors["Others"] = "Quantity is required";
+                    hasQuantityErrors = true;
+                }
             }
+        });
+        
+        if (hasQuantityErrors) {
+            newErrors.plantQuantities = quantityErrors;
         }
-        
-        // 2. Photo of the Setup validation
-        if (!formData.setupPhotos || formData.setupPhotos.length === 0) {
-            newErrors.setupPhoto = "Required";
-        }
-        
-        // 3. Neem Oil validation
-        if (!formData.material_supplied_neemoil) {
-            newErrors.material_supplied_neemoil = "Required";
-        }
-        
-        // REMOVED: NutrientsData validation
-        // REMOVED: Chargeable Items validation
-        
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
+    }
+    
+    // 2. Photo of the Setup validation - MANDATORY
+    if (!formData.setupPhotos || formData.setupPhotos.length === 0) {
+        newErrors.setupPhoto = "Required";
+    }
+    
+    // 3. Neem Oil validation - MANDATORY
+    if (!formData.material_supplied_neemoil) {
+        newErrors.material_supplied_neemoil = "Required";
+    }
+    
+    // NutrientsData - NOT MANDATORY (removed validation)
+    // Chargeable Items - NOT MANDATORY (removed validation)
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+};
 
     const validateStep5 = () => {
         let newErrors = {};
@@ -1122,7 +1125,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     Initial pH (प्रारंभिक पीएच)<span className="text-red-500">*</span>
                                 </label>
                                 <input
-                                    type="number"
+                                    type="text"
                                     step="0.1"
                                     name="initialPh"
                                     value={formData.initialPh}
@@ -1140,7 +1143,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     Corrected pH (सही पीएच) <span className="text-red-500">*</span>
                                 </label>
                                 <input
-                                    type="number"
+                                    type="text"
                                     step="0.1"
                                     name="correctedPh"
                                     value={formData.correctedPh}
@@ -1158,7 +1161,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     Initial TDS (ppm) (प्रारंभिक टीडीएस (पीपीएम)) <span className="text-red-500">*</span>
                                 </label>
                                 <input
-                                    type="number"
+                                    type="text"
                                     name="initialTds"
                                     value={formData.initialTds}
                                     onChange={handleChange}
@@ -1175,7 +1178,7 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
                                     Corrected TDS (ppm) (टीडीएस ठीक किया गया) <span className="text-red-500">*</span>
                                 </label>
                                 <input
-                                    type="number"
+                                    type="text"
                                     name="correctedTds"
                                     value={formData.correctedTds}
                                     onChange={handleChange}

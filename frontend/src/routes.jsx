@@ -35,7 +35,7 @@ import Editamc from "@/pages/dashboard/editamc";
 import Sitevists from "@/pages/dashboard/sitevists";
 import ManageSchedulevisit from "@/pages/dashboard/viewschedulevisit";
 import EditScheduleVisit from "@/pages/dashboard/editschedulevisit";
-import Createvisits from "@/pages/dashboard/createvisits-old";
+import Createvisits from "@/pages/dashboard/createvisits";
 import Viewvisits from "@/pages/dashboard/viewvisits";
 import Editvisit from "@/pages/dashboard/editvisit";
 import Schedulevisit from "@/pages/dashboard/schedulevisit";

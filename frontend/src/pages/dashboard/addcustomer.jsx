@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Select from 'react-select';
 import { toast } from "react-toastify";
+import html2canvas from 'html2canvas';
 
 const StepperCustomerForm = () => {
   const [formData, setFormData] = useState({
@@ -78,7 +79,8 @@ const StepperCustomerForm = () => {
     setupDimension: '',
     motorType: '',
     motorTypeOther: '',
-    timerUsed: '',
+    timerUsed: [],
+    timerQuantities: {},
     timerUsedOther: '',
     numLights: "",
     modelOfLight: "",
@@ -89,7 +91,9 @@ const StepperCustomerForm = () => {
     tankCapacityOther: "",
     nutritionGiven: "",
     otherSpecifications: "",
-    photoAtInstallation: null
+    photoAtInstallation: null,
+    selectedPlants: [],
+    selectedPlantsOther: '',
   }]);
 
   const systemTypes = ['Small Grower', 'Long Grower', 'Mini Pro Grower',
@@ -102,11 +106,15 @@ const StepperCustomerForm = () => {
   const lengthOfLight = ['2ft', '3ft', '4ft', 'Other'];
   const tankCapacity = ['20', '40', '100', '150', '200', 'Other'];
 
+  // Add ref for review section
+  const reviewRef = useRef(null);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
+  
   const handleFileChange = (e, index) => {
     const file = e.target.files[0];
     if (file) {
@@ -132,25 +140,22 @@ const StepperCustomerForm = () => {
       setProfilePreview(URL.createObjectURL(file)); // Set preview
     }
   };
-  
 
   useEffect(() => {
-  if (
-    (!formData.email || !formData.email.includes("@")) &&
-    (!formData.phoneNumber || formData.phoneNumber.length < 10)
-  ) {
-    return;
-  }
+    if (
+      (!formData.email || !formData.email.includes("@")) &&
+      (!formData.phoneNumber || formData.phoneNumber.length < 10)
+    ) {
+      return;
+    }
 
-  const delayDebounce = setTimeout(() => {
-    checkEmailPhoneExists(formData.email, formData.phoneNumber);
-  }, 600);
+    const delayDebounce = setTimeout(() => {
+      checkEmailPhoneExists(formData.email, formData.phoneNumber);
+    }, 600);
 
-  return () => clearTimeout(delayDebounce);
-}, [formData.email, formData.phoneNumber]);
+    return () => clearTimeout(delayDebounce);
+  }, [formData.email, formData.phoneNumber]);
 
-
-  // 👇 Function to check email existence in backend
   const checkEmailPhoneExists = async (email, phone) => {
     setChecking(true);
     setPhoneExists(false); // Reset phone exists state
@@ -188,9 +193,6 @@ const StepperCustomerForm = () => {
     }
   };
 
-
-
-
   const handleGrowerChange = (index, e, customField, customValue) => {
     const updatedGrowers = [...growers];
 
@@ -203,10 +205,19 @@ const StepperCustomerForm = () => {
 
     const { name, value } = e.target;
     updatedGrowers[index][name] = value;
+    
+    // If changing timerUsedOther and timerUsed doesn't include 'Other', add it
+    if (name === 'timerUsedOther' && !updatedGrowers[index].timerUsed?.includes('Other')) {
+      updatedGrowers[index].timerUsed = [...(updatedGrowers[index].timerUsed || []), 'Other'];
+      if (!updatedGrowers[index].timerQuantities) {
+        updatedGrowers[index].timerQuantities = {};
+      }
+      updatedGrowers[index].timerQuantities['Other'] = updatedGrowers[index].timerQuantities['Other'] || '';
+    }
+    
     setGrowers(updatedGrowers);
     setErrors(prev => ({ ...prev, [`${name}_${index}`]: '' }));
   };
-
 
   const addGrower = () => {
     setGrowers([...growers, {
@@ -220,7 +231,8 @@ const StepperCustomerForm = () => {
       setupDimension: '',
       motorType: '',
       motorTypeOther: '',
-      timerUsed: '',
+      timerUsed: [],
+      timerQuantities: {},
       timerUsedOther: '',
       numLights: "",
       modelOfLight: "",
@@ -250,6 +262,7 @@ const StepperCustomerForm = () => {
     setGrowers(updatedGrowers);
     setErrors((prev) => ({ ...prev, [`selectedPlants_${index}`]: "" }));
   };
+  
   const removeGrower = () => {
     if (growers.length <= 1) return;
     setGrowers(growers.slice(0, -1));
@@ -260,7 +273,6 @@ const StepperCustomerForm = () => {
 
     if (currentStep === 1) {
       if (!formData.name.trim()) stepErrors.name = 'Name is required';
-      // if (!formData.email.trim()) stepErrors.email = 'Email is required';
       if (!formData.phoneNumber.trim()) stepErrors.phoneNumber = 'Phone number is required';
       else if (!/^\d{10}$/.test(formData.phoneNumber)) stepErrors.phoneNumber = 'Phone number must be 10 digits';
       if (formData.staffPhoneNumber && !/^\d{10}$/.test(formData.staffPhoneNumber)) {
@@ -268,14 +280,12 @@ const StepperCustomerForm = () => {
       }
       if (!formData.state) stepErrors.state = 'State is required';
       if (!formData.city) stepErrors.city = 'City is required';
-      if (!formData.locality.trim()) stepErrors.locality = 'Locality is required'; // ✅ new
-      if (!formData.landmark.trim()) stepErrors.landmark = 'Landmark is required'; // ✅ new
+      if (!formData.locality.trim()) stepErrors.locality = 'Locality is required';
+      if (!formData.landmark.trim()) stepErrors.landmark = 'Landmark is required';
       if (!formData.pincode.trim()) stepErrors.pincode = 'Pincode is required';
       else if (!/^\d{6}$/.test(formData.pincode)) stepErrors.pincode = 'Pincode must be exactly 6 digits';
       if (!formData.address.trim()) stepErrors.address = 'Street address is required';
     }
-
-
 
     if (currentStep === 2) {
       growers.forEach((grower, index) => {
@@ -293,8 +303,25 @@ const StepperCustomerForm = () => {
         if (!grower.setupDimension.trim()) stepErrors[`setupDimension_${index}`] = 'Setup dimension is required';
         if (!grower.motorType) stepErrors[`motorType_${index}`] = 'Motor type is required';
         if (grower.motorType === 'Other' && !grower.motorTypeOther.trim()) stepErrors[`motorTypeOther_${index}`] = 'Please specify other motor type';
-        if (!grower.timerUsed) stepErrors[`timerUsed_${index}`] = 'Timer used is required';
-        if (grower.timerUsed === 'Other' && !grower.timerUsedOther.trim()) stepErrors[`timerUsedOther_${index}`] = 'Please specify other timer';
+        
+        // Timer validation
+        if (!grower.timerUsed || grower.timerUsed.length === 0) {
+          stepErrors[`timerUsed_${index}`] = 'At least one timer type is required';
+        } else {
+          // Validate quantities for each selected timer
+          grower.timerUsed.forEach(timer => {
+            if (!grower.timerQuantities?.[timer]) {
+              stepErrors[`timerQuantity_${timer}_${index}`] = `Quantity for ${timer} is required`;
+            } else if (parseInt(grower.timerQuantities[timer]) < 1) {
+              stepErrors[`timerQuantity_${timer}_${index}`] = `Quantity for ${timer} must be at least 1`;
+            }
+          });
+        }
+        
+        if (grower.timerUsed?.includes('Other') && !grower.timerUsedOther.trim()) {
+          stepErrors[`timerUsedOther_${index}`] = 'Please specify other timer';
+        }
+        
         if (!grower.modelOfLight) stepErrors[`modelOfLight_${index}`] = 'Model of Light is required';
         if (grower.modelOfLight === 'Other' && !grower.modelOfLightOther.trim()) stepErrors[`modelOfLightOther_${index}`] = 'Please specify other model of light';
         if (!grower.lengthOfLight) stepErrors[`lengthOfLight_${index}`] = 'Length of Light is required';
@@ -303,7 +330,6 @@ const StepperCustomerForm = () => {
         if (grower.tankCapacity === 'Other' && !grower.tankCapacityOther.trim()) stepErrors[`tankCapacityOther_${index}`] = 'Please specify other tank capacity';
         if (!grower.nutritionGiven) stepErrors[`nutritionGiven_${index}`] = 'Nutrition Given is required';
         if (!grower.otherSpecifications) stepErrors[`otherSpecifications_${index}`] = 'Other Specification is required';
-        // if (!grower.photoAtInstallation) stepErrors[`photoAtInstallation_${index}`] = 'Photo At Installation is required';
 
         // ✅ Plant chosen validation
         if (!grower.selectedPlants || grower.selectedPlants.length === 0) {
@@ -317,18 +343,15 @@ const StepperCustomerForm = () => {
         if (hasOtherSelected && !grower.selectedPlantsOther.trim()) {
           stepErrors[`selectedPlantsOther_${index}`] =
             'Please specify other plant name';
-
         }
       });
     }
-
 
     setErrors(stepErrors);
     return Object.keys(stepErrors).length === 0;
   };
 
-
-   const handleSubmit = async () => {
+  const handleSubmit = async () => {
     if (!validateStep()) return;
 
     setSubmitting(true);
@@ -350,16 +373,16 @@ const StepperCustomerForm = () => {
 
       // Append growers data
       growers.forEach((grower, index) => {
-      const growerData = { ...grower };
-      const imageFile = growerData.photoAtInstallation;
-      delete growerData.photoAtInstallation;
+        const growerData = { ...grower };
+        const imageFile = growerData.photoAtInstallation;
+        delete growerData.photoAtInstallation;
 
-      formPayload.append("growers", JSON.stringify(growers));
+        formPayload.append("growers", JSON.stringify(growers));
 
-      if (imageFile instanceof File) {
-        formPayload.append(`photoAtInstallation_${index}`, imageFile);
-      }
-    });
+        if (imageFile instanceof File) {
+          formPayload.append(`photoAtInstallation_${index}`, imageFile);
+        }
+      });
 
       // Log form data for debugging
       console.log("Submitting form data...");
@@ -395,50 +418,6 @@ const StepperCustomerForm = () => {
       if (result.status === "success") {
         toast.success("Customer added successfully");
         setErrors({});
-        
-        // Reset form after successful submission
-        // setFormData({
-        //   name: '',
-        //   email: '',
-        //   phoneNumber: '',
-        //   staffPhoneNumber: '',
-        //   profilePic: null,
-        //   address: '',
-        //   state: '',
-        //   city: '',
-        //   locality: '',
-        //   landmark: '',
-        //   pincode: '',
-        //   isActive: true
-        // });
-        // setGrowers([{
-        //   systemType: '',
-        //   systemTypeOther: '',
-        //   growerQuantity: '',
-        //   numPlants: '',
-        //   numLevels: '',
-        //   setupDimension: '',
-        //   motorType: '',
-        //   motorTypeOther: '',
-        //   timerUsed: '',
-        //   timerUsedOther: '',
-        //   numLights: "",
-        //   modelOfLight: "",
-        //   modelOfLightOther: "",
-        //   lengthOfLight: "",
-        //   lengthOfLightOther: "",
-        //   tankCapacity: "",
-        //   tankCapacityOther: "",
-        //   nutritionGiven: "",
-        //   otherSpecifications: "",
-        //   photoAtInstallation: null,
-        //   selectedPlants: [],
-        //   selectedPlantsOther: '',
-        // }]);
-        // setCurrentStep(1);
-        // setProfilePreview(null);
-        // setPreviews([]);
-        
       } else {
         toast.error(result.message || "Something went wrong");
       }
@@ -457,11 +436,13 @@ const StepperCustomerForm = () => {
     Karnataka: ['Bengaluru', 'Mysore', 'Mangalore'],
     Gujarat: ['Ahmedabad', 'Surat', 'Vadodara'],
   };
+  
   const handleStateChange = (e) => {
     const selectedState = e.target.value;
     setFormData({ ...formData, state: selectedState, city: '' });
     setCities(statesAndCities[selectedState] || []);
   };
+  
   const nextStep = () => {
     if (phoneExists) {
       toast.error("Phone number already exists. Please use a different number.");
@@ -469,9 +450,44 @@ const StepperCustomerForm = () => {
     }
     if (validateStep()) setCurrentStep(prev => Math.min(prev + 1, 3));
   };
+  
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
-  const StepperHeader = () => (
 
+  // Add download function
+  const downloadReviewAsImage = async () => {
+    if (!reviewRef.current) return;
+
+    try {
+      toast.info("Generating image... Please wait.");
+      
+      const canvas = await html2canvas(reviewRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        width: reviewRef.current.scrollWidth,
+        height: reviewRef.current.scrollHeight,
+        scrollY: -window.scrollY
+      });
+
+      const image = canvas.toDataURL('image/png', 1.0);
+      
+      const link = document.createElement('a');
+      const fileName = `customer-review-${formData.name || 'customer'}-${Date.now()}.png`;
+      link.download = fileName;
+      link.href = image;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success(`Review downloaded as ${fileName}`);
+    } catch (error) {
+      console.error("Error downloading review:", error);
+      toast.error("Failed to download review. Please try again.");
+    }
+  };
+
+  const StepperHeader = () => (
     <div className="flex overflow-x-auto md:overflow-visible space-x-4 md:space-x-0 justify-between mb-8 pl-4 md:pl-0 pt-3">
       {[1, 2, 3].map((step, idx) => (
         <div key={step} className="flex-1 flex flex-col items-center min-w-[70px] relative">
@@ -488,6 +504,7 @@ const StepperCustomerForm = () => {
       ))}
     </div>
   );
+
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -600,7 +617,6 @@ const StepperCustomerForm = () => {
               )}
             </div>
 
-
             {/* State */}
             <div className="flex-1 flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
@@ -709,23 +725,9 @@ const StepperCustomerForm = () => {
               />
               {errors.address && <span className="text-red-500 text-sm mt-1">{errors.address}</span>}
             </div>
-
-            {/* Active Checkbox */}
-            {/* <div className="flex items-center md:col-span-2">
-              <input
-                type="checkbox"
-                checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                id="isActive"
-              />
-              <label htmlFor="isActive" className="ml-2 block text-gray-700 font-medium">
-                Active (सक्रिय)
-              </label>
-            </div> */}
           </div>
-
         );
+      
       case 2:
         return (
           <div className="space-y-8 px-6 py-6">
@@ -877,31 +879,117 @@ const StepperCustomerForm = () => {
                     {errors[`motorTypeOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`motorTypeOther_${index}`]}</span>}
                   </div>
 
-                  <div className="flex flex-col">
+                  {/* Timer Used Field - Multiple Select with Quantity */}
+                  <div className="flex flex-col md:col-span-2">
                     <label className="mb-1 font-medium text-gray-700">
                       Timer Used (टाइमर उपयोग) <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      name="timerUsed"
-                      value={grower.timerUsed}
-                      onChange={(e) => handleGrowerChange(index, e)}
-                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`timerUsed_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                    >
-                      <option value="" disabled>Select timer</option>
-                      {timerOptions.map((t, i) => <option key={i} value={t}>{t}</option>)}
-                    </select>
+                    
+                    {/* Multiple Select Dropdown */}
+                    <Select
+                      isMulti
+                      options={timerOptions.map(option => ({ value: option, label: option }))}
+                      value={grower.timerUsed?.map(option => ({ value: option, label: option })) || []}
+                      onChange={(selectedOptions) => {
+                        const selectedValues = selectedOptions ? selectedOptions.map(opt => opt.value) : [];
+                        
+                        // Update the timerUsed array
+                        const updatedGrowers = [...growers];
+                        updatedGrowers[index].timerUsed = selectedValues;
+                        
+                        // Initialize or update timer quantities
+                        if (updatedGrowers[index].timerQuantities) {
+                          // Remove quantities for deselected timers
+                          const updatedQuantities = { ...updatedGrowers[index].timerQuantities };
+                          Object.keys(updatedQuantities).forEach(timer => {
+                            if (!selectedValues.includes(timer)) {
+                              delete updatedQuantities[timer];
+                            }
+                          });
+                          updatedGrowers[index].timerQuantities = updatedQuantities;
+                        } else {
+                          updatedGrowers[index].timerQuantities = {};
+                        }
+                        
+                        // Initialize quantities for new selections
+                        selectedValues.forEach(timer => {
+                          if (!updatedGrowers[index].timerQuantities[timer]) {
+                            updatedGrowers[index].timerQuantities[timer] = '';
+                          }
+                        });
+                        
+                        setGrowers(updatedGrowers);
+                        setErrors(prev => ({ ...prev, [`timerUsed_${index}`]: '' }));
+                      }}
+                      classNamePrefix="react-select"
+                      placeholder="Select timer(s)..."
+                      styles={{
+                        menu: (provided) => ({ ...provided, zIndex: 9999 }),
+                      }}
+                    />
                     {errors[`timerUsed_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`timerUsed_${index}`]}</span>}
-                    {grower.timerUsed === 'Other' && (
-                      <input
-                        type="text"
-                        name="timerUsedOther"
-                        value={grower.timerUsedOther}
-                        onChange={(e) => handleGrowerChange(index, e)}
-                        placeholder="Specify other"
-                        className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`timerUsedOther_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                      />
+                    
+                    {/* Quantity fields for selected timers */}
+                    {grower.timerUsed && grower.timerUsed.length > 0 && (
+                      <div className="mt-4 space-y-3">
+                        <h4 className="font-medium text-gray-700 mb-2">Timer Quantities:</h4>
+                        {grower.timerUsed.map((timer, timerIndex) => (
+                          <div key={timerIndex} className="flex items-center gap-3">
+                            <div className="w-1/3">
+                              <label className="mb-1 text-sm font-medium text-gray-600">
+                                {timer === 'Other' ? 'Other Timer' : timer}
+                              </label>
+                            </div>
+                            <div className="w-2/3">
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="Quantity"
+                                value={grower.timerQuantities?.[timer] || ''}
+                                onChange={(e) => {
+                                  const updatedGrowers = [...growers];
+                                  if (!updatedGrowers[index].timerQuantities) {
+                                    updatedGrowers[index].timerQuantities = {};
+                                  }
+                                  updatedGrowers[index].timerQuantities[timer] = e.target.value;
+                                  setGrowers(updatedGrowers);
+                                  setErrors(prev => ({ ...prev, [`timerQuantity_${timer}_${index}`]: '' }));
+                                }}
+                                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${
+                                  errors[`timerQuantity_${timer}_${index}`] 
+                                  ? 'border-red-500 focus:ring-red-400' 
+                                  : 'border-gray-300 focus:ring-blue-400'
+                                }`}
+                              />
+                              {errors[`timerQuantity_${timer}_${index}`] && (
+                                <span className="text-red-500 text-sm mt-1">{errors[`timerQuantity_${timer}_${index}`]}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                    {errors[`timerUsedOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`timerUsedOther_${index}`]}</span>}
+                    
+                    {/* Other timer specification field */}
+                    {grower.timerUsed?.includes('Other') && (
+                      <div className="mt-4">
+                        <input
+                          type="text"
+                          name="timerUsedOther"
+                          value={grower.timerUsedOther || ''}
+                          onChange={(e) => handleGrowerChange(index, e)}
+                          placeholder="Specify other timer"
+                          className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${
+                            errors[`timerUsedOther_${index}`] 
+                            ? 'border-red-500 focus:ring-red-400' 
+                            : 'border-gray-300 focus:ring-blue-400'
+                          }`}
+                        />
+                        {errors[`timerUsedOther_${index}`] && (
+                          <span className="text-red-500 text-sm mt-1">{errors[`timerUsedOther_${index}`]}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col">
@@ -1055,15 +1143,7 @@ const StepperCustomerForm = () => {
                           }`}
                       />
                     </div>
-
-                    {/* Error Message */}
-                    {/* {errors[`photoAtInstallation_${index}`] && (
-                      <span className="text-red-500 text-sm mt-1">
-                        {errors[`photoAtInstallation_${index}`]}
-                      </span>
-                    )} */}
                   </div>
-
 
                   <div className="flex flex-col md:col-span-2">
                     <label className="mb-1 font-medium text-gray-700">
@@ -1103,265 +1183,290 @@ const StepperCustomerForm = () => {
                       </span>
                     )}
                   </div>
-
-
                 </div>
               </div>
             ))}
           </div>
         );
+      
       case 3:
         return (
           <div className="px-6 py-6">
-            <h3 className="md:text-2xl sm:text-xl font-bold mb-6 text-gray-800">Review Your Information</h3>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="md:text-2xl sm:text-xl font-bold text-gray-800">Review Your Information</h3>
+              <button
+                type="button"
+                onClick={downloadReviewAsImage}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg flex items-center gap-2 transition"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Download Review
+              </button>
+            </div>
 
-            <div className="space-y-6">
-              {/* Profile Picture */}
-              <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-                <h4 className="text-lg font-semibold mb-4 text-gray-700">Profile Picture</h4>
-                <div className="flex items-center gap-4">
-                  {formData.profilePic ? (
-                    <>
-                      <p className="text-gray-800">{formData.profilePic.name}</p>
-                      <img
-                        src={profilePreview || URL.createObjectURL(formData.profilePic)}
-                        alt="Profile Preview"
-                        className="w-24 h-24 object-cover rounded-md border border-gray-300 shadow-sm"
-                      />
-                    </>
-                  ) : (
-                    <p className="text-gray-800">No profile picture uploaded</p>
-                  )}
+            {/* Wrap the review content in a div with ref for capturing */}
+            <div ref={reviewRef}>
+              <div className="space-y-6">
+                {/* Profile Picture */}
+                <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+                  <h4 className="text-lg font-semibold mb-4 text-gray-700">Profile Picture</h4>
+                  <div className="flex items-center gap-4">
+                    {formData.profilePic ? (
+                      <>
+                        <p className="text-gray-800">{formData.profilePic.name}</p>
+                        <img
+                          src={profilePreview || URL.createObjectURL(formData.profilePic)}
+                          alt="Profile Preview"
+                          className="w-24 h-24 object-cover rounded-md border border-gray-300 shadow-sm"
+                        />
+                      </>
+                    ) : (
+                      <p className="text-gray-800">No profile picture uploaded</p>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Customer Details */}
-              <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-                <h4 className="text-lg font-semibold mb-4 text-gray-700">Customer Details</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Name: </span>
-                      {formData.name}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Email: </span>
-                      {formData.email}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Phone Number: </span>
-                      {formData.phoneNumber}
-                    </p>
-                  </div>
-                  {formData.staffPhoneNumber && (
+                {/* Customer Details */}
+                <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+                  <h4 className="text-lg font-semibold mb-4 text-gray-700">Customer Details</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <p className="text-gray-800">
-                        <span className="font-medium text-gray-600">Staff Phone Number: </span>
-                        {formData.staffPhoneNumber}
+                        <span className="font-medium text-gray-600">Name: </span>
+                        {formData.name}
                       </p>
                     </div>
-                  )}
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">State: </span>
-                      {formData.state}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">City: </span>
-                      {formData.city}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Pincode: </span>
-                      {formData.pincode}
-                    </p>
-                  </div>
-
-                  {/* Added Locality */}
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Locality: </span>
-                      {formData.locality || "N/A"}
-                    </p>
-                  </div>
-
-                  {/* Added Landmark */}
-                  <div>
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Landmark: </span>
-                      {formData.landmark || "N/A"}
-                    </p>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Address: </span>
-                      {formData.address}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Grower Information */}
-              <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-                <h4 className="text-lg font-semibold mb-4 text-gray-700">Grower Information</h4>
-                {growers.map((grower, index) => (
-                  <div key={index} className="mb-6 last:mb-0">
-                    <h5 className="font-semibold text-gray-700 mb-3">Grower {index + 1}</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-gray-800">
+                        <span className="font-medium text-gray-600">Email: </span>
+                        {formData.email}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-800">
+                        <span className="font-medium text-gray-600">Phone Number: </span>
+                        {formData.phoneNumber}
+                      </p>
+                    </div>
+                    {formData.staffPhoneNumber && (
                       <div>
                         <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">System Type: </span>
-                          {grower.systemType === 'Other' ? grower.systemTypeOther : grower.systemType}
+                          <span className="font-medium text-gray-600">Staff Phone Number: </span>
+                          {formData.staffPhoneNumber}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Grower Quantity: </span>
-                          {grower.growerQuantity}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Plants: </span>
-                          {grower.numPlants}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Levels: </span>
-                          {grower.numLevels}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Channels per Level: </span>
-                          {grower.numChannelPerLevel}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Holes per Channel: </span>
-                          {grower.numHolesPerChannel}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Setup Dimension: </span>
-                          {grower.setupDimension}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Motor Used: </span>
-                          {grower.motorType === 'Other' ? grower.motorTypeOther : grower.motorType}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Timer Used: </span>
-                          {grower.timerUsed === 'Other' ? grower.timerUsedOther : grower.timerUsed}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Lights: </span>
-                          {grower.numLights}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Model of Lights: </span>
-                          {grower.modelOfLight === 'Other' ? grower.modelOfLightOther : grower.modelOfLight}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Length of Lights: </span>
-                          {grower.lengthOfLight === 'Other' ? grower.lengthOfLightOther : grower.lengthOfLight}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Tank Capacity: </span>
-                          {grower.tankCapacity === 'Other' ? grower.tankCapacityOther : grower.tankCapacity}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Nutrition Given: </span>
-                          {grower.nutritionGiven}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Other Specifications: </span>
-                          {grower.otherSpecifications}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Photo at Time of Installation: </span>
-                          {grower.photoAtInstallation ? (
-                            <span>{grower.photoAtInstallation.name}</span>
-                          ) : (
-                            "No file uploaded"
-                          )}
-                        </p>
-                        {grower.photoAtInstallation && (
-                          <img
-                            src={URL.createObjectURL(grower.photoAtInstallation)}
-                            alt="Installation Preview"
-                            className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
-                          />
-                        )}
-                      </div>
-                      <div className="md:col-span-2">
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Plants Chosen: </span>
-                          {grower.selectedPlants && grower.selectedPlants.length > 0 ? (
-                            <>
-                              {grower.selectedPlants
-                                .map((p) =>
-                                  p.value === "other" ? `Other: ${grower.selectedPlantsOther || "N/A"}` : p.label
-                                )
-                                .join(", ")}
-                            </>
-                          ) : (
-                            "N/A"
-                          )}
-                        </p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Status: </span>
-                          <span className={`font-semibold ${formData.isActive ? 'text-green-600' : 'text-red-600'}`}>
-                            {formData.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </p>
-                      </div>
+                    )}
+                    <div>
+                      <p className="text-gray-800">
+                        <span className="font-medium text-gray-600">State: </span>
+                        {formData.state}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-800">
+                        <span className="font-medium text-gray-600">City: </span>
+                        {formData.city}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-800">
+                        <span className="font-medium text-gray-600">Pincode: </span>
+                        {formData.pincode}
+                      </p>
                     </div>
 
-                    {index < growers.length - 1 && <hr className="my-4 border-gray-300" />}
+                    {/* Added Locality */}
+                    <div>
+                      <p className="text-gray-800">
+                        <span className="font-medium text-gray-600">Locality: </span>
+                        {formData.locality || "N/A"}
+                      </p>
+                    </div>
+
+                    {/* Added Landmark */}
+                    <div>
+                      <p className="text-gray-800">
+                        <span className="font-medium text-gray-600">Landmark: </span>
+                        {formData.landmark || "N/A"}
+                      </p>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <p className="text-gray-800">
+                        <span className="font-medium text-gray-600">Address: </span>
+                        {formData.address}
+                      </p>
+                    </div>
                   </div>
-                ))}
+                </div>
+
+                {/* Grower Information */}
+                <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+                  <h4 className="text-lg font-semibold mb-4 text-gray-700">Grower Information</h4>
+                  {growers.map((grower, index) => (
+                    <div key={index} className="mb-6 last:mb-0">
+                      <h5 className="font-semibold text-gray-700 mb-3">Grower {index + 1}</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">System Type: </span>
+                            {grower.systemType === 'Other' ? grower.systemTypeOther : grower.systemType}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Grower Quantity: </span>
+                            {grower.growerQuantity}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">No. of Plants: </span>
+                            {grower.numPlants}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">No. of Levels: </span>
+                            {grower.numLevels}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">No. of Channels per Level: </span>
+                            {grower.numChannelPerLevel}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">No. of Holes per Channel: </span>
+                            {grower.numHolesPerChannel}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Setup Dimension: </span>
+                            {grower.setupDimension}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Motor Used: </span>
+                            {grower.motorType === 'Other' ? grower.motorTypeOther : grower.motorType}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Timer Used: </span>
+                            {grower.timerUsed && grower.timerUsed.length > 0 ? (
+                              <ul className="list-disc pl-5 mt-1">
+                                {grower.timerUsed.map((timer, idx) => (
+                                  <li key={idx} className="text-gray-800">
+                                    {timer === 'Other' ? grower.timerUsedOther : timer}: 
+                                    <span className="font-semibold ml-1">
+                                      {grower.timerQuantities?.[timer] || '0'} qty
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">No. of Lights: </span>
+                            {grower.numLights}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Model of Lights: </span>
+                            {grower.modelOfLight === 'Other' ? grower.modelOfLightOther : grower.modelOfLight}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Length of Lights: </span>
+                            {grower.lengthOfLight === 'Other' ? grower.lengthOfLightOther : grower.lengthOfLight}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Tank Capacity: </span>
+                            {grower.tankCapacity === 'Other' ? grower.tankCapacityOther : grower.tankCapacity}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Nutrition Given: </span>
+                            {grower.nutritionGiven}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Other Specifications: </span>
+                            {grower.otherSpecifications}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Photo at Time of Installation: </span>
+                            {grower.photoAtInstallation ? (
+                              <span>{grower.photoAtInstallation.name}</span>
+                            ) : (
+                              "No file uploaded"
+                            )}
+                          </p>
+                          {grower.photoAtInstallation && (
+                            <img
+                              src={URL.createObjectURL(grower.photoAtInstallation)}
+                              alt="Installation Preview"
+                              className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
+                            />
+                          )}
+                        </div>
+                        <div className="md:col-span-2">
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Plants Chosen: </span>
+                            {grower.selectedPlants && grower.selectedPlants.length > 0 ? (
+                              <>
+                                {grower.selectedPlants
+                                  .map((p) =>
+                                    p.value === "other" ? `Other: ${grower.selectedPlantsOther || "N/A"}` : p.label
+                                  )
+                                  .join(", ")}
+                              </>
+                            ) : (
+                              "N/A"
+                            )}
+                          </p>
+                        </div>
+                        <div className="md:col-span-2">
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Status: </span>
+                            <span className={`font-semibold ${formData.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                              {formData.isActive ? 'Active' : 'Inactive'}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {index < growers.length - 1 && <hr className="my-4 border-gray-300" />}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-
-
         );
+      
       default:
         return null;
     }
   };
+  
   return (
     <div className="w-full min-h-screen bg-gray-100 mt-10">
       <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
@@ -1439,16 +1544,27 @@ const StepperCustomerForm = () => {
                     Next (आगे)
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={submitting}
-                    className={`bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-lg w-full md:w-auto transition ml-auto
-              ${submitting ? "opacity-60 cursor-not-allowed" : ""}`}
-                  >
-                    {submitting ? "Please wait..." : "Submit(जमा करें)"}
-                  </button>
-
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={downloadReviewAsImage}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg flex items-center gap-2 transition"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                      </svg>
+                      Download
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSubmit}
+                      disabled={submitting}
+                      className={`bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-lg w-full md:w-auto transition ml-auto
+                        ${submitting ? "opacity-60 cursor-not-allowed" : ""}`}
+                    >
+                      {submitting ? "Please wait..." : "Submit(जमा करें)"}
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -1458,8 +1574,5 @@ const StepperCustomerForm = () => {
     </div>
   );
 };
+
 export default StepperCustomerForm;
-
-
-
-

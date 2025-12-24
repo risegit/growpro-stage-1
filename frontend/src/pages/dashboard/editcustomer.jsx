@@ -67,6 +67,12 @@ const StepperCustomerForm = () => {
 
   const [errors, setErrors] = useState({});
   const [currentStep, setCurrentStep] = useState(1);
+  
+  // Timer options array - updated to match second code example
+  const timerOptions = ['Digital', 'Cyclic-15 mins', 'TSIWI', '800XC', 'Other'];
+
+  // Remove initialTimerQuantities object since we'll handle it differently
+
   const [growers, setGrowers] = useState([{
     growerId: '',
     systemType: '',
@@ -79,8 +85,9 @@ const StepperCustomerForm = () => {
     setupDimension: '',
     motorType: '',
     motorTypeOther: '',
-    timerUsed: '',
-    timerUsedOther: '',
+    timerUsed: [], // Changed from string to array
+    timerQuantities: {}, // Changed from object with all options to dynamic object
+    timerUsedOther: '', // Added this field
     numLights: "",
     modelOfLight: "",
     modelOfLightOther: "",
@@ -90,7 +97,8 @@ const StepperCustomerForm = () => {
     tankCapacityOther: "",
     nutritionGiven: "",
     otherSpecifications: "",
-    photoAtInstallation: null
+    photoAtInstallation: null,
+    selectedPlants: []
   }]);
 
   const systemTypes = ['Small Grower', 'Long Grower', 'Mini Pro Grower',
@@ -98,7 +106,6 @@ const StepperCustomerForm = () => {
     'Indoor Grower', 'Furniture Integrated Grower', 'Mini Grower', 'Dutch Bucket',
     'Growbags', 'Microgreen Racks', 'Other'];
   const motorTypes = ['Small Motor (10W)', 'Big Motor (40W)', 'Other'];
-  const timerOptions = ['Digital', 'Cyclic-15 mins', 'TS1W1', '800XC', 'Other'];
   const modelOfLight = ['Nx1.1', 'Nx4', 'Other'];
   const lengthOfLight = ['2ft', '3ft', '4ft', 'Other'];
   const tankCapacity = ['20L', '40L', '100L', '150L', '200L', 'Other'];
@@ -130,45 +137,42 @@ const StepperCustomerForm = () => {
   }, [formData.email, formData.phoneNumber]);
   
   
-    // 👇 Function to check email existence in backend
-    const checkEmailPhoneExists = async (email, phone) => {
-      setChecking(true);
-      setPhoneExists(false); // Reset phone exists state
-  
-      try {
-        const query = new URLSearchParams();
-        if (email) query.append("email", email);
-        if (phone) query.append("phone", phone);
-        if (id) query.append("custId", id);
-  
-        const res = await fetch(
-          `${import.meta.env.VITE_API_URL}api/customer.php?${query.toString()}`
-        );
-  
-        const data = await res.json();
-  
-        // Set phone exists state
-        if (data.phoneExists) {
-          setPhoneExists(true);
-        }
-  
-        setErrors((prev) => ({
-          ...prev,
-          email: data.emailExists
-            ? "An account with this email already exists."
-            : "",
-          phoneNumber: data.phoneExists
-            ? "An account with this phone number already exists."
-            : "",
-        }));
-      } catch (error) {
-        console.error("Error checking email/phone:", error);
-      } finally {
-        setChecking(false);
+  const checkEmailPhoneExists = async (email, phone) => {
+    setChecking(true);
+    setPhoneExists(false);
+
+    try {
+      const query = new URLSearchParams();
+      if (email) query.append("email", email);
+      if (phone) query.append("phone", phone);
+      if (id) query.append("custId", id);
+
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}api/customer.php?${query.toString()}`
+      );
+
+      const data = await res.json();
+
+      if (data.phoneExists) {
+        setPhoneExists(true);
       }
-    };
-  
-  
+
+      setErrors((prev) => ({
+        ...prev,
+        email: data.emailExists
+          ? "An account with this email already exists."
+          : "",
+        phoneNumber: data.phoneExists
+          ? "An account with this phone number already exists."
+          : "",
+      }));
+    } catch (error) {
+      console.error("Error checking email/phone:", error);
+    } finally {
+      setChecking(false);
+    }
+  };
+
   const handleGrowerChange = (index, e, customField, customValue) => {
     const updatedGrowers = [...growers];
 
@@ -185,6 +189,54 @@ const StepperCustomerForm = () => {
     setErrors(prev => ({ ...prev, [`${name}_${index}`]: '' }));
   };
 
+  // Handle timer selection change
+  const handleTimerSelectChange = (index, selectedOptions) => {
+    const updatedGrowers = [...growers];
+    const selectedValues = selectedOptions ? selectedOptions.map(opt => opt.value) : [];
+    
+    // Update the timerUsed array
+    updatedGrowers[index].timerUsed = selectedValues;
+    
+    // Initialize or update timer quantities
+    if (updatedGrowers[index].timerQuantities) {
+      // Remove quantities for deselected timers
+      const updatedQuantities = { ...updatedGrowers[index].timerQuantities };
+      Object.keys(updatedQuantities).forEach(timer => {
+        if (!selectedValues.includes(timer)) {
+          delete updatedQuantities[timer];
+        }
+      });
+      updatedGrowers[index].timerQuantities = updatedQuantities;
+    } else {
+      updatedGrowers[index].timerQuantities = {};
+    }
+    
+    // Initialize quantities for new selections
+    selectedValues.forEach(timer => {
+      if (!updatedGrowers[index].timerQuantities[timer]) {
+        updatedGrowers[index].timerQuantities[timer] = '';
+      }
+    });
+    
+    // Clear timerUsedOther if "Other" is not selected
+    if (!selectedValues.includes('Other')) {
+      updatedGrowers[index].timerUsedOther = '';
+    }
+    
+    setGrowers(updatedGrowers);
+    setErrors(prev => ({ ...prev, [`timerUsed_${index}`]: '' }));
+  };
+
+  // Handle timer quantity change
+  const handleTimerQuantityChange = (index, timerType, value) => {
+    const updatedGrowers = [...growers];
+    if (!updatedGrowers[index].timerQuantities) {
+      updatedGrowers[index].timerQuantities = {};
+    }
+    updatedGrowers[index].timerQuantities[timerType] = value;
+    setGrowers(updatedGrowers);
+    setErrors(prev => ({ ...prev, [`timerQuantity_${timerType}_${index}`]: '' }));
+  };
 
   const addGrower = () => {
     setGrowers([...growers, {
@@ -198,7 +250,8 @@ const StepperCustomerForm = () => {
       setupDimension: '',
       motorType: '',
       motorTypeOther: '',
-      timerUsed: '',
+      timerUsed: [],
+      timerQuantities: {},
       timerUsedOther: '',
       numLights: "",
       modelOfLight: "",
@@ -214,14 +267,12 @@ const StepperCustomerForm = () => {
     }]);
   };
 
-  // plantselecthandlechange
   const handlePlantSelectChange = (index, selectedOptions) => {
     const updatedGrowers = [...growers];
     updatedGrowers[index].selectedPlants = selectedOptions || [];
     setGrowers(updatedGrowers);
     setErrors(prev => ({ ...prev, [`selectedPlants_${index}`]: '' }));
   };
-
 
   const removeGrower = () => {
     if (growers.length <= 1) return;
@@ -234,7 +285,6 @@ const StepperCustomerForm = () => {
     console.log("FormData updated:", formData);
   }, [formData]);
 
-
   useEffect(() => {
     const fetchUser = async () => {
       if (!id) return;
@@ -246,14 +296,10 @@ const StepperCustomerForm = () => {
         console.log("✅ API Response:", data);
 
         if (data.status === "success" && data.data) {
-          // Normalize user (data.data might be an array)
           const user = Array.isArray(data.data) ? data.data[0] : data.data;
-
-          // Normalize arrays from API
           const growerArray = Array.isArray(data.grower) ? data.grower : (data.grower ? [data.grower] : []);
           const customerPlants = Array.isArray(data.customer_plant) ? data.customer_plant : [];
 
-          // Set main formData
           const newFormData = {
             name: user.name || '',
             email: user.email || '',
@@ -270,20 +316,41 @@ const StepperCustomerForm = () => {
           };
           setFormData(newFormData);
 
-          // Build growers array by mapping every grower returned
           const newGrowersData = growerArray.map((g) => {
-            // For each grower, find plants that belong to it.
-            // Customer_plant might use grower_id or growerId — check both.
             const plantsForThisGrower = customerPlants
               .filter((p) => {
                 if (!p) return false;
-                // match by numeric/string id depending on your API
                 return String(p.grower_id ?? p.growerId ?? '') === String(g.id ?? g.grower_id ?? '');
               })
               .map((p) => ({
                 value: p.name,
                 label: p.name,
               }));
+
+            // Parse timer data from API response
+            let timerUsed = [];
+            let timerQuantities = {};
+            let timerUsedOther = '';
+            
+            if (g.timer_used) {
+              try {
+                const timerData = JSON.parse(g.timer_used);
+                timerUsed = Object.keys(timerData).filter(key => timerData[key] && timerData[key] !== '');
+                timerQuantities = timerData;
+                
+                // Handle "Other" timer
+                if (timerUsed.includes('Other')) {
+                  timerUsedOther = g.timer_used_other || '';
+                }
+              } catch (e) {
+                console.error("Error parsing timer data:", e);
+                // Fallback: try to parse as string
+                if (typeof g.timer_used === 'string') {
+                  timerUsed = [g.timer_used];
+                  timerQuantities = { [g.timer_used]: g.timer_quantity || '1' };
+                }
+              }
+            }
 
             return {
               growerId: g.id || g.grower_id || '',
@@ -297,8 +364,9 @@ const StepperCustomerForm = () => {
               setupDimension: g.setup_dimension || '',
               motorType: g.motor_used || '',
               motorTypeOther: g.motor_used_other || '',
-              timerUsed: g.timer_used || '',
-              timerUsedOther: g.timer_used_other || '',
+              timerUsed: timerUsed,
+              timerQuantities: timerQuantities,
+              timerUsedOther: timerUsedOther,
               numLights: g.no_of_lights || '',
               modelOfLight: g.model_of_lights || '',
               modelOfLightOther: g.model_of_lights_other || '',
@@ -315,7 +383,6 @@ const StepperCustomerForm = () => {
 
           setGrowers(newGrowersData);
 
-          // set cities if available
           if (user.state && statesAndCities[user.state]) {
             setCities(statesAndCities[user.state]);
           }
@@ -334,16 +401,11 @@ const StepperCustomerForm = () => {
     fetchUser();
   }, [id]);
 
-
   const validateStep = () => {
     let stepErrors = {};
 
-
     if (currentStep === 1) {
-      let stepErrors = {};
-
       if (!formData.name.trim()) stepErrors.name = 'Name is required';
-      // if (!formData.email.trim()) stepErrors.email = 'Email is required';
       if (!formData.phoneNumber.trim()) stepErrors.phoneNumber = 'Phone number is required';
       else if (!/^\d{10}$/.test(formData.phoneNumber))
         stepErrors.phoneNumber = 'Phone number must be 10 digits';
@@ -353,8 +415,6 @@ const StepperCustomerForm = () => {
 
       if (!formData.state) stepErrors.state = 'State is required';
       if (!formData.city) stepErrors.city = 'City is required';
-
-      // ⭐ YOUR NEW FIELDS
       if (!formData.locality.trim()) stepErrors.locality = 'Locality is required';
       if (!formData.landmark.trim()) stepErrors.landmark = 'Landmark is required';
 
@@ -364,12 +424,9 @@ const StepperCustomerForm = () => {
 
       if (!formData.address.trim()) stepErrors.address = 'Street address is required';
 
-      // 🚀 CRUCIAL
       setErrors(stepErrors);
-
       return Object.keys(stepErrors).length === 0;
     }
-
 
     if (currentStep === 2) {
       growers.forEach((grower, index) => {
@@ -387,8 +444,25 @@ const StepperCustomerForm = () => {
         if (!grower.setupDimension.trim()) stepErrors[`setupDimension_${index}`] = 'Setup dimension is required';
         if (!grower.motorType) stepErrors[`motorType_${index}`] = 'Motor type is required';
         if (grower.motorType === 'Other' && !grower.motorTypeOther.trim()) stepErrors[`motorTypeOther_${index}`] = 'Please specify other motor type';
-        if (!grower.timerUsed) stepErrors[`timerUsed_${index}`] = 'Timer used is required';
-        if (grower.timerUsed === 'Other' && !grower.timerUsedOther.trim()) stepErrors[`timerUsedOther_${index}`] = 'Please specify other timer';
+        
+        // Timer validation - updated for new structure
+        if (!grower.timerUsed || grower.timerUsed.length === 0) {
+          stepErrors[`timerUsed_${index}`] = 'At least one timer type is required';
+        } else {
+          // Validate quantities for each selected timer
+          grower.timerUsed.forEach(timer => {
+            if (!grower.timerQuantities?.[timer]) {
+              stepErrors[`timerQuantity_${timer}_${index}`] = `Quantity for ${timer} is required`;
+            } else if (parseInt(grower.timerQuantities[timer]) < 1) {
+              stepErrors[`timerQuantity_${timer}_${index}`] = `Quantity for ${timer} must be at least 1`;
+            }
+          });
+        }
+        
+        if (grower.timerUsed?.includes('Other') && !grower.timerUsedOther.trim()) {
+          stepErrors[`timerUsedOther_${index}`] = 'Please specify other timer';
+        }
+        
         if (!grower.modelOfLight) stepErrors[`modelOfLight_${index}`] = 'Model of Light is required';
         if (grower.modelOfLight === 'Other' && !grower.modelOfLightOther.trim()) stepErrors[`modelOfLightOther_${index}`] = 'Please specify other model of light';
         if (!grower.lengthOfLight) stepErrors[`lengthOfLight_${index}`] = 'Length of Light is required';
@@ -397,9 +471,6 @@ const StepperCustomerForm = () => {
         if (grower.tankCapacity === 'Other' && !grower.tankCapacityOther.trim()) stepErrors[`tankCapacityOther_${index}`] = 'Please specify other tank capacity';
         if (!grower.nutritionGiven) stepErrors[`nutritionGiven_${index}`] = 'Nutrition Given is required';
         if (!grower.otherSpecifications) stepErrors[`otherSpecifications_${index}`] = 'Other Specification is required';
-        // if (!grower.photoAtInstallation) {
-        //   stepErrors[`photoAtInstallation_${index}`] = 'Photo At Installation is required';
-        // }
 
         if (!grower.selectedPlants || grower.selectedPlants.length === 0) {
           stepErrors[`selectedPlants_${index}`] = 'Select at least one plant';
@@ -411,15 +482,13 @@ const StepperCustomerForm = () => {
     return Object.keys(stepErrors).length === 0;
   };
 
-  
   const handleSubmit = async () => {
     if (!validateStep()) return;
 
-    setLoading(true); // 🔥 disable button & show "Please wait..."
+    setLoading(true);
 
     const formPayload = new FormData();
 
-    // Append main form fields
     for (const key in formData) {
       formPayload.append(key, formData[key]);
     }
@@ -431,6 +500,11 @@ const StepperCustomerForm = () => {
       const growerData = { ...grower };
       const imageFile = growerData.photoAtInstallation;
       delete growerData.photoAtInstallation;
+
+      // Convert timer data for submission
+      if (growerData.timerQuantities) {
+        growerData.timerQuantities = JSON.stringify(growerData.timerQuantities);
+      }
 
       formPayload.append("growers", JSON.stringify(growers));
 
@@ -445,7 +519,6 @@ const StepperCustomerForm = () => {
     }
 
     try {
-      // ⏳ 1-second delay (change value if needed)
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const response = await fetch(
@@ -471,10 +544,9 @@ const StepperCustomerForm = () => {
       console.error("Error submitting form:", error);
 
     } finally {
-      setLoading(false); // 🔥 Enable button again
+      setLoading(false);
     }
   };
-
 
   const [cities, setCities] = useState([]);
   const statesAndCities = {
@@ -482,13 +554,13 @@ const StepperCustomerForm = () => {
     Karnataka: ['Bengaluru', 'Mysore', 'Mangalore'],
     Gujarat: ['Ahmedabad', 'Surat', 'Vadodara'],
   };
+  
   const handleStateChange = (e) => {
     const selectedState = e.target.value;
     setFormData({ ...formData, state: selectedState, city: '' });
     setCities(statesAndCities[selectedState] || []);
   };
   
-  // Update the nextStep function to check for phone exists
   const nextStep = () => {
     if (phoneExists && currentStep === 1) {
       toast.error("Phone number already exists. Please use a different number.");
@@ -501,7 +573,6 @@ const StepperCustomerForm = () => {
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
   
   const StepperHeader = () => (
-
     <div className="flex overflow-x-auto md:overflow-visible space-x-4 md:space-x-0 justify-between mb-8 pl-4 md:pl-0 pt-3">
       {[1, 2, 3].map((step, idx) => (
         <div key={step} className="flex-1 flex flex-col items-center min-w-[70px] relative">
@@ -518,6 +589,7 @@ const StepperCustomerForm = () => {
       ))}
     </div>
   );
+
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -780,7 +852,6 @@ const StepperCustomerForm = () => {
               </label>
             </div>
           </div>
-
         );
       case 2:
         return (
@@ -789,6 +860,7 @@ const StepperCustomerForm = () => {
               <div key={index} className="border border-gray-200 rounded-lg p-6 bg-gray-50">
                 <h3 className="text-lg font-semibold mb-4 text-gray-700">Grower {index + 1}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* System Type */}
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
                       System Type (सिस्टम प्रकार) <span className="text-red-500">*</span>
@@ -812,18 +884,11 @@ const StepperCustomerForm = () => {
                         placeholder="Specify other"
                         className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`systemTypeOther_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
                       />
-
                     )}
-                    <input
-                      type="hidden"
-                      name="systemTypeOther"
-                      value={grower.systemTypeOther}
-                      onChange={(e) => handleGrowerChange(index, e)}
-                      className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                    />
                     {errors[`systemTypeOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`systemTypeOther_${index}`]}</span>}
                   </div>
 
+                  {/* Grower Quantity */}
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
                       Quantity of Grower (उत्पादक की मात्रा) <span className="text-red-500">*</span>
@@ -839,6 +904,7 @@ const StepperCustomerForm = () => {
                     {errors[`growerQuantity_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`growerQuantity_${index}`]}</span>}
                   </div>
 
+                  {/* Number of Plants */}
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
                       No. of Plants (पौधों की संख्या) <span className="text-red-500">*</span>
@@ -854,6 +920,7 @@ const StepperCustomerForm = () => {
                     {errors[`numPlants_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`numPlants_${index}`]}</span>}
                   </div>
 
+                  {/* Number of Levels */}
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
                       No. of Levels (स्तरों की संख्या) <span className="text-red-500">*</span>
@@ -869,6 +936,7 @@ const StepperCustomerForm = () => {
                     {errors[`numLevels_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`numLevels_${index}`]}</span>}
                   </div>
 
+                  {/* Number of Channels per Level */}
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
                       No. of Channels per Level <span className="text-red-500">*</span>
@@ -884,6 +952,7 @@ const StepperCustomerForm = () => {
                     {errors[`numChannelPerLevel_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`numChannelPerLevel_${index}`]}</span>}
                   </div>
 
+                  {/* Number of Holes per Channel */}
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
                       No. of Holes per Channel <span className="text-red-500">*</span>
@@ -899,6 +968,7 @@ const StepperCustomerForm = () => {
                     {errors[`numHolesPerChannel_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`numHolesPerChannel_${index}`]}</span>}
                   </div>
 
+                  {/* Setup Dimension */}
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
                       Setup Dimension (सेटअप आयाम) <span className="text-red-500">*</span>
@@ -914,6 +984,7 @@ const StepperCustomerForm = () => {
                     {errors[`setupDimension_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`setupDimension_${index}`]}</span>}
                   </div>
 
+                  {/* Motor Used */}
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
                       Motor Used (मोटर उपयोग) <span className="text-red-500">*</span>
@@ -941,33 +1012,82 @@ const StepperCustomerForm = () => {
                     {errors[`motorTypeOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`motorTypeOther_${index}`]}</span>}
                   </div>
 
-                  <div className="flex flex-col">
+                  {/* Timer Used Section - UPDATED with multiple select dropdown */}
+                  <div className="flex flex-col md:col-span-2">
                     <label className="mb-1 font-medium text-gray-700">
-                      Timer Used (टाइमर उपयोग) <span className="text-red-500">*</span>
+                      Timer Used (CISHR: 3kWh) <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      name="timerUsed"
-                      value={grower.timerUsed}
-                      onChange={(e) => handleGrowerChange(index, e)}
-                      className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`timerUsed_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                    >
-                      <option value="" disabled>Select timer</option>
-                      {timerOptions.map((t, i) => <option key={i} value={t}>{t}</option>)}
-                    </select>
+                    
+                    {/* Multiple Select Dropdown */}
+                    <Select
+                      isMulti
+                      options={timerOptions.map(option => ({ value: option, label: option }))}
+                      value={grower.timerUsed?.map(option => ({ value: option, label: option })) || []}
+                      onChange={(selectedOptions) => handleTimerSelectChange(index, selectedOptions)}
+                      classNamePrefix="react-select"
+                      placeholder="Select timer(s)..."
+                      styles={{
+                        menu: (provided) => ({ ...provided, zIndex: 9999 }),
+                      }}
+                    />
                     {errors[`timerUsed_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`timerUsed_${index}`]}</span>}
-                    {grower.timerUsed === 'Other' && (
-                      <input
-                        type="text"
-                        name="timerUsedOther"
-                        value={grower.timerUsedOther}
-                        onChange={(e) => handleGrowerChange(index, e)}
-                        placeholder="Specify other"
-                        className={`w-full mt-2 px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`timerUsedOther_${index}`] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
-                      />
+                    
+                    {/* Quantity fields for selected timers */}
+                    {grower.timerUsed && grower.timerUsed.length > 0 && (
+                      <div className="mt-4 space-y-3">
+                        <h4 className="font-medium text-gray-700 mb-2">Timer Quantities:</h4>
+                        {grower.timerUsed.map((timer, timerIndex) => (
+                          <div key={timerIndex} className="flex items-center gap-3">
+                            <div className="w-1/3">
+                              <label className="mb-1 text-sm font-medium text-gray-600">
+                                {timer === 'Other' ? 'Other Timer' : timer}
+                              </label>
+                            </div>
+                            <div className="w-2/3">
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="Quantity"
+                                value={grower.timerQuantities?.[timer] || ''}
+                                onChange={(e) => handleTimerQuantityChange(index, timer, e.target.value)}
+                                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${
+                                  errors[`timerQuantity_${timer}_${index}`] 
+                                  ? 'border-red-500 focus:ring-red-400' 
+                                  : 'border-gray-300 focus:ring-blue-400'
+                                }`}
+                              />
+                              {errors[`timerQuantity_${timer}_${index}`] && (
+                                <span className="text-red-500 text-sm mt-1">{errors[`timerQuantity_${timer}_${index}`]}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                    {errors[`timerUsedOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`timerUsedOther_${index}`]}</span>}
+                    
+                    {/* Other timer specification field */}
+                    {grower.timerUsed?.includes('Other') && (
+                      <div className="mt-4">
+                        <input
+                          type="text"
+                          name="timerUsedOther"
+                          value={grower.timerUsedOther || ''}
+                          onChange={(e) => handleGrowerChange(index, e)}
+                          placeholder="Specify other timer"
+                          className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${
+                            errors[`timerUsedOther_${index}`] 
+                            ? 'border-red-500 focus:ring-red-400' 
+                            : 'border-gray-300 focus:ring-blue-400'
+                          }`}
+                        />
+                        {errors[`timerUsedOther_${index}`] && (
+                          <span className="text-red-500 text-sm mt-1">{errors[`timerUsedOther_${index}`]}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
+                  {/* Number of Lights */}
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
                       No. of Lights <span className="text-red-500">*</span>
@@ -983,6 +1103,7 @@ const StepperCustomerForm = () => {
                     {errors[`numLights_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`numLights_${index}`]}</span>}
                   </div>
 
+                  {/* Model of Lights */}
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
                       Model of Lights <span className="text-red-500">*</span>
@@ -1010,6 +1131,7 @@ const StepperCustomerForm = () => {
                     {errors[`modelOfLightOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`modelOfLightOther_${index}`]}</span>}
                   </div>
 
+                  {/* Length of Lights */}
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
                       Length of Lights <span className="text-red-500">*</span>
@@ -1037,6 +1159,7 @@ const StepperCustomerForm = () => {
                     {errors[`lengthOfLightOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`lengthOfLightOther_${index}`]}</span>}
                   </div>
 
+                  {/* Tank Capacity */}
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
                       Tank Capacity<span className="text-red-500">*</span>
@@ -1064,6 +1187,7 @@ const StepperCustomerForm = () => {
                     {errors[`tankCapacityOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`tankCapacityOther_${index}`]}</span>}
                   </div>
 
+                  {/* Nutrition Given */}
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
                       Nutrition Given <span className="text-red-500">*</span>
@@ -1079,6 +1203,7 @@ const StepperCustomerForm = () => {
                     {errors[`nutritionGiven_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`nutritionGiven_${index}`]}</span>}
                   </div>
 
+                  {/* Other Specifications */}
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
                       Other Specifications <span className="text-red-500">*</span>
@@ -1094,6 +1219,7 @@ const StepperCustomerForm = () => {
                     {errors[`otherSpecifications_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`otherSpecifications_${index}`]}</span>}
                   </div>
 
+                  {/* Photo at Installation */}
                   <div className="flex flex-col">
                     <label className="mb-1 font-medium text-gray-700">
                       Photo at Time of Installation
@@ -1116,16 +1242,9 @@ const StepperCustomerForm = () => {
                         : 'border-gray-300 focus:ring-blue-400'
                         }`}
                     />
-
-                    {/* {errors[`photoAtInstallation_${index}`] && (
-                      <span className="text-red-500 text-sm mt-1">
-                        {errors[`photoAtInstallation_${index}`]}
-                      </span>
-                    )} */}
                   </div>
 
-
-
+                  {/* Plants Chosen */}
                   <div className="flex flex-col md:col-span-2">
                     <label className="mb-1 font-medium text-gray-700">
                       Plants Chosen (चुने गए पौधे) <span className="text-red-500">*</span>
@@ -1244,6 +1363,7 @@ const StepperCustomerForm = () => {
                 </div>
               </div>
             </div>
+            
             <div className="border border-gray-200 rounded-lg p-6 bg-gray-50 mt-6">
               <h4 className="text-lg font-semibold mb-4 text-gray-700">Grower Information</h4>
 
@@ -1301,14 +1421,26 @@ const StepperCustomerForm = () => {
                             : grower.motorType}
                         </p>
                       </div>
-                      <div>
+                      
+                      {/* Timer Used in Review - UPDATED */}
+                      <div className="md:col-span-2">
                         <p className="text-gray-800">
                           <span className="font-medium text-gray-600">Timer Used: </span>
-                          {grower.timerUsed === "Other"
-                            ? grower.timerUsedOther
-                            : grower.timerUsed}
+                          {grower.timerUsed && grower.timerUsed.length > 0 ? (
+                            <ul className="list-disc pl-5 mt-1">
+                              {grower.timerUsed.map((timer, idx) => (
+                                <li key={idx} className="text-gray-800">
+                                  {timer === 'Other' ? grower.timerUsedOther : timer}: 
+                                  <span className="font-semibold ml-1">
+                                    {grower.timerQuantities?.[timer] || '0'} qty
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : 'N/A'}
                         </p>
                       </div>
+
                       <div>
                         <p className="text-gray-800">
                           <span className="font-medium text-gray-600">No. of Lights: </span>
@@ -1412,15 +1544,13 @@ const StepperCustomerForm = () => {
                 <p className="text-gray-600 italic">No grower information added yet.</p>
               )}
             </div>
-
-
           </div>
-
         );
       default:
         return null;
     }
   };
+  
   return (
     <div className="w-full min-h-screen bg-gray-100 mt-10">
       <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
@@ -1441,18 +1571,8 @@ const StepperCustomerForm = () => {
                     onClick={addGrower}
                     className="bg-[#9FC762] hover:bg-[#8DB350] text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
                   >
-                    + Add Grower(उत्पादK जोड़ें)
+                    + Add Grower(उत्पादक जोड़ें)
                   </button>
-
-                  {/* {growers.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={removeGrower}
-                      className="bg-red-500 hover:bg-red-600 text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
-                    >
-                      - Remove Grower(उत्पादक निकालना)
-                    </button>
-                  )} */}
                 </div>
 
                 {/* Navigation Buttons */}
@@ -1506,7 +1626,6 @@ const StepperCustomerForm = () => {
                   >
                     {loading ? "Please wait..." : "Submit(जमा करें)"}
                   </button>
-
                 )}
               </div>
             )}
@@ -1516,4 +1635,5 @@ const StepperCustomerForm = () => {
     </div>
   );
 };
+
 export default StepperCustomerForm;
