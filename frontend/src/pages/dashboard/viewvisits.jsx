@@ -111,15 +111,44 @@ const generatePDF = async (visitData, fullApiData) => {
       }
     };
 
-    const drawLineField = (label, value = "", width = 60) => {
-      ensureSpace();
-      doc.setFontSize(10);
-      doc.setFont(undefined, "normal");
-      doc.text(label, margin, yPos);
-      doc.line(margin + 55, yPos + 1, margin + 55 + width, yPos + 1);
-      if (value) doc.text(String(value), margin + 56, yPos);
-      yPos += 7;
-    };
+const drawLineField = (label, value = "", width = 60) => {
+  ensureSpace();
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
+  doc.text(label, margin, yPos);
+  doc.line(margin + 55, yPos + 1, margin + 55 + width, yPos + 1);
+  
+  if (value) {
+    // Split text into lines that fit within the width
+    const maxWidth = width - 2; // Small padding
+    const lines = doc.splitTextToSize(String(value), maxWidth);
+    
+    // Draw each line
+    lines.forEach((line, index) => {
+      if (index === 0) {
+        // First line - draw on the same line as the label
+        doc.text(line, margin + 56, yPos);
+      } else {
+        // Subsequent lines - move down and draw
+        yPos += 7;
+        ensureSpace();
+        doc.text(line, margin + 56, yPos);
+        // Extend the line for subsequent lines if needed
+        if (index < lines.length - 1) {
+          doc.line(margin + 55, yPos + 1, margin + 55 + width, yPos + 1);
+        }
+      }
+    });
+    
+    // Adjust yPos based on number of lines
+    if (lines.length > 1) {
+      yPos += (lines.length - 1) * 7;
+    }
+  }
+  
+  yPos += 7;
+};
+
 
     const drawYesNo = (label, value) => {
       ensureSpace();
@@ -283,6 +312,68 @@ const generatePDF = async (visitData, fullApiData) => {
     };
 
     /* ----------------------------------
+       PROCESS AND ADD IMAGE HELPER
+    ---------------------------------- */
+    const processAndAddImage = async (doc, imageFileName, xPos, yPos, width, height, photoNumber) => {
+      try {
+        const imageUrl = getImageUrl(imageFileName);
+        if (!imageUrl) return false;
+        
+        const dataUrl = await loadImageToDataURL(imageUrl);
+        if (!dataUrl) return false;
+        
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = dataUrl;
+          if (img.complete) resolve();
+        });
+        
+        const aspectRatio = img.width / img.height;
+        let displayWidth = width;
+        let displayHeight = height;
+        
+        if (aspectRatio > 1) {
+          displayHeight = width / aspectRatio;
+        } else {
+          displayWidth = height * aspectRatio;
+        }
+        
+        const xOffset = (width - displayWidth) / 2;
+        const yOffset = (height - displayHeight) / 2;
+        
+        let format = 'JPEG';
+        if (dataUrl.startsWith('data:image/png')) format = 'PNG';
+        
+        doc.addImage(dataUrl, format, xPos + xOffset, yPos + yOffset, displayWidth, displayHeight);
+        
+        doc.setDrawColor(0, 0, 0); // Black border
+        doc.setLineWidth(0.2);
+        doc.rect(xPos, yPos, width, height);
+        
+        doc.setFontSize(8);
+        doc.setFont(undefined, "normal");
+        doc.text(`Photo ${photoNumber}`, 
+                 xPos + width/2, yPos + height + 4, { align: "center" });
+        
+        return true;
+        
+      } catch (error) {
+        console.error(`Failed to process image:`, error);
+        doc.setFillColor(240, 240, 240);
+        doc.rect(xPos, yPos, width, height, 'F');
+        doc.setDrawColor(0, 0, 0); // Black border
+        doc.rect(xPos, yPos, width, height);
+        doc.setFontSize(8);
+        doc.setTextColor(0, 0, 0); // Black text
+        doc.text("Image unavailable", xPos + width/2, yPos + height/2, { align: "center" });
+        doc.text(`Photo ${photoNumber}`, xPos + width/2, yPos + height + 4, { align: "center" });
+        return false;
+      }
+    };
+
+    /* ----------------------------------
        HEADER WITH LOGO
     ---------------------------------- */
 
@@ -312,7 +403,7 @@ const generatePDF = async (visitData, fullApiData) => {
     doc.text(visitData.technician_name || "", textStartX + 26, yPos);
     
     yPos += 10;
-    doc.setDrawColor(0, 0, 0);
+    doc.setDrawColor(0, 0, 0); // Black line
     doc.setLineWidth(0.5);
     doc.line(margin, yPos, pageWidth - margin, yPos);
     
@@ -325,7 +416,7 @@ const generatePDF = async (visitData, fullApiData) => {
     const siteVisit = fullApiData.site_visit?.[0] || {};
 
     /* ----------------------------------
-       I. BASIC VISUAL INSPECTION - UPDATED WITH EQUIPMENT DAMAGE REASON
+       I. BASIC VISUAL INSPECTION
     ---------------------------------- */
     doc.setFontSize(11);
     doc.setFont(undefined, "normal");
@@ -365,7 +456,7 @@ const generatePDF = async (visitData, fullApiData) => {
         }
     }
 
-    // Equipment damaged question - SHOW REASON IF YES
+    // Equipment damaged question
     drawYesNo("6. Any other equipment damaged?", siteVisit.equipment_damaged);
     if (siteVisit.equipment_damaged && String(siteVisit.equipment_damaged).toLowerCase() === "yes") {
         const reason = siteVisit.damaged_items || siteVisit.equipment_damage_reason || "";
@@ -692,44 +783,24 @@ const generatePDF = async (visitData, fullApiData) => {
       ) : [];
 
     if (photos.length > 0) {
-      const remainingSpace = pageHeight - 25 - yPos;
+      doc.addPage();
+      currentPage++;
+      totalPages = currentPage;
+      await addLogoToPage(currentPage);
       
-      let photosPerRow;
-      let imgWidth, imgHeight;
+      yPos = 40;
+      doc.setFont(undefined, "bold");
+      doc.setFontSize(14);
+      doc.text("Setup Photos", pageWidth / 2, yPos, { align: "center" });
+      yPos += 20;
       
-      if (photos.length <= 3) {
-        photosPerRow = 3;
-        imgWidth = 25;
-        imgHeight = 18;
-      } else if (photos.length <= 6) {
-        photosPerRow = 2;
-        imgWidth = 35;
-        imgHeight = 25;
-      } else {
-        photosPerRow = 2;
-        imgWidth = 30;
-        imgHeight = 22;
-      }
+      const photosPerRow = 2;
+      const horizontalSpacing = 20;
+      const verticalSpacing = 45;
       
-      const verticalSpacing = 5;
-      const rowHeight = imgHeight + verticalSpacing;
-      
-      const rowsNeeded = Math.ceil(photos.length / photosPerRow);
-      const spaceNeeded = (rowsNeeded * rowHeight) + 50;
-      
-      if (remainingSpace < spaceNeeded) {
-        doc.addPage();
-        currentPage++;
-        totalPages = currentPage;
-        yPos = 20 + 25;
-        await addLogoToPage(currentPage);
-      }
-      
-      drawSection("Setup Photos");
-      
-      const availableWidth = pageWidth - (2 * margin);
-      const totalSpacing = 5 * (photosPerRow - 1);
-      const columnWidth = (availableWidth - totalSpacing) / photosPerRow;
+      const availableWidth = pageWidth - (2 * margin) - (horizontalSpacing * (photosPerRow - 1));
+      const imageWidth = availableWidth / photosPerRow;
+      const imageHeight = imageWidth * 0.75;
       
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
@@ -740,134 +811,108 @@ const generatePDF = async (visitData, fullApiData) => {
         const rowIndex = Math.floor(i / photosPerRow);
         const colIndex = i % photosPerRow;
         
-        const currentRowYPos = yPos + (rowIndex * rowHeight);
+        const photoYPosition = 60 + (rowIndex * verticalSpacing);
         
-        try {
-          const imageUrl = getImageUrl(imageFileName);
-          if (!imageUrl) continue;
+        if (photoYPosition + imageHeight > pageHeight - 40) {
+          doc.addPage();
+          currentPage++;
+          totalPages = currentPage;
+          await addLogoToPage(currentPage);
           
-          const dataUrl = await loadImageToDataURL(imageUrl);
-          if (!dataUrl) continue;
+          yPos = 40;
+          doc.setFont(undefined, "bold");
+          doc.setFontSize(14);
+          doc.text("Setup Photos (Continued)", pageWidth / 2, yPos, { align: "center" });
+          yPos = 60;
           
-          const img = new Image();
+          const newRowIndex = 0;
+          const xPos = margin + (colIndex * (imageWidth + horizontalSpacing));
+          const yPosPhoto = 60;
           
-          await new Promise((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = () => reject(new Error(`Failed to load`));
-            img.src = dataUrl;
-            if (img.complete) resolve();
-          });
+          await processAndAddImage(doc, imageFileName, xPos, yPosPhoto, imageWidth, imageHeight, i + 1);
+        } else {
+          const xPos = margin + (colIndex * (imageWidth + horizontalSpacing));
+          const yPosPhoto = 60 + (rowIndex * verticalSpacing);
           
-          const xPos = margin + (colIndex * (columnWidth + 5));
-          
-          const aspectRatio = img.width / img.height;
-          let displayWidth = imgWidth;
-          let displayHeight = imgHeight;
-          
-          if (aspectRatio > 1) {
-            displayHeight = imgWidth / aspectRatio;
-          } else {
-            displayWidth = imgHeight * aspectRatio;
-          }
-          
-          const xOffset = (imgWidth - displayWidth) / 2;
-          const yOffset = (imgHeight - displayHeight) / 2;
-          
-          let format = 'JPEG';
-          if (dataUrl.startsWith('data:image/png')) format = 'PNG';
-          
-          doc.addImage(dataUrl, format, xPos + xOffset, currentRowYPos + yOffset, displayWidth, displayHeight);
-          
-          doc.setDrawColor(180, 180, 180);
-          doc.setLineWidth(0.1);
-          doc.rect(xPos, currentRowYPos, imgWidth, imgHeight);
-          
-        } catch (error) {
-          console.error(`Failed to process image ${i + 1}:`, error);
+          await processAndAddImage(doc, imageFileName, xPos, yPosPhoto, imageWidth, imageHeight, i + 1);
         }
       }
       
-      yPos += (rowsNeeded * rowHeight) + 10;
+      const lastPhotoRows = Math.ceil((photos.length % (photosPerRow * 2)) / photosPerRow) || 1;
+      yPos = 60 + (lastPhotoRows * verticalSpacing) + 20;
     }
 
     /* ----------------------------------
-       SIGNATURE SECTION
+       FINAL PAGE - UPDATED FORMAT
     ---------------------------------- */
 
     doc.setPage(totalPages);
-    ensureSpace(70);
     
+    if (yPos > pageHeight - 100) {
+      doc.addPage();
+      currentPage++;
+      totalPages = currentPage;
+      await addLogoToPage(currentPage);
+      yPos = 40;
+    }
+
     /* ----------------------------------
        CLARIFICATION SECTION
     ---------------------------------- */
 
     yPos += 10;
-    doc.setFontSize(11);
+    
+    doc.setFontSize(12);
     doc.setFont(undefined, "normal");
-    doc.text("Do let us know if you'd like clarity on any of our observations/suggestions.", margin, yPos);
+    doc.text("Do let us know if you'd like clarity on any of our observations/suggestions.", 
+             pageWidth / 2, yPos, { align: "center" });
     
-    yPos += 10;
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.2);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    
-    yPos += 10;
+    yPos += 25;
 
     /* ----------------------------------
-       HAPPY GROWING SECTION
+       HAPPY GROWING SECTION - LEFT ALIGNED
     ---------------------------------- */
 
-    doc.setFontSize(16);
+    doc.setFontSize(20);
     doc.setFont(undefined, "bold");
-    doc.text("Happy Growing!", margin, yPos);
-
-    yPos += 10;
-    doc.setFontSize(11);
-    doc.setFont(undefined, "normal");
-    doc.textWithLink("Email: sales@growpro.co.in", margin, yPos, {
-      url: "mailto:sales@growpro.co.in"
-    });
-
-    yPos += 8;
-    doc.textWithLink("Phone: 8591753001", margin, yPos, {
-      url: "tel:+918591753001"
-    });
-
+    doc.text("Happy Growing!", margin, yPos); // Left aligned
+    
     yPos += 15;
+    doc.setFontSize(12);
+    doc.setFont(undefined, "normal");
+    doc.text("Email: sales@growpro.co.in", margin, yPos); // Left aligned
+    
+    yPos += 10;
+    doc.text("Phone: 8591753001", margin, yPos); // Left aligned
 
     /* ----------------------------------
-       FOOTER TABLE
+       FOOTER - EXACTLY AS IN YOUR EXAMPLE
+       Format: Email on left | GrowPro Solutions center | Phone on right
     ---------------------------------- */
 
-    yPos = pageHeight - 25;
-    doc.setDrawColor(0, 0, 0);
+    const footerY = pageHeight - 10; // Position for footer text
+    
+    // ADD GREY MARGIN LINE ABOVE THE FOOTER
+    doc.setDrawColor(200, 200, 200); // Grey color
     doc.setLineWidth(0.3);
-    doc.line(margin, yPos - 2, pageWidth - margin, yPos - 2);
-
-    const footerY = pageHeight - 20;
+    doc.line(margin, footerY - 8, pageWidth - margin, footerY - 8); // Line 8mm above footer text
+    
     doc.setFontSize(9);
     doc.setFont(undefined, "normal");
-    doc.textWithLink("Phone: +91 859 175 3001", margin, footerY, {
-      url: "tel:+918591753001"
-    });
-
+    
+    // Left: Email
+    doc.text("Email: sales@growpro.co.in", margin, footerY);
+    
+    // Center: GrowPro Solutions (not Technology)
     doc.setFont(undefined, "bold");
-    doc.text("GrowPro Technology", pageWidth - margin, footerY, { align: "right" });
-
-    const companyText = "GrowPro Technology";
-    const textWidth = doc.getTextWidth(companyText);
-    doc.link(pageWidth - margin - textWidth, footerY - 4, textWidth, 5, {
-      url: "https://growpro.co.in/"
-    });
-
-    const footerY2 = pageHeight - 15;
+    doc.text("GrowPro Solutions", pageWidth / 2, footerY, { align: "center" });
+    
+    // Right: Phone
     doc.setFont(undefined, "normal");
-    doc.textWithLink("Email: sales@growpro.co.in", margin, footerY2, {
-      url: "mailto:sales@growpro.co.in"
-    });
+    doc.text("Phone: +91 859 175 3001", pageWidth - margin, footerY, { align: "right" });
 
     /* ----------------------------------
-       FINAL STEP: Ensure logo is on all pages
+       ENSURE LOGO ON ALL PAGES
     ---------------------------------- */
 
     for (let i = 1; i <= totalPages; i++) {
