@@ -86,7 +86,7 @@ const StepperCustomerForm = () => {
     motorType: '',
     motorTypeOther: '',
     timerUsed: [], // Changed from string to array
-    timerQuantities: {}, // Changed from object with all options to dynamic object
+    timerQuantities: [], // Changed from object with all options to dynamic object
     timerUsedOther: '', // Added this field
     numLights: "",
     modelOfLight: "",
@@ -285,121 +285,282 @@ const StepperCustomerForm = () => {
     console.log("FormData updated:", formData);
   }, [formData]);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (!id) return;
-      setLoading(true);
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?id=${id}`);
-        const data = await response.json();
+useEffect(() => {
+  const fetchUser = async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?id=${id}`);
+      const data = await response.json();
 
-        console.log("✅ API Response:", data);
+      console.log("✅ Full API Response:", data);
+      console.log("📊 Grower Timer Data (raw):", data.grower_timer);
+      console.log("📊 Individual Grower Data:", data.grower);
 
-        if (data.status === "success" && data.data) {
-          const user = Array.isArray(data.data) ? data.data[0] : data.data;
-          const growerArray = Array.isArray(data.grower) ? data.grower : (data.grower ? [data.grower] : []);
-          const customerPlants = Array.isArray(data.customer_plant) ? data.customer_plant : [];
+      if (data.status === "success" && data.data) {
+        const user = Array.isArray(data.data) ? data.data[0] : data.data;
+        const growerArray = Array.isArray(data.grower) ? data.grower : (data.grower ? [data.grower] : []);
+        const customerPlants = Array.isArray(data.customer_plant) ? data.customer_plant : [];
+        const growerTimerData = Array.isArray(data.grower_timer) ? data.grower_timer : [];
 
-          const newFormData = {
-            name: user.name || '',
-            email: user.email || '',
-            phoneNumber: user.phone || '',
-            staffPhoneNumber: user.staff_phone || '',
-            state: user.state || '',
-            city: user.city || '',
-            pincode: user.pincode || '',
-            landmark: user.landmark || '',
-            locality: user.locality || '',
-            address: user.street_address || '',
-            profilePic: user.profile_pic || '',
-            isActive: user.status ? user.status === "active" : true,
-          };
-          setFormData(newFormData);
+        const newFormData = {
+          name: user.name || '',
+          email: user.email || '',
+          phoneNumber: user.phone || '',
+          staffPhoneNumber: user.staff_phone || '',
+          state: user.state || '',
+          city: user.city || '',
+          pincode: user.pincode || '',
+          landmark: user.landmark || '',
+          locality: user.locality || '',
+          address: user.street_address || '',
+          profilePic: user.profile_pic || '',
+          isActive: user.status ? user.status === "active" : true,
+        };
+        setFormData(newFormData);
 
-          const newGrowersData = growerArray.map((g) => {
-            const plantsForThisGrower = customerPlants
-              .filter((p) => {
-                if (!p) return false;
-                return String(p.grower_id ?? p.growerId ?? '') === String(g.id ?? g.grower_id ?? '');
-              })
-              .map((p) => ({
-                value: p.name,
-                label: p.name,
-              }));
+        // Group timers by grower_id if it exists
+        const timersByGrowerId = {};
+        growerTimerData.forEach(timer => {
+          const growerId = timer.grower_id || timer.growerId || null;
+          
+          if (growerId) {
+            if (!timersByGrowerId[growerId]) {
+              timersByGrowerId[growerId] = [];
+            }
+            timersByGrowerId[growerId].push(timer);
+          } else {
+            if (!timersByGrowerId['ungrouped']) {
+              timersByGrowerId['ungrouped'] = [];
+            }
+            timersByGrowerId['ungrouped'].push(timer);
+          }
+        });
 
-            // Parse timer data from API response
-            let timerUsed = [];
-            let timerQuantities = {};
-            let timerUsedOther = '';
-            
-            if (g.timer_used) {
-              try {
-                const timerData = JSON.parse(g.timer_used);
-                timerUsed = Object.keys(timerData).filter(key => timerData[key] && timerData[key] !== '');
-                timerQuantities = timerData;
-                
-                // Handle "Other" timer
-                if (timerUsed.includes('Other')) {
-                  timerUsedOther = g.timer_used_other || '';
-                }
-              } catch (e) {
-                console.error("Error parsing timer data:", e);
-                // Fallback: try to parse as string
-                if (typeof g.timer_used === 'string') {
-                  timerUsed = [g.timer_used];
-                  timerQuantities = { [g.timer_used]: g.timer_quantity || '1' };
+        console.log("📊 Timers grouped by grower ID:", timersByGrowerId);
+
+        const newGrowersData = growerArray.map((g, growerIndex) => {
+          const growerId = g.id || g.grower_id || `grower_${growerIndex}`;
+          
+          // Handle selectedPlants - always keep as array
+          let plantsForThisGrower = [];
+          
+          // Try to get plants from customer_plant table
+          const plantsFromTable = customerPlants
+            .filter((p) => {
+              if (!p) return false;
+              return String(p.grower_id ?? p.growerId ?? '') === String(growerId);
+            })
+            .map((p) => ({
+              value: p.name,
+              label: p.name,
+            }));
+          
+          if (plantsFromTable.length > 0) {
+            plantsForThisGrower = plantsFromTable;
+          } else if (g.selected_plants) {
+            // Fallback: parse from selected_plants field
+            try {
+              let parsedPlants = g.selected_plants;
+              if (typeof g.selected_plants === 'string') {
+                if (g.selected_plants.startsWith('[') || g.selected_plants.startsWith('{')) {
+                  parsedPlants = JSON.parse(g.selected_plants);
                 }
               }
+              
+              if (Array.isArray(parsedPlants)) {
+                plantsForThisGrower = parsedPlants;
+              } else if (typeof parsedPlants === 'string') {
+                plantsForThisGrower = [{ value: parsedPlants, label: parsedPlants }];
+              }
+            } catch (e) {
+              console.error("Error parsing selected plants:", e);
             }
+          }
+          
+          // Parse timer data for THIS specific grower
+          let timerUsed = [];
+          let timerQuantities = {};
+          let timerUsedOther = '';
+          
+          // First, try to get timers specifically assigned to this grower
+          const timersForThisGrower = timersByGrowerId[growerId] || [];
+          
+          console.log(`Grower ${growerId} - specific timers:`, timersForThisGrower);
 
-            return {
-              growerId: g.id || g.grower_id || '',
-              systemType: g.system_type || '',
-              systemTypeOther: g.system_type_other || '',
-              growerQuantity: g.grower_qty || '',
-              numPlants: g.no_of_plants || '',
-              numLevels: g.no_of_levels || '',
-              numChannelPerLevel: g.channel_per_level || '',
-              numHolesPerChannel: g.holes_per_channel ||'',
-              setupDimension: g.setup_dimension || '',
-              motorType: g.motor_used || '',
-              motorTypeOther: g.motor_used_other || '',
-              timerUsed: timerUsed,
-              timerQuantities: timerQuantities,
-              timerUsedOther: timerUsedOther,
-              numLights: g.no_of_lights || '',
-              modelOfLight: g.model_of_lights || '',
-              modelOfLightOther: g.model_of_lights_other || '',
-              lengthOfLight: g.length_of_lights || '',
-              lengthOfLightOther: g.length_of_lights_other || '',
-              tankCapacity: g.tank_capacity || '',
-              tankCapacityOther: g.tank_capacity_other || '',
-              nutritionGiven: g.nutrition_given || '',
-              otherSpecifications: g.other_specifications || '',
-              photoAtInstallation: g.installation_photo_url || '',
-              selectedPlants: plantsForThisGrower
-            };
+          if (timersForThisGrower.length > 0) {
+            timersForThisGrower.forEach(timer => {
+              const timerType = timer.timer_used;
+              const quantity = timer.quantity || '1';
+              
+              if (!timerUsed.includes(timerType)) {
+                timerUsed.push(timerType);
+              }
+              
+              timerQuantities[timerType] = quantity;
+              
+              if (timerType === 'Other') {
+                timerUsedOther = timer.timer_used_other || timerUsedOther;
+              }
+            });
+          } else if (growerTimerData.length > 0) {
+            const totalGrowers = growerArray.length;
+            const timersPerGrower = Math.ceil(growerTimerData.length / totalGrowers);
+            const startIndex = growerIndex * timersPerGrower;
+            const endIndex = Math.min(startIndex + timersPerGrower, growerTimerData.length);
+            
+            const assignedTimers = growerTimerData.slice(startIndex, endIndex);
+            
+            console.log(`Grower ${growerId} - assigned timers (index ${growerIndex}):`, assignedTimers);
+            
+            assignedTimers.forEach(timer => {
+              const timerType = timer.timer_used;
+              const quantity = timer.quantity || '1';
+              
+              if (!timerUsed.includes(timerType)) {
+                timerUsed.push(timerType);
+              }
+              
+              timerQuantities[timerType] = quantity;
+              
+              if (timerType === 'Other') {
+                timerUsedOther = timer.timer_used_other || timerUsedOther;
+              }
+            });
+          }
+          
+          // Fallback: Check individual grower fields for timer data
+          if (timerUsed.length === 0 && g.timer_used) {
+            console.log(`Grower ${growerId} - using individual grower timer fields`);
+            
+            try {
+              let parsedTimerUsed = g.timer_used;
+              if (typeof g.timer_used === 'string') {
+                if (g.timer_used.startsWith('[') || g.timer_used.startsWith('{')) {
+                  parsedTimerUsed = JSON.parse(g.timer_used);
+                }
+              }
+              
+              let parsedTimerQuantity = g.timer_quantity;
+              if (g.timer_quantity && typeof g.timer_quantity === 'string') {
+                if (g.timer_quantity.startsWith('{') || g.timer_quantity.startsWith('[')) {
+                  parsedTimerQuantity = JSON.parse(g.timer_quantity);
+                }
+              }
+              
+              if (Array.isArray(parsedTimerUsed)) {
+                timerUsed = [...new Set(parsedTimerUsed)];
+                
+                if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
+                  timerQuantities = { ...parsedTimerQuantity };
+                } else {
+                  parsedTimerUsed.forEach(timer => {
+                    timerQuantities[timer] = '1';
+                  });
+                }
+              } else if (typeof parsedTimerUsed === 'object' && parsedTimerUsed !== null) {
+                timerUsed = Object.keys(parsedTimerUsed);
+                timerQuantities = parsedTimerUsed;
+              } else if (typeof parsedTimerUsed === 'string') {
+                timerUsed = [parsedTimerUsed];
+                
+                if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
+                  timerQuantities = parsedTimerQuantity;
+                } else if (g.timer_quantity) {
+                  timerQuantities[parsedTimerUsed] = g.timer_quantity;
+                } else {
+                  timerQuantities[parsedTimerUsed] = '1';
+                }
+              }
+              
+              timerUsedOther = g.timer_used_other || '';
+              
+            } catch (e) {
+              console.error("Error parsing timer data:", e);
+              if (typeof g.timer_used === 'string') {
+                timerUsed = [g.timer_used];
+                timerQuantities = { [g.timer_used]: g.timer_quantity || '1' };
+              }
+            }
+          }
+          
+          // Handle timerUsedOther
+          if (timerUsedOther && timerUsedOther.trim() !== '' && timerUsed.includes('Other')) {
+            if (timerQuantities['Other']) {
+              timerQuantities[timerUsedOther] = timerQuantities['Other'];
+              delete timerQuantities['Other'];
+            }
+            
+            timerUsed = timerUsed.map(item => 
+              item === 'Other' ? timerUsedOther : item
+            );
+          }
+          
+          // Remove any duplicates from timerUsed array
+          timerUsed = [...new Set(timerUsed)];
+          
+          // Ensure all quantity values are strings
+          Object.keys(timerQuantities).forEach(key => {
+            if (typeof timerQuantities[key] !== 'string') {
+              timerQuantities[key] = String(timerQuantities[key]);
+            }
+          });
+          
+          console.log(`Grower ${growerId} FINAL timer data:`, {
+            timerUsed,
+            timerQuantities,
+            timerUsedOther,
+            timerCount: timerUsed.length
           });
 
-          setGrowers(newGrowersData);
+          return {
+            growerId: growerId,
+            systemType: g.system_type || '',
+            systemTypeOther: g.system_type_other || '',
+            growerQuantity: g.grower_qty || '',
+            numPlants: g.no_of_plants || '',
+            numLevels: g.no_of_levels || '',
+            numChannelPerLevel: g.channel_per_level || '',
+            numHolesPerChannel: g.holes_per_channel ||'',
+            setupDimension: g.setup_dimension || '',
+            motorType: g.motor_used || '',
+            motorTypeOther: g.motor_used_other || '',
+            timerUsed: timerUsed,
+            timerQuantities: timerQuantities,
+            timerUsedOther: timerUsedOther,
+            numLights: g.no_of_lights || '',
+            modelOfLight: g.model_of_lights || '',
+            modelOfLightOther: g.model_of_lights_other || '',
+            lengthOfLight: g.length_of_lights || '',
+            lengthOfLightOther: g.length_of_lights_other || '',
+            tankCapacity: g.tank_capacity || '',
+            tankCapacityOther: g.tank_capacity_other || '',
+            nutritionGiven: g.nutrition_given || '',
+            otherSpecifications: g.other_specifications || '',
+            photoAtInstallation: g.installation_photo_url || '',
+            selectedPlants: plantsForThisGrower // Keep as array
+          };
+        });
 
-          if (user.state && statesAndCities[user.state]) {
-            setCities(statesAndCities[user.state]);
-          }
-        } else {
-          console.error("API returned error or no data");
-          alert('User not found!');
+        setGrowers(newGrowersData);
+
+        if (user.state && statesAndCities[user.state]) {
+          setCities(statesAndCities[user.state]);
         }
-      } catch (error) {
-        console.error('Error fetching user:', error);
-        alert('Failed to fetch user details!');
-      } finally {
-        setLoading(false);
+      } else {
+        console.error("API returned error or no data");
+        alert('User not found!');
       }
-    };
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      alert('Failed to fetch user details!');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchUser();
-  }, [id]);
+  fetchUser();
+}, [id]);
 
   const validateStep = () => {
     let stepErrors = {};
@@ -482,71 +643,201 @@ const StepperCustomerForm = () => {
     return Object.keys(stepErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
-    if (!validateStep()) return;
+ const handleSubmit = async () => {
+  if (!validateStep()) return;
 
-    setLoading(true);
+  setLoading(true);
 
-    const formPayload = new FormData();
+  const formPayload = new FormData();
 
-    for (const key in formData) {
+  // Append basic form data
+  for (const key in formData) {
+    if (formData[key] !== undefined && formData[key] !== null) {
       formPayload.append(key, formData[key]);
     }
+  }
 
-    formPayload.append('id', id);
-    formPayload.append('_method', 'PUT');
+  formPayload.append('id', id);
+  formPayload.append('_method', 'PUT');
 
-    growers.forEach((grower, index) => {
-      const growerData = { ...grower };
-      const imageFile = growerData.photoAtInstallation;
-      delete growerData.photoAtInstallation;
-
-      // Convert timer data for submission
-      if (growerData.timerQuantities) {
-        growerData.timerQuantities = JSON.stringify(growerData.timerQuantities);
+  // Prepare growers data properly
+  const processedGrowers = growers.map((grower, index) => {
+    const growerData = { ...grower };
+    
+    // Deep clone timerQuantities to avoid mutations
+    let finalTimerQuantities = {};
+    if (growerData.timerQuantities && typeof growerData.timerQuantities === 'object') {
+      finalTimerQuantities = JSON.parse(JSON.stringify(growerData.timerQuantities));
+    }
+    
+    // Handle timerUsedOther
+    if (growerData.timerUsedOther && growerData.timerUsedOther.trim() !== '') {
+      const timerOtherName = growerData.timerUsedOther.trim();
+      const hasOtherInTimerUsed = growerData.timerUsed.includes('Other');
+      
+      if (hasOtherInTimerUsed) {
+        if (finalTimerQuantities['Other']) {
+          const otherQuantity = finalTimerQuantities['Other'];
+          if (finalTimerQuantities[timerOtherName]) {
+            const currentQty = parseInt(finalTimerQuantities[timerOtherName]) || 0;
+            const otherQty = parseInt(otherQuantity) || 0;
+            finalTimerQuantities[timerOtherName] = (currentQty + otherQty).toString();
+          } else {
+            finalTimerQuantities[timerOtherName] = otherQuantity;
+          }
+          delete finalTimerQuantities['Other'];
+        } else {
+          finalTimerQuantities[timerOtherName] = '1';
+        }
+      } else {
+        finalTimerQuantities[timerOtherName] = '1';
       }
-
-      formPayload.append("growers", JSON.stringify(growers));
-
-      if (imageFile instanceof File) {
-        formPayload.append(`photoAtInstallation_${index}`, imageFile);
+    }
+    
+    // Ensure all timer quantity values are strings
+    Object.keys(finalTimerQuantities).forEach(key => {
+      if (typeof finalTimerQuantities[key] !== 'string') {
+        finalTimerQuantities[key] = String(finalTimerQuantities[key]);
       }
     });
-
-    console.log("Form Payload Data:");
-    for (let pair of formPayload.entries()) {
-      console.log(pair[0] + ": ", pair[1]);
-    }
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}api/customer.php`,
-        {
-          method: "POST",
-          body: formPayload
+    
+    // DO NOT stringify selectedPlants here - let JSON.stringify handle it
+    // Just ensure it's a valid array
+    let finalSelectedPlants = growerData.selectedPlants;
+    if (!Array.isArray(finalSelectedPlants)) {
+      // If it's already a string (JSON), parse it
+      if (typeof finalSelectedPlants === 'string') {
+        try {
+          finalSelectedPlants = JSON.parse(finalSelectedPlants);
+        } catch (e) {
+          finalSelectedPlants = [];
         }
-      );
-
-      const result = await response.json();
-      console.log("Server response:", result);
-
-      if (result.status === "success") {
-        toast.success(result.message);
-        setErrors({});
       } else {
-        toast.error(result.error || "Something went wrong");
+        finalSelectedPlants = [];
       }
-
-    } catch (error) {
-      toast.error("Error submitting form");
-      console.error("Error submitting form:", error);
-
-    } finally {
-      setLoading(false);
     }
-  };
+    
+    // Store photo separately
+    const photoFile = growerData.photoAtInstallation;
+    
+    // Create clean grower object
+    const cleanGrower = {
+      growerId: growerData.growerId,
+      systemType: growerData.systemType || '',
+      systemTypeOther: growerData.systemTypeOther || '',
+      growerQuantity: growerData.growerQuantity || '',
+      numPlants: growerData.numPlants || '',
+      numLevels: growerData.numLevels || '',
+      numChannelPerLevel: growerData.numChannelPerLevel || '',
+      numHolesPerChannel: growerData.numHolesPerChannel ||'',
+      setupDimension: growerData.setupDimension || '',
+      motorType: growerData.motorType || '',
+      motorTypeOther: growerData.motorTypeOther || '',
+      timerUsed: growerData.timerUsed || [],
+      timerQuantities: finalTimerQuantities, // Object, not string
+      timerUsedOther: growerData.timerUsedOther || '',
+      numLights: growerData.numLights || '',
+      modelOfLight: growerData.modelOfLight || '',
+      modelOfLightOther: growerData.modelOfLightOther || '',
+      lengthOfLight: growerData.lengthOfLight || '',
+      lengthOfLightOther: growerData.lengthOfLightOther || '',
+      tankCapacity: growerData.tankCapacity || '',
+      tankCapacityOther: growerData.tankCapacityOther || '',
+      nutritionGiven: growerData.nutritionGiven || '',
+      otherSpecifications: growerData.otherSpecifications || '',
+      selectedPlants: finalSelectedPlants // Array, not string
+    };
+    
+    return {
+      cleanGrower,
+      photoFile,
+      index
+    };
+  });
+
+  // Extract clean growers for JSON
+  const growersForJson = processedGrowers.map(item => item.cleanGrower);
+  
+  // Append growers as JSON
+  formPayload.append("growers", JSON.stringify(growersForJson));
+
+  // Append photos separately
+  processedGrowers.forEach(item => {
+    const { photoFile, index } = item;
+    if (photoFile instanceof File) {
+      formPayload.append(`photoAtInstallation_${index}`, photoFile);
+    } else if (typeof photoFile === 'string' && photoFile) {
+      formPayload.append(`existing_photo_${index}`, photoFile);
+    }
+  });
+
+  // Debug logging
+  console.log("=== FORM PAYLOAD DEBUG ===");
+  console.log("Full processed growers array:", growersForJson);
+  
+  // Check data types
+  growersForJson.forEach((grower, index) => {
+    console.log(`\nGrower ${index}:`);
+    console.log(`selectedPlants type:`, typeof grower.selectedPlants);
+    console.log(`selectedPlants:`, grower.selectedPlants);
+    console.log(`timerQuantities type:`, typeof grower.timerQuantities);
+    console.log(`timerQuantities:`, grower.timerQuantities);
+  });
+
+  console.log("\nFinal growers JSON to send:");
+  console.log(JSON.stringify(growersForJson, null, 2));
+
+  // Log FormData entries
+  console.log("\nFormData entries:");
+  for (let pair of formPayload.entries()) {
+    if (pair[0] === 'growers') {
+      try {
+        const parsed = JSON.parse(pair[1]);
+        console.log("growers (parsed):", parsed);
+      } catch (e) {
+        console.log("growers (raw):", pair[1]);
+      }
+    } else if (!(pair[1] instanceof File)) {
+      console.log(pair[0] + ": ", pair[1]);
+    } else {
+      console.log(pair[0] + ": [File]");
+    }
+  }
+
+  try {
+    // For testing - simulate API call
+    // await new Promise(resolve => setTimeout(resolve, 2000));
+    // console.log("Simulated API call complete");
+    // toast.success("Form submitted successfully!");
+    // setErrors({});
+
+    // Actual API call
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}api/customer.php`,
+      {
+        method: "POST",
+        body: formPayload
+      }
+    );
+
+    const result = await response.json();
+    console.log("Server response:", result);
+
+    if (result.status === "success") {
+      toast.success(result.message);
+      setErrors({});
+    } else {
+      toast.error(result.error || "Something went wrong");
+      console.error("Server error details:", result);
+    }
+
+  } catch (error) {
+    toast.error("Error submitting form");
+    console.error("Error submitting form:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const [cities, setCities] = useState([]);
   const statesAndCities = {
@@ -1013,12 +1304,20 @@ const StepperCustomerForm = () => {
                   </div>
 
                   {/* Timer Used Section - UPDATED with multiple select dropdown */}
+                 {/* Timer Used Section */}
                   <div className="flex flex-col md:col-span-2">
                     <label className="mb-1 font-medium text-gray-700">
-                      Timer Used (CISHR: 3kWh) <span className="text-red-500">*</span>
+                      Timer Used <span className="text-red-500">*</span>
                     </label>
                     
-                    {/* Multiple Select Dropdown */}
+                    {/* Debug: Show current timer data */}
+                    {/* {grower.timerUsed && (
+                      <div className="text-xs text-gray-500 mb-2">
+                        Debug: timerUsed = [{grower.timerUsed.join(', ')}], 
+                        quantities = {JSON.stringify(grower.timerQuantities)}
+                      </div>
+                    )} */}
+                    
                     <Select
                       isMulti
                       options={timerOptions.map(option => ({ value: option, label: option }))}
@@ -1040,7 +1339,7 @@ const StepperCustomerForm = () => {
                           <div key={timerIndex} className="flex items-center gap-3">
                             <div className="w-1/3">
                               <label className="mb-1 text-sm font-medium text-gray-600">
-                                {timer === 'Other' ? 'Other Timer' : timer}
+                                {timer === 'Other' ? (grower.timerUsedOther || 'Other Timer') : timer}
                               </label>
                             </div>
                             <div className="w-2/3">

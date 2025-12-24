@@ -164,7 +164,8 @@ export default function ObservationForm({ onSubmit = (data) => console.log(data)
         { label: "Improper Maintenance", value: "Improper Maintenance" },
         { label: "Overgrown crops", value: "Overgrown crops" },
         { label: "Improper Harvesting", value: "Improper Harvesting" },
-        { label: "Bolting", value: "Bolting" }
+        { label: "Bolting", value: "Bolting" },
+        { label: "Root Rot", value: "Root Rot" }
     ];
 
     const plantOptions = [

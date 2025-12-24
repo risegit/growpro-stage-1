@@ -880,10 +880,14 @@ const drawLineField = (label, value = "", width = 60) => {
     yPos += 15;
     doc.setFontSize(12);
     doc.setFont(undefined, "normal");
-    doc.text("Email: sales@growpro.co.in", margin, yPos); // Left aligned
+    doc.textWithLink("Email: sales@growpro.co.in", margin, yPos, {
+        url: "mailto:sales@growpro.co.in"
+     });
     
     yPos += 10;
-    doc.text("Phone: 8591753001", margin, yPos); // Left aligned
+    doc.textWithLink("Phone: +91 859 175 3001", margin, yPos, {
+      url: "tel:+918591753001"
+    });
 
     /* ----------------------------------
        FOOTER - EXACTLY AS IN YOUR EXAMPLE

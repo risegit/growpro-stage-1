@@ -33,18 +33,31 @@ switch ($method) {
             while ($row1 = $growerResult->fetch_assoc()) {
                 $growerData[] = $row1;
             }
-            $customerPlantQuery = "SELECT * FROM plants INNER JOIN (SELECT customer_plants.*, growers.system_type, growers.no_of_plants, growers.no_of_levels, growers.setup_dimension, growers.motor_used, growers.timer_used, growers.no_of_lights, growers.model_of_lights, growers.length_of_lights, growers.tank_capacity, growers.nutrition_given, growers.other_specifications, growers.installation_photo_url, growers.status FROM customer_plants INNER JOIN growers ON growers.customer_id = customer_plants.customer_id WHERE growers.customer_id = $userId GROUP BY customer_plants.plant_id) AS cust_plant ON plants.id = cust_plant.plant_id";
+
+            $customerPlantQuery = "SELECT * FROM plants INNER JOIN (SELECT customer_plants.*, growers.system_type, growers.no_of_plants, growers.no_of_levels, growers.setup_dimension, growers.motor_used, growers.no_of_lights, growers.model_of_lights, growers.length_of_lights, growers.tank_capacity, growers.nutrition_given, growers.other_specifications, growers.installation_photo_url, growers.status FROM customer_plants INNER JOIN growers ON growers.customer_id = customer_plants.customer_id WHERE growers.customer_id = $userId GROUP BY customer_plants.plant_id) AS cust_plant ON plants.id = cust_plant.plant_id";
 
             $customerPlantResult = $conn->query($customerPlantQuery);
             $customerPlantData = [];
             while ($row2 = $customerPlantResult->fetch_assoc()) {
                 $customerPlantData[] = $row2;
             }
-            echo json_encode(["status" => "success", "data" => $data, "grower" => $growerData, "customer_plant" => $customerPlantData]);
-        }elseif ($emailId or $phone) {
+
+            $growerTimer = "SELECT gtq.id,gtq.timer_used,gtq.timer_used_other,gtq.quantity,g.customer_id FROM grower_timer_quantities gtq INNER JOIN growers g ON g.id=gtq.grower_id WHERE g.customer_id = $userId";
+
+            $growerTimerResult = $conn->query($growerTimer);
+            $growerTimerData = [];
+            while ($row2 = $growerTimerResult->fetch_assoc()) {
+                $growerTimerData[] = $row2;
+            }
+
+            echo json_encode(["status" => "success", "data" => $data, "grower" => $growerData, "customer_plant" => $customerPlantData, "grower_timer" => $growerTimerData]);
+        }elseif ($emailId || $phone) {
             $sql = "SELECT email, phone FROM users WHERE (email = '$emailId' OR phone = '$phone') and id != '$custId' Limit 1";
             $result = $conn->query($sql);
-
+            $response = [
+                "emailExists" => false,
+                "phoneExists" => false
+            ];
             while ($row = $result->fetch_assoc()) {
                 if ($emailId && $row['email'] === $emailId) {
                     $response['emailExists'] = true;
@@ -175,12 +188,22 @@ switch ($method) {
                                 $photoAtInstallationPath = null;
                             }
 
-                            $sql2 = "INSERT INTO growers (customer_id, system_type, system_type_other, grower_qty, no_of_plants, no_of_levels, channel_per_level, holes_per_channel, setup_dimension, motor_used, motor_used_other, timer_used, timer_used_other, no_of_lights, model_of_lights, model_of_lights_other, length_of_lights, length_of_lights_other, tank_capacity, tank_capacity_other, nutrition_given, other_specifications, installation_photo_url, status, date, time) VALUES ('$user_id', '{$grower['systemType']}', '{$grower['systemTypeOther']}', '{$grower['growerQuantity']}', '{$grower['numPlants']}', '{$grower['numLevels']}', '{$grower['numChannelPerLevel']}', '{$grower['numHolesPerChannel']}', '{$grower['setupDimension']}', '{$grower['motorType']}', '{$grower['motorTypeOther']}', '{$grower['timerUsed']}', '{$grower['timerUsedOther']}', '{$grower['numLights']}', '{$grower['modelOfLight']}', '{$grower['modelOfLightOther']}', '{$grower['lengthOfLight']}', '{$grower['lengthOfLightOther']}', '{$grower['tankCapacity']}', '{$grower['tankCapacityOther']}', '{$grower['nutritionGiven']}', '{$grower['otherSpecifications']}', '$newName', 'active', '$date', '$time')";
+                            $sql2 = "INSERT INTO growers (customer_id, system_type, system_type_other, grower_qty, no_of_plants, no_of_levels, channel_per_level, holes_per_channel, setup_dimension, motor_used, motor_used_other, no_of_lights, model_of_lights, model_of_lights_other, length_of_lights, length_of_lights_other, tank_capacity, tank_capacity_other, nutrition_given, other_specifications, installation_photo_url, status, date, time) VALUES ('$user_id', '{$grower['systemType']}', '{$grower['systemTypeOther']}', '{$grower['growerQuantity']}', '{$grower['numPlants']}', '{$grower['numLevels']}', '{$grower['numChannelPerLevel']}', '{$grower['numHolesPerChannel']}', '{$grower['setupDimension']}', '{$grower['motorType']}', '{$grower['motorTypeOther']}', '{$grower['numLights']}', '{$grower['modelOfLight']}', '{$grower['modelOfLightOther']}', '{$grower['lengthOfLight']}', '{$grower['lengthOfLightOther']}', '{$grower['tankCapacity']}', '{$grower['tankCapacityOther']}', '{$grower['nutritionGiven']}', '{$grower['otherSpecifications']}', '$newName', 'active', '$date', '$time')";
 
                             $conn->query($sql2);
 
                             $grower_id = $conn->insert_id;
                             // echo json_encode(["status" => "success", "message" => $sql2]);
+                            foreach ($grower['timerQuantities'] as $timerName => $quantity) {
+                                if ($timerName === 'Other') {
+                                    $timer_used_other = $grower['timerUsedOther'];
+                                } else {
+                                    $timer_used_other = '';
+                                }
+                                $sqlTimer = "INSERT INTO grower_timer_quantities (grower_id, timer_used, timer_used_other, quantity, created_date, created_time) VALUES ('$grower_id', '$timerName', '$timer_used_other', '$quantity', '$date', '$time')";
+                                
+                                $conn->query($sqlTimer);
+                            }
                             foreach ($grower['selectedPlants'] as $plant) {
                                 $sql3 = "SELECT * FROM plants where name='{$plant['value']}'";
                                 $result3 = $conn->query($sql3);                               
@@ -332,7 +355,7 @@ switch ($method) {
                                 }
                                 $grower['systemTypeOther']=$grower['systemType'] == 'Other' ? $grower['systemTypeOther'] : '';
                                 
-                                $updateSQL = "UPDATE growers SET system_type='{$grower['systemType']}', system_type_other='{$grower['systemTypeOther']}', grower_qty='{$grower['growerQuantity']}', no_of_plants='{$grower['numPlants']}', no_of_levels='{$grower['numLevels']}', channel_per_level='{$grower['numChannelPerLevel']}', holes_per_channel='{$grower['numHolesPerChannel']}', setup_dimension='{$grower['setupDimension']}', motor_used='{$grower['motorType']}', motor_used_other='{$grower['motorTypeOther']}', timer_used='{$grower['timerUsed']}', timer_used_other='{$grower['timerUsedOther']}', no_of_lights='{$grower['numLights']}', model_of_lights='{$grower['modelOfLight']}', model_of_lights_other='{$grower['modelOfLightOther']}', length_of_lights='{$grower['lengthOfLight']}', length_of_lights_other='{$grower['lengthOfLightOther']}', tank_capacity='{$grower['tankCapacity']}', tank_capacity_other='{$grower['tankCapacityOther']}', nutrition_given='{$grower['nutritionGiven']}',other_specifications='{$grower['otherSpecifications']}', date='$date',time='$time' " . (!empty($newName) ? ", installation_photo_url='$newName'" : "") . " WHERE id='$grower_id' AND customer_id='$user_id'";
+                                $updateSQL = "UPDATE growers SET system_type='{$grower['systemType']}', system_type_other='{$grower['systemTypeOther']}', grower_qty='{$grower['growerQuantity']}', no_of_plants='{$grower['numPlants']}', no_of_levels='{$grower['numLevels']}', channel_per_level='{$grower['numChannelPerLevel']}', holes_per_channel='{$grower['numHolesPerChannel']}', setup_dimension='{$grower['setupDimension']}', motor_used='{$grower['motorType']}', motor_used_other='{$grower['motorTypeOther']}', no_of_lights='{$grower['numLights']}', model_of_lights='{$grower['modelOfLight']}', model_of_lights_other='{$grower['modelOfLightOther']}', length_of_lights='{$grower['lengthOfLight']}', length_of_lights_other='{$grower['lengthOfLightOther']}', tank_capacity='{$grower['tankCapacity']}', tank_capacity_other='{$grower['tankCapacityOther']}', nutrition_given='{$grower['nutritionGiven']}',other_specifications='{$grower['otherSpecifications']}', date='$date',time='$time' " . (!empty($newName) ? ", installation_photo_url='$newName'" : "") . " WHERE id='$grower_id' AND customer_id='$user_id'";
                                 $conn->query($updateSQL);
                                 // echo json_encode(["status" => "success", "message" => "Growerid".$updateSQL]);
                             } else {
@@ -353,6 +376,21 @@ switch ($method) {
                                 $conn->query($insertSQL);
                                 $grower_id = $conn->insert_id;
                                 
+                            }
+                            
+
+                            if (!empty($grower_id)) {
+                                $conn->query("DELETE FROM grower_timer_quantities WHERE grower_id='$grower_id'");
+                            }
+                            foreach ($grower['timerQuantities'] as $timerName => $quantity) {
+                                if ($timerName === 'Other') {
+                                    $timer_used_other = $grower['timerUsedOther'];
+                                } else {
+                                    $timer_used_other = '';
+                                }
+                                $sqlTimer = "INSERT INTO grower_timer_quantities (grower_id, timer_used, timer_used_other, quantity, created_date, created_time) VALUES ('$grower_id', '$timerName', '$timer_used_other', '$quantity', '$date', '$time')";
+                                // echo json_encode(["status" => "success", "message" => "Timer SQL".$sqlTimer]);
+                                $conn->query($sqlTimer);
                             }
 
                             if (!empty($grower_id)) {
