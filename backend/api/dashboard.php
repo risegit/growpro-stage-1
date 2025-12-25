@@ -27,7 +27,7 @@ switch ($method) {
                 if (str_starts_with($userRow['user_code'], 'TC')) {
                     $role = "technician";
                     $techId = $userRow['id'];
-                } elseif (str_starts_with($userRow['user_code'], 'AD') || str_starts_with($userRow['user_code'], 'MN')) {
+                } elseif (str_starts_with($userRow['user_code'], 'AD') || str_starts_with($userRow['user_code'], 'CO')) {
                     $role = "admin";
                 }
             }

@@ -34,7 +34,7 @@ switch ($method) {
             if ($result && $result->num_rows > 0) {
                 $row = $result->fetch_assoc();
                 $role = $row['role'];
-                $table_name = ($role == 'customer') ? 'customers_details' : (($role == 'admin' || $role == 'manager' || $role == 'technician') ? 'employee_other_details' : '');
+                $table_name = ($role == 'customer') ? 'customers_details' : (($role == 'admin' || $role == 'co-ordinator' || $role == 'technician') ? 'employee_other_details' : '');
             }
 
             if (!empty($table_name)) {
