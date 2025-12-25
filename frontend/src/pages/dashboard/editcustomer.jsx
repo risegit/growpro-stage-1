@@ -86,7 +86,7 @@ const StepperCustomerForm = () => {
     motorType: '',
     motorTypeOther: '',
     timerUsed: [], // Changed from string to array
-    timerQuantities: [], // Changed from object with all options to dynamic object
+    timerQuantities: {}, // Changed from object with all options to dynamic object
     timerUsedOther: '', // Added this field
     numLights: "",
     modelOfLight: "",
@@ -214,28 +214,44 @@ const StepperCustomerForm = () => {
     // Initialize quantities for new selections
     selectedValues.forEach(timer => {
       if (!updatedGrowers[index].timerQuantities[timer]) {
-        updatedGrowers[index].timerQuantities[timer] = '';
+        updatedGrowers[index].timerQuantities[timer] = '1';
       }
     });
     
     // Clear timerUsedOther if "Other" is not selected
     if (!selectedValues.includes('Other')) {
       updatedGrowers[index].timerUsedOther = '';
+      // Also remove "Other" quantity if it exists
+      if (updatedGrowers[index].timerQuantities['Other']) {
+        delete updatedGrowers[index].timerQuantities['Other'];
+      }
     }
     
     setGrowers(updatedGrowers);
     setErrors(prev => ({ ...prev, [`timerUsed_${index}`]: '' }));
   };
 
-  // Handle timer quantity change
+  // Handle timer quantity change - FIXED
   const handleTimerQuantityChange = (index, timerType, value) => {
     const updatedGrowers = [...growers];
+    
+    // Initialize timerQuantities if it doesn't exist
     if (!updatedGrowers[index].timerQuantities) {
       updatedGrowers[index].timerQuantities = {};
     }
+    
+    // Update the quantity for the specific timer type
     updatedGrowers[index].timerQuantities[timerType] = value;
+    
     setGrowers(updatedGrowers);
-    setErrors(prev => ({ ...prev, [`timerQuantity_${timerType}_${index}`]: '' }));
+    
+    // Clear any error for this timer quantity
+    const errorKey = `timerQuantity_${timerType}_${index}`;
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[errorKey];
+      return newErrors;
+    });
   };
 
   const addGrower = () => {
@@ -393,14 +409,24 @@ useEffect(() => {
               const timerType = timer.timer_used;
               const quantity = timer.quantity || '1';
               
-              if (!timerUsed.includes(timerType)) {
-                timerUsed.push(timerType);
-              }
+              // IMPORTANT: Check if timerType is actually a custom timer name
+              // If it's not in our predefined timerOptions, it's a custom timer
+              const isCustomTimer = !timerOptions.includes(timerType);
               
-              timerQuantities[timerType] = quantity;
-              
-              if (timerType === 'Other') {
-                timerUsedOther = timer.timer_used_other || timerUsedOther;
+              if (isCustomTimer) {
+                // This is a custom timer, so we need to add "Other" to timerUsed
+                // and store the custom name in timerUsedOther
+                if (!timerUsed.includes('Other')) {
+                  timerUsed.push('Other');
+                }
+                timerUsedOther = timerType; // Store custom name
+                timerQuantities['Other'] = quantity; // Quantity goes under "Other" key
+              } else {
+                // This is a standard timer from timerOptions
+                if (!timerUsed.includes(timerType)) {
+                  timerUsed.push(timerType);
+                }
+                timerQuantities[timerType] = quantity;
               }
             });
           } else if (growerTimerData.length > 0) {
@@ -417,15 +443,23 @@ useEffect(() => {
               const timerType = timer.timer_used;
               const quantity = timer.quantity || '1';
               
-              if (!timerUsed.includes(timerType)) {
-                timerUsed.push(timerType);
-              }
-              
-              timerQuantities[timerType] = quantity;
-              
+              // Check if timerType is a custom timer
               if (timerType === 'Other') {
-                timerUsedOther = timer.timer_used_other || timerUsedOther;
+                if (!timerUsed.includes('Other')) {
+                  timerUsed.push('Other');
+                }
+
+                // ✅ THIS IS THE FIX
+                timerUsedOther = timer.timer_used_other || '';
+                timerQuantities['Other'] = quantity;
+
+              } else {
+                if (!timerUsed.includes(timerType)) {
+                  timerUsed.push(timerType);
+                }
+                timerQuantities[timerType] = quantity;
               }
+
             });
           }
           
@@ -449,55 +483,125 @@ useEffect(() => {
               }
               
               if (Array.isArray(parsedTimerUsed)) {
-                timerUsed = [...new Set(parsedTimerUsed)];
+                // Check if array contains custom timers
+                const containsCustomTimer = parsedTimerUsed.some(timer => !timerOptions.includes(timer));
                 
-                if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
-                  timerQuantities = { ...parsedTimerQuantity };
-                } else {
+                if (containsCustomTimer) {
+                  // If we have custom timers, add "Other" to timerUsed
+                  timerUsed = ['Other'];
+                  
+                  // Find the custom timer name (first one not in timerOptions)
+                  const customTimer = parsedTimerUsed.find(timer => !timerOptions.includes(timer));
+                  if (customTimer) {
+                    timerUsedOther = customTimer;
+                  }
+                  
+                  // Get quantity for "Other"
+                  if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
+                    // Look for quantity under custom timer name or "Other" key
+                    if (parsedTimerQuantity[customTimer]) {
+                      timerQuantities['Other'] = parsedTimerQuantity[customTimer];
+                    } else if (parsedTimerQuantity['Other']) {
+                      timerQuantities['Other'] = parsedTimerQuantity['Other'];
+                    } else {
+                      timerQuantities['Other'] = '1';
+                    }
+                  } else {
+                    timerQuantities['Other'] = g.timer_quantity || '1';
+                  }
+                  
+                  // Also add any standard timers from the array
                   parsedTimerUsed.forEach(timer => {
-                    timerQuantities[timer] = '1';
+                    if (timerOptions.includes(timer) && !timerUsed.includes(timer)) {
+                      timerUsed.push(timer);
+                      if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
+                        timerQuantities[timer] = parsedTimerQuantity[timer] || '1';
+                      } else {
+                        timerQuantities[timer] = '1';
+                      }
+                    }
                   });
+                } else {
+                  // No custom timers, all are standard
+                  timerUsed = [...new Set(parsedTimerUsed)];
+                  
+                  if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
+                    timerQuantities = { ...parsedTimerQuantity };
+                  } else {
+                    parsedTimerUsed.forEach(timer => {
+                      timerQuantities[timer] = '1';
+                    });
+                  }
                 }
               } else if (typeof parsedTimerUsed === 'object' && parsedTimerUsed !== null) {
-                timerUsed = Object.keys(parsedTimerUsed);
-                timerQuantities = parsedTimerUsed;
-              } else if (typeof parsedTimerUsed === 'string') {
-                timerUsed = [parsedTimerUsed];
+                // Handle object case
+                const timerKeys = Object.keys(parsedTimerUsed);
+                const containsCustomTimer = timerKeys.some(key => !timerOptions.includes(key));
                 
-                if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
-                  timerQuantities = parsedTimerQuantity;
-                } else if (g.timer_quantity) {
-                  timerQuantities[parsedTimerUsed] = g.timer_quantity;
+                if (containsCustomTimer) {
+                  timerUsed = ['Other'];
+                  const customTimer = timerKeys.find(key => !timerOptions.includes(key));
+                  if (customTimer) {
+                    timerUsedOther = customTimer;
+                    timerQuantities['Other'] = parsedTimerUsed[customTimer] || '1';
+                  }
+                  
+                  // Add standard timers
+                  timerKeys.forEach(key => {
+                    if (timerOptions.includes(key) && !timerUsed.includes(key)) {
+                      timerUsed.push(key);
+                      timerQuantities[key] = parsedTimerUsed[key] || '1';
+                    }
+                  });
                 } else {
-                  timerQuantities[parsedTimerUsed] = '1';
+                  timerUsed = timerKeys;
+                  timerQuantities = parsedTimerUsed;
+                }
+              } else if (typeof parsedTimerUsed === 'string') {
+                const isCustomTimer = !timerOptions.includes(parsedTimerUsed);
+                
+                if (isCustomTimer) {
+                  timerUsed = ['Other'];
+                  timerUsedOther = parsedTimerUsed;
+                  
+                  if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
+                    timerQuantities['Other'] = parsedTimerQuantity[parsedTimerUsed] || parsedTimerQuantity['Other'] || '1';
+                  } else if (g.timer_quantity) {
+                    timerQuantities['Other'] = g.timer_quantity;
+                  } else {
+                    timerQuantities['Other'] = '1';
+                  }
+                } else {
+                  timerUsed = [parsedTimerUsed];
+                  
+                  if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
+                    timerQuantities = parsedTimerQuantity;
+                  } else if (g.timer_quantity) {
+                    timerQuantities[parsedTimerUsed] = g.timer_quantity;
+                  } else {
+                    timerQuantities[parsedTimerUsed] = '1';
+                  }
                 }
               }
               
-              timerUsedOther = g.timer_used_other || '';
+              timerUsedOther = g.timer_used_other || timerUsedOther;
               
             } catch (e) {
               console.error("Error parsing timer data:", e);
               if (typeof g.timer_used === 'string') {
-                timerUsed = [g.timer_used];
-                timerQuantities = { [g.timer_used]: g.timer_quantity || '1' };
+                const isCustomTimer = !timerOptions.includes(g.timer_used);
+                
+                if (isCustomTimer) {
+                  timerUsed = ['Other'];
+                  timerUsedOther = g.timer_used;
+                  timerQuantities = { 'Other': g.timer_quantity || '1' };
+                } else {
+                  timerUsed = [g.timer_used];
+                  timerQuantities = { [g.timer_used]: g.timer_quantity || '1' };
+                }
               }
             }
           }
-          
-          // Handle timerUsedOther
-          if (timerUsedOther && timerUsedOther.trim() !== '' && timerUsed.includes('Other')) {
-            if (timerQuantities['Other']) {
-              timerQuantities[timerUsedOther] = timerQuantities['Other'];
-              delete timerQuantities['Other'];
-            }
-            
-            timerUsed = timerUsed.map(item => 
-              item === 'Other' ? timerUsedOther : item
-            );
-          }
-          
-          // Remove any duplicates from timerUsed array
-          timerUsed = [...new Set(timerUsed)];
           
           // Ensure all quantity values are strings
           Object.keys(timerQuantities).forEach(key => {
@@ -538,7 +642,7 @@ useEffect(() => {
             nutritionGiven: g.nutrition_given || '',
             otherSpecifications: g.other_specifications || '',
             photoAtInstallation: g.installation_photo_url || '',
-            selectedPlants: plantsForThisGrower // Keep as array
+            selectedPlants: plantsForThisGrower
           };
         });
 
@@ -612,9 +716,10 @@ useEffect(() => {
         } else {
           // Validate quantities for each selected timer
           grower.timerUsed.forEach(timer => {
-            if (!grower.timerQuantities?.[timer]) {
+            const quantityKey = timer === 'Other' ? 'Other' : timer;
+            if (!grower.timerQuantities?.[quantityKey]) {
               stepErrors[`timerQuantity_${timer}_${index}`] = `Quantity for ${timer} is required`;
-            } else if (parseInt(grower.timerQuantities[timer]) < 1) {
+            } else if (parseInt(grower.timerQuantities[quantityKey]) < 1) {
               stepErrors[`timerQuantity_${timer}_${index}`] = `Quantity for ${timer} must be at least 1`;
             }
           });
@@ -670,27 +775,29 @@ useEffect(() => {
       finalTimerQuantities = JSON.parse(JSON.stringify(growerData.timerQuantities));
     }
     
-    // Handle timerUsedOther
-    if (growerData.timerUsedOther && growerData.timerUsedOther.trim() !== '') {
-      const timerOtherName = growerData.timerUsedOther.trim();
-      const hasOtherInTimerUsed = growerData.timerUsed.includes('Other');
+    // Process timerUsed array - keep "Other" if it exists
+    let finalTimerUsed = [...(growerData.timerUsed || [])];
+    const hasOtherInTimerUsed = finalTimerUsed.includes('Other');
+    const timerOtherName = growerData.timerUsedOther?.trim();
+    
+    // IMPORTANT: Keep "Other" in timerQuantities for custom timers
+    // If we have a custom timer name and "Other" is selected:
+    if (hasOtherInTimerUsed && timerOtherName) {
+      // Check if the custom timer name already exists in timerUsed
+      const customTimerExists = finalTimerUsed.includes(timerOtherName);
       
-      if (hasOtherInTimerUsed) {
-        if (finalTimerQuantities['Other']) {
-          const otherQuantity = finalTimerQuantities['Other'];
-          if (finalTimerQuantities[timerOtherName]) {
-            const currentQty = parseInt(finalTimerQuantities[timerOtherName]) || 0;
-            const otherQty = parseInt(otherQuantity) || 0;
-            finalTimerQuantities[timerOtherName] = (currentQty + otherQty).toString();
-          } else {
-            finalTimerQuantities[timerOtherName] = otherQuantity;
-          }
-          delete finalTimerQuantities['Other'];
-        } else {
-          finalTimerQuantities[timerOtherName] = '1';
-        }
-      } else {
-        finalTimerQuantities[timerOtherName] = '1';
+      if (!customTimerExists) {
+        // Add custom timer name to timerUsed array while keeping "Other"
+        finalTimerUsed = [...finalTimerUsed, timerOtherName];
+      }
+      
+      // Ensure "Other" has a quantity in timerQuantities
+      if (!finalTimerQuantities['Other'] && growerData.timerQuantities?.[timerOtherName]) {
+        // If no quantity for "Other" but there is for custom name, use that
+        finalTimerQuantities['Other'] = growerData.timerQuantities[timerOtherName];
+      } else if (!finalTimerQuantities['Other']) {
+        // Default to 1 if no quantity specified
+        finalTimerQuantities['Other'] = '1';
       }
     }
     
@@ -698,6 +805,14 @@ useEffect(() => {
     Object.keys(finalTimerQuantities).forEach(key => {
       if (typeof finalTimerQuantities[key] !== 'string') {
         finalTimerQuantities[key] = String(finalTimerQuantities[key]);
+      }
+    });
+    
+    // Handle quantities for timer types that aren't in timerUsed
+    // Remove quantities for timers that aren't in timerUsed (except "Other")
+    Object.keys(finalTimerQuantities).forEach(timerKey => {
+      if (timerKey !== 'Other' && !finalTimerUsed.includes(timerKey)) {
+        delete finalTimerQuantities[timerKey];
       }
     });
     
@@ -733,9 +848,9 @@ useEffect(() => {
       setupDimension: growerData.setupDimension || '',
       motorType: growerData.motorType || '',
       motorTypeOther: growerData.motorTypeOther || '',
-      timerUsed: growerData.timerUsed || [],
-      timerQuantities: finalTimerQuantities, // Object, not string
-      timerUsedOther: growerData.timerUsedOther || '',
+      timerUsed: finalTimerUsed, // Use the processed array
+      timerQuantities: finalTimerQuantities, // Object with "Other" key
+      timerUsedOther: timerOtherName || '', // Custom timer name
       numLights: growerData.numLights || '',
       modelOfLight: growerData.modelOfLight || '',
       modelOfLightOther: growerData.modelOfLightOther || '',
@@ -778,10 +893,9 @@ useEffect(() => {
   // Check data types
   growersForJson.forEach((grower, index) => {
     console.log(`\nGrower ${index}:`);
-    console.log(`selectedPlants type:`, typeof grower.selectedPlants);
-    console.log(`selectedPlants:`, grower.selectedPlants);
-    console.log(`timerQuantities type:`, typeof grower.timerQuantities);
+    console.log(`timerUsed:`, grower.timerUsed);
     console.log(`timerQuantities:`, grower.timerQuantities);
+    console.log(`timerUsedOther:`, grower.timerUsedOther);
   });
 
   console.log("\nFinal growers JSON to send:");
@@ -805,12 +919,6 @@ useEffect(() => {
   }
 
   try {
-    // For testing - simulate API call
-    // await new Promise(resolve => setTimeout(resolve, 2000));
-    // console.log("Simulated API call complete");
-    // toast.success("Form submitted successfully!");
-    // setErrors({});
-
     // Actual API call
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}api/customer.php`,
@@ -1303,20 +1411,11 @@ useEffect(() => {
                     {errors[`motorTypeOther_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`motorTypeOther_${index}`]}</span>}
                   </div>
 
-                  {/* Timer Used Section - UPDATED with multiple select dropdown */}
-                 {/* Timer Used Section */}
+                  {/* Timer Used Section - FIXED */}
                   <div className="flex flex-col md:col-span-2">
                     <label className="mb-1 font-medium text-gray-700">
                       Timer Used <span className="text-red-500">*</span>
                     </label>
-                    
-                    {/* Debug: Show current timer data */}
-                    {/* {grower.timerUsed && (
-                      <div className="text-xs text-gray-500 mb-2">
-                        Debug: timerUsed = [{grower.timerUsed.join(', ')}], 
-                        quantities = {JSON.stringify(grower.timerQuantities)}
-                      </div>
-                    )} */}
                     
                     <Select
                       isMulti
@@ -1339,7 +1438,7 @@ useEffect(() => {
                           <div key={timerIndex} className="flex items-center gap-3">
                             <div className="w-1/3">
                               <label className="mb-1 text-sm font-medium text-gray-600">
-                                {timer === 'Other' ? (grower.timerUsedOther || 'Other Timer') : timer}
+                                {timer === 'Other' ? 'Other Timer' : timer}
                               </label>
                             </div>
                             <div className="w-2/3">
@@ -1347,8 +1446,16 @@ useEffect(() => {
                                 type="number"
                                 min="1"
                                 placeholder="Quantity"
-                                value={grower.timerQuantities?.[timer] || ''}
-                                onChange={(e) => handleTimerQuantityChange(index, timer, e.target.value)}
+                                // For "Other" timer, always use the quantity from timerQuantities.Other
+                                value={timer === 'Other' 
+                                  ? (grower.timerQuantities?.['Other'] || '') 
+                                  : (grower.timerQuantities?.[timer] || '')
+                                }
+                                onChange={(e) => {
+                                  // Always use "Other" as the key for Other timer quantity
+                                  const timerKey = timer === 'Other' ? 'Other' : timer;
+                                  handleTimerQuantityChange(index, timerKey, e.target.value);
+                                }}
                                 className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${
                                   errors[`timerQuantity_${timer}_${index}`] 
                                   ? 'border-red-500 focus:ring-red-400' 
@@ -1364,7 +1471,7 @@ useEffect(() => {
                       </div>
                     )}
                     
-                    {/* Other timer specification field */}
+                    {/* Other timer specification field - SHOWING CUSTOM TIMER NAME */}
                     {grower.timerUsed?.includes('Other') && (
                       <div className="mt-4">
                         <input
@@ -1382,6 +1489,11 @@ useEffect(() => {
                         {errors[`timerUsedOther_${index}`] && (
                           <span className="text-red-500 text-sm mt-1">{errors[`timerUsedOther_${index}`]}</span>
                         )}
+                        {/* {grower.timerUsedOther && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            Custom timer name: <span className="font-medium">{grower.timerUsedOther}</span>
+                          </div>
+                        )} */}
                       </div>
                     )}
                   </div>
@@ -1721,7 +1833,7 @@ useEffect(() => {
                         </p>
                       </div>
                       
-                      {/* Timer Used in Review - UPDATED */}
+                      {/* Timer Used in Review - FIXED */}
                       <div className="md:col-span-2">
                         <p className="text-gray-800">
                           <span className="font-medium text-gray-600">Timer Used: </span>
@@ -1729,9 +1841,9 @@ useEffect(() => {
                             <ul className="list-disc pl-5 mt-1">
                               {grower.timerUsed.map((timer, idx) => (
                                 <li key={idx} className="text-gray-800">
-                                  {timer === 'Other' ? grower.timerUsedOther : timer}: 
+                                  {timer === 'Other' && grower.timerUsedOther ? grower.timerUsedOther : timer}: 
                                   <span className="font-semibold ml-1">
-                                    {grower.timerQuantities?.[timer] || '0'} qty
+                                    {grower.timerQuantities?.[timer === 'Other' ? 'Other' : timer] || '0'} qty
                                   </span>
                                 </li>
                               ))}
