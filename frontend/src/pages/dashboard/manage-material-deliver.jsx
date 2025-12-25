@@ -145,62 +145,143 @@ const generatePDF = (user) => {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
+  // Helper function to format dates
+  const formatDateForPDF = (dateString) => {
+    if (!dateString) return "-";
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Helper function for nutrient calculation
+  const calculateSuppliesForPDF = (tankCapacity, topups) => {
+    if (!tankCapacity || !topups) return "0";
+    const capacity = parseFloat(tankCapacity);
+    const topup = parseFloat(topups);
+    if (isNaN(capacity) || isNaN(topup)) return "0";
+    return (capacity * topup).toFixed(2);
+  };
+
   /* -------------------------------------------------------
-     🔹 HEADER + LOGO
+     🔹 CUSTOMER HEADER INFORMATION
+  --------------------------------------------------------*/
+  // Determine delivery date based on status
+  let deliveryDateText;
+  
+  if (user.delivery_status && 
+      (user.delivery_status.toLowerCase() === 'partial' || 
+       user.delivery_status.toLowerCase() === 'yes')) {
+    // Check if updated_date exists and is not null
+    if (user.updated_date && user.updated_date !== null && user.updated_date !== 'null') {
+      deliveryDateText = formatDateForPDF(user.updated_date);
+    } else {
+      // Fallback to created_date if updated_date is not available
+      deliveryDateText = formatDateForPDF(user.created_date || new Date().toISOString());
+    }
+  } else if (user.delivery_status && user.delivery_status.toLowerCase() === 'no') {
+    deliveryDateText = "Not Delivered";
+  } else {
+    // Default case
+    deliveryDateText = formatDateForPDF(user.created_date || new Date().toISOString());
+  }
+
+  // Determine delivery status text and color
+  const deliveryStatus = user.delivery_status || "Not specified";
+  let statusText = deliveryStatus;
+  let statusColor = [0, 0, 0]; // Default black
+  
+  switch(deliveryStatus.toLowerCase()) {
+    case 'delivered':
+    case 'yes':
+      statusColor = [34, 197, 94]; // Green
+      statusText = "Delivered";
+      break;
+    case 'partial':
+      statusColor = [244, 166, 76]; // Amber/Orange
+      statusText = "Partially Delivered";
+      break;
+    case 'pending':
+    case 'no':
+      statusColor = [239, 68, 68]; // Red
+      statusText = "Pending";
+      break;
+  }
+
+  /* -------------------------------------------------------
+     🔹 HEADER DESIGN (Matching your design)
   --------------------------------------------------------*/
   const logoPath = `${import.meta.env.BASE_URL}img/growprologo.jpeg`; 
   doc.addImage(logoPath, 'JPEG', 15, 10, 30, 30);
 
-  const titleX = 50 + (160 / 2);
-  doc.setTextColor(0,0,0,1);
-  doc.setFontSize(24);
-  doc.setFont(undefined, "bold");
-  doc.text("Consumables Delivery Report", titleX, 20, { align: "center" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  const textStartX = margin + 30;
 
+  // Title
+  doc.setFontSize(14);
+  doc.setFont(undefined, "bold");
+  doc.text("Consumables Delivery Report", pageWidth / 2, 20, { align: "center" });
+
+  let yPos = 40;
+
+  // Client Name (Customer Name in our case)
   doc.setFontSize(10);
   doc.setFont(undefined, "normal");
-  doc.text(`Delivery Date: ${formatDate(new Date().toISOString())}`, titleX, 30, { align: "left" });
+  doc.text("Client Name:", textStartX, yPos);
+  doc.setFont(undefined, "bold");
+  // Draw line for client name
+  doc.line(textStartX + 28, yPos + 1, textStartX + 90, yPos + 1);
+  // Add customer name text
+  doc.text(user.name || "", textStartX + 29, yPos);
+
+  // Delivery Date on the right side
+  doc.setFont(undefined, "normal");
+  doc.text("Delivery Date:", pageWidth - 75, yPos);
+  doc.setFont(undefined, "bold");
+  // Draw line for delivery date
+  doc.line(pageWidth - 45, yPos + 1, pageWidth - 15, yPos + 1);
+  // Add delivery date text
+  doc.text(deliveryDateText, pageWidth - 44, yPos);
+
+  yPos += 7;
+
+  // Visited By (Technician Name in our case)
+  doc.setFont(undefined, "normal");
+  // doc.text("Visited By:", textStartX, yPos);
+  doc.setFont(undefined, "bold");
+  // Draw line for visited by
+  // doc.line(textStartX + 28, yPos + 1, textStartX + 90, yPos + 1);
+  // Add technician name text
+  // doc.text(user.tech_name || "-", textStartX + 29, yPos);
+
+  // Delivery Status on the right side
+  doc.setFont(undefined, "normal");
+  doc.text("Delivery Status:", pageWidth - 75, yPos);
+  doc.setFont(undefined, "bold");
+  // Draw line for delivery status
+  doc.line(pageWidth - 45, yPos + 1, pageWidth - 15, yPos + 1);
+  // Add delivery status with color
+  doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+  doc.text(statusText, pageWidth - 44, yPos);
+  doc.setTextColor(0, 0, 0); // Reset to black
+
+  yPos += 10;
 
   // Separator line below header
-  doc.setDrawColor(102, 187, 106);
-  doc.setLineWidth(2);
-  doc.line(0, 45, 210, 45);
+  doc.setDrawColor(0, 0, 0); // Black line
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
 
-  doc.setTextColor(0, 0, 0);
-  let yPos = 65;
+  yPos += 15;
 
-  /* -------------------------------------------------------
-     🔹 CUSTOMER INFORMATION
-  --------------------------------------------------------*/
-  // doc.setFontSize(16);
-  // doc.setFont(undefined, "bold");
-  // doc.setTextColor(59, 130, 246);
-  // doc.text("Customer Information", 20, yPos);
-
-  // yPos += 6;
-  // doc.setLineWidth(0.3);
-  // doc.line(20, yPos, 190, yPos);
-
-  // yPos += 10;
-  // doc.setFontSize(11);
-
-  // const customerDetails = [
-  //   { label: "Customer Name:", value: user.name || "-" },
-  //   { label: "Customer ID:", value: user.customer_id || "-" },
-  //   { label: "Phone Number:", value: user.phone || "-" },
-  // ];
-
-  // customerDetails.forEach(item => {
-  //   doc.setFont(undefined, "bold");
-  //   doc.setTextColor(244, 166, 76);
-  //   doc.text(item.label, 25, yPos);
-
-  //   doc.setFont(undefined, "normal");
-  //   doc.setTextColor(0, 0, 0);
-  //   doc.text(item.value.toString(), 70, yPos);
-
-  //   yPos += 8;
-  // });
+  // Reset to normal font weight
+  doc.setFont(undefined, "normal");
 
   /* -------------------------------------------------------
      🔹 DELIVERY INFORMATION
@@ -218,62 +299,28 @@ const generatePDF = (user) => {
   yPos += 10;
   doc.setFontSize(11);
 
-  // Delivery Status
-  doc.setFont(undefined, "bold");
-  doc.setTextColor(244, 166, 76);
-  doc.text("Delivery Status:", 25, yPos);
-  
-  doc.setFont(undefined, "normal");
-  doc.setTextColor(0, 0, 0);
-  
-  // Format delivery status text
-  const deliveryStatus = user.delivery_status || "Not specified";
-  let statusText = deliveryStatus;
-  let statusColor = [0, 0, 0]; // Default black
-  
-  // Add color coding for delivery status
-  switch(deliveryStatus.toLowerCase()) {
-    case 'delivered':
-    case 'yes':
-      statusColor = [34, 197, 94]; // Green
-      statusText = "Delivered";
-      break;
-    case 'partial':
-      statusColor = [0,0,0,1]; // Amber
-      statusText = "Partially Delivered";
-      break;
-    case 'pending':
-    case 'no':
-      statusColor = [239, 68, 68]; // Red
-      statusText = "Pending";
-      break;
-  }
-  
-  // Set status color
-  doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
-  doc.text(statusText, 70, yPos);
-  doc.setTextColor(0, 0, 0);
-  
-  yPos += 8;
-
   /* -------------------------------------------------------
      🔹 PLANTS DELIVERED
   --------------------------------------------------------*/
-  yPos += 5;
-  doc.setFontSize(16);
-  doc.setFont(undefined, "bold");
-  doc.setTextColor(59, 130, 246);
-  doc.text("Plant Delivery:", 20, yPos);
-  
+  // Check if we need a new page before plants
+  if (yPos > 250 && user.plants && user.plants.length > 0) {
+    doc.addPage();
+    yPos = 20;
+  }
 
-  yPos += 6;
-  doc.setLineWidth(0.3);
-  doc.line(20, yPos, 190, yPos);
-
-  yPos += 10;
-
-  // Check if plants exist for this user
   if (user.plants && user.plants.length > 0) {
+    doc.setFontSize(16);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(59, 130, 246);
+    doc.text("Plant Delivery:", 20, yPos);
+    
+
+    yPos += 6;
+    doc.setLineWidth(0.3);
+    doc.line(20, yPos, 190, yPos);
+
+    yPos += 10;
+
     // Table headers for plants
     doc.setFontSize(10);
     doc.setFont(undefined, "bold");
@@ -319,7 +366,7 @@ const generatePDF = (user) => {
       }
     });
     
-    // Add total summary for plants - UPDATED
+    // Add total summary for plants
     yPos += 10;
     doc.setFontSize(10);
     
@@ -408,7 +455,7 @@ const generatePDF = (user) => {
       const nutrientType = nutrient.nutrient_type || "-";
       const tankCapacity = nutrient.tank_capacity || "-";
       const topups = nutrient.topups || "-";
-      const supplies = calculateSupplies(nutrient.tank_capacity, nutrient.topups) + " L";
+      const supplies = calculateSuppliesForPDF(nutrient.tank_capacity, nutrient.topups) + " L";
       
       doc.text(serialNo.toString(), 25, yPos);
       doc.text(nutrientType, 35, yPos);
@@ -426,7 +473,7 @@ const generatePDF = (user) => {
       }
     });
     
-    // Add total summary for nutrients - UPDATED
+    // Add total summary for nutrients
     yPos += 10;
     doc.setFontSize(10);
     
@@ -517,7 +564,7 @@ const generatePDF = (user) => {
       }
     });
     
-    // Add total summary for chargeable items - UPDATED
+    // Add total summary for chargeable items
     yPos += 10;
     doc.setFontSize(10);
     
@@ -615,8 +662,8 @@ const generatePDF = (user) => {
   doc.text("Email: sales@growpro.co.in", 20, yPos);
   doc.link(20, yPos - 5, 200, 10, { url: "mailto:sales@growpro.co.in" });
   yPos += 6;
-  doc.text("Phone: 8591753001", 20, yPos);
-  doc.link(20, yPos - 5, 200, 10, { url: "tel:+918591753001" });
+  doc.text("Phone: 859 175 3001", 20, yPos);
+  doc.link(20, yPos - 5, 200, 10, { url: "tel:+91 859 175 3001" });
   yPos += 6;
   doc.text("GrowPro Technology", 20, yPos);
   doc.link(20, yPos - 5, 200, 10, { url: "https://growpro.com/" });
@@ -719,13 +766,23 @@ const generatePDF = (user) => {
     doc.setFont(undefined, "normal");
     doc.text(`Page ${i} of ${pageCount}`, rightX, row2Y, { align: "right" });
   }
+  
   /* -------------------------------------------------------
      🔥 FINAL PDF DOWNLOAD
   --------------------------------------------------------*/
   const safeName = (user.name || "customer").replace(/\s+/g, '_');
-  const fileName = `Consumables_Delivery_Report_${formatDate(user.created_date)}_${safeName}.pdf`;
+  const fileName = `Consumables_Delivery_Report_${formatDateForPDF(user.created_date)}_${safeName}.pdf`;
   doc.save(fileName);
 };
+
+// Helper function for nutrient calculation
+function calculateSuppliesForPDF(tankCapacity, topups) {
+  if (!tankCapacity || !topups) return "0";
+  const capacity = parseFloat(tankCapacity);
+  const topup = parseFloat(topups);
+  if (isNaN(capacity) || isNaN(topup)) return "0";
+  return (capacity * topup).toFixed(2);
+}
 
   // 🔹 Handle sorting
   const handleSort = (key) => {

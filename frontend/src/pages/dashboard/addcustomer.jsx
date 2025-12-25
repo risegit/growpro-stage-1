@@ -1230,7 +1230,8 @@ const StepperCustomerForm = () => {
 
                 {/* Customer Details */}
                 <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-                  <h4 className="text-lg font-semibold mb-4 text-gray-700">Customer Details</h4>
+                  <h4 className="text-lg font-semibold mb-4 text-gray-700">Customer 🔹
+                    Details</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <p className="text-gray-800">
