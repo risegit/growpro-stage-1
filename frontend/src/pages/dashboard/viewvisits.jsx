@@ -111,44 +111,37 @@ const generatePDF = async (visitData, fullApiData) => {
       }
     };
 
-const drawLineField = (label, value = "", width = 60) => {
-  ensureSpace();
-  doc.setFontSize(10);
-  doc.setFont(undefined, "normal");
-  doc.text(label, margin, yPos);
-  doc.line(margin + 55, yPos + 1, margin + 55 + width, yPos + 1);
-  
-  if (value) {
-    // Split text into lines that fit within the width
-    const maxWidth = width - 2; // Small padding
-    const lines = doc.splitTextToSize(String(value), maxWidth);
-    
-    // Draw each line
-    lines.forEach((line, index) => {
-      if (index === 0) {
-        // First line - draw on the same line as the label
-        doc.text(line, margin + 56, yPos);
-      } else {
-        // Subsequent lines - move down and draw
-        yPos += 7;
-        ensureSpace();
-        doc.text(line, margin + 56, yPos);
-        // Extend the line for subsequent lines if needed
-        if (index < lines.length - 1) {
-          doc.line(margin + 55, yPos + 1, margin + 55 + width, yPos + 1);
+    const drawLineField = (label, value = "", width = 60) => {
+      ensureSpace();
+      doc.setFontSize(10);
+      doc.setFont(undefined, "normal");
+      doc.text(label, margin, yPos);
+      doc.line(margin + 55, yPos + 1, margin + 55 + width, yPos + 1);
+      
+      if (value) {
+        const maxWidth = width - 2;
+        const lines = doc.splitTextToSize(String(value), maxWidth);
+        
+        lines.forEach((line, index) => {
+          if (index === 0) {
+            doc.text(line, margin + 56, yPos);
+          } else {
+            yPos += 7;
+            ensureSpace();
+            doc.text(line, margin + 56, yPos);
+            if (index < lines.length - 1) {
+              doc.line(margin + 55, yPos + 1, margin + 55 + width, yPos + 1);
+            }
+          }
+        });
+        
+        if (lines.length > 1) {
+          yPos += (lines.length - 1) * 7;
         }
       }
-    });
-    
-    // Adjust yPos based on number of lines
-    if (lines.length > 1) {
-      yPos += (lines.length - 1) * 7;
-    }
-  }
-  
-  yPos += 7;
-};
-
+      
+      yPos += 7;
+    };
 
     const drawYesNo = (label, value) => {
       ensureSpace();
@@ -348,7 +341,7 @@ const drawLineField = (label, value = "", width = 60) => {
         
         doc.addImage(dataUrl, format, xPos + xOffset, yPos + yOffset, displayWidth, displayHeight);
         
-        doc.setDrawColor(0, 0, 0); // Black border
+        doc.setDrawColor(0, 0, 0);
         doc.setLineWidth(0.2);
         doc.rect(xPos, yPos, width, height);
         
@@ -363,10 +356,10 @@ const drawLineField = (label, value = "", width = 60) => {
         console.error(`Failed to process image:`, error);
         doc.setFillColor(240, 240, 240);
         doc.rect(xPos, yPos, width, height, 'F');
-        doc.setDrawColor(0, 0, 0); // Black border
+        doc.setDrawColor(0, 0, 0);
         doc.rect(xPos, yPos, width, height);
         doc.setFontSize(8);
-        doc.setTextColor(0, 0, 0); // Black text
+        doc.setTextColor(0, 0, 0);
         doc.text("Image unavailable", xPos + width/2, yPos + height/2, { align: "center" });
         doc.text(`Photo ${photoNumber}`, xPos + width/2, yPos + height + 4, { align: "center" });
         return false;
@@ -403,7 +396,7 @@ const drawLineField = (label, value = "", width = 60) => {
     doc.text(visitData.technician_name || "", textStartX + 26, yPos);
     
     yPos += 10;
-    doc.setDrawColor(0, 0, 0); // Black line
+    doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.5);
     doc.line(margin, yPos, pageWidth - margin, yPos);
     
@@ -428,8 +421,6 @@ const drawLineField = (label, value = "", width = 60) => {
 
     drawYesNo("1. All plants are getting water?", siteVisit.are_plants_getting_water);
     drawYesNo("2. Water above the pump?", siteVisit.water_above_pump);
-
-    // Timer question
     drawYesNo("3. Timer working?", siteVisit.timer_working);
     if (siteVisit.timer_working && String(siteVisit.timer_working).toLowerCase() === "no") {
         const reason = siteVisit.timer_issue || "";
@@ -437,8 +428,6 @@ const drawLineField = (label, value = "", width = 60) => {
             drawLineField("   If no, reason:", reason, 100);
         }
     }
-
-    // Motor question
     drawYesNo("4. Motor working?", siteVisit.motor_working);
     if (siteVisit.motor_working && String(siteVisit.motor_working).toLowerCase() === "no") {
         const reason = siteVisit.motor_issue || "";
@@ -446,8 +435,6 @@ const drawLineField = (label, value = "", width = 60) => {
             drawLineField("   If no, reason:", reason, 100);
         }
     }
-
-    // Lights question
     drawYesNo("5. Lights working?", siteVisit.light_working);
     if (siteVisit.light_working && String(siteVisit.light_working).toLowerCase() === "no") {
         const reason = siteVisit.light_issue || "";
@@ -455,8 +442,6 @@ const drawLineField = (label, value = "", width = 60) => {
             drawLineField("   If no, reason:", reason, 100);
         }
     }
-
-    // Equipment damaged question
     drawYesNo("6. Any other equipment damaged?", siteVisit.equipment_damaged);
     if (siteVisit.equipment_damaged && String(siteVisit.equipment_damaged).toLowerCase() === "yes") {
         const reason = siteVisit.damaged_items || siteVisit.equipment_damage_reason || "";
@@ -464,8 +449,6 @@ const drawLineField = (label, value = "", width = 60) => {
             drawLineField("   If yes, details:", reason, 100);
         }
     }
-
-    // Any leaks question
     drawYesNo("7. Any leaks?", siteVisit.any_leaks);
     if (siteVisit.any_leaks && String(siteVisit.any_leaks).toLowerCase() === "yes") {
         const reason = siteVisit.leaks_details || siteVisit.leaks_reason || "";
@@ -473,7 +456,6 @@ const drawLineField = (label, value = "", width = 60) => {
             drawLineField("   If yes, details:", reason, 100);
         }
     }
-
     drawYesNo("8. Clean growing equipment & surroundings?", siteVisit.clean_equipment);
     drawYesNo("9. Electric connections secured by clients?", siteVisit.electric_connections_secured);
 
@@ -565,12 +547,30 @@ const drawLineField = (label, value = "", width = 60) => {
        IV. MATERIAL SUPPLY
     ---------------------------------- */
 
-    yPos += 8;
+    yPos += 10;
     drawSection("IV. Material Supply");
 
+    // Neem Oil Supplied - Get data from API
+    const neemoilSupplied = siteVisit.material_supplied_neemoil;
+    const neemoilDelivered = siteVisit.material_delivered_neemoil;
+    
+    // Check for Neem Oil in material supply
+    let neemOilAnswer = "No";
+    
+    if (neemoilSupplied !== undefined && neemoilSupplied !== null) {
+      const strValue = String(neemoilSupplied).toLowerCase().trim();
+      if (strValue === "yes" || strValue === "Yes" || strValue === "y" || strValue === "true" || strValue === "1") {
+        neemOilAnswer = "Yes";
+      }else{
+        neemOilAnswer = "No";
+      }
+    }
+
+    drawYesNo("Neem Oil:", neemOilAnswer);
+
     // Supplied Plants
-    const suppliedPlants = Array.isArray(fullApiData.suppliedPlants) ?
-      fullApiData.suppliedPlants.filter(p =>
+    const suppliedPlants = Array.isArray(siteVisit.suppliedPlants) ?
+      siteVisit.suppliedPlants.filter(p =>
         String(p.visit_id) === String(visitData.site_visit_id || visitData.visit_id || visitData.id)
       ) : [];
 
@@ -597,8 +597,8 @@ const drawLineField = (label, value = "", width = 60) => {
     }
 
     // Supplied Nutrients
-    const suppliedNutrients = Array.isArray(fullApiData.suppliedNutrients) ?
-      fullApiData.suppliedNutrients.filter(n =>
+    const suppliedNutrients = Array.isArray(siteVisit.suppliedNutrients) ?
+      siteVisit.suppliedNutrients.filter(n =>
         String(n.visit_id) === String(visitData.site_visit_id || visitData.visit_id || visitData.id)
       ) : [];
 
@@ -610,31 +610,31 @@ const drawLineField = (label, value = "", width = 60) => {
       yPos += 6;
       doc.setFont(undefined, "normal");
 
-     drawTable(
-    suppliedNutrients.map((n, index) => {
-      const tankCap = parseFloat(n.tank_capacity) || 0;
-      const topups = parseFloat(n.topups) || 0;
-      const total = tankCap * topups;
+      drawTable(
+        suppliedNutrients.map((n, index) => {
+          const tankCap = parseFloat(n.tank_capacity) || 0;
+          const topups = parseFloat(n.topups) || 0;
+          const total = tankCap * topups;
 
-      return {
-        no: index + 1,
-        nutrient_type:
-          n.nutrient_type === "Others"
-            ? (n.other_nutrient_name || "Others")
-            : (n.nutrient_type || "-"),
-        tank_capacity: tankCap || "-",
-        topups: topups || "-",
-        total: total ? `${total} Ltr` : "-"
-      };
-    }),
-    [
-      { key: "no", header: "#", width: 15 },
-      { key: "nutrient_type", header: "Type", width: 55 },
-      { key: "tank_capacity", header: "Tank Cap.", width: 30 },
-      { key: "topups", header: "Topups", width: 25 },
-     { key: "total", header: "Total (Ltr)", width: 30 }
-    ]
-    );
+          return {
+            no: index + 1,
+            nutrient_type:
+              n.nutrient_type === "Others"
+                ? (n.other_nutrient_name || "Others")
+                : (n.nutrient_type || "-"),
+            tank_capacity: tankCap || "-",
+            topups: topups || "-",
+            total: total ? `${total} Ltr` : "-"
+          };
+        }),
+        [
+          { key: "no", header: "#", width: 15 },
+          { key: "nutrient_type", header: "Type", width: 55 },
+          { key: "tank_capacity", header: "Tank Cap.", width: 30 },
+          { key: "topups", header: "Topups", width: 25 },
+          { key: "total", header: "Total (Ltr)", width: 30 }
+        ]
+      );
     }
 
     // Supplied Chargeable Items
@@ -671,8 +671,29 @@ const drawLineField = (label, value = "", width = 60) => {
        V. MATERIAL NEED TO DELIVER
     ---------------------------------- */
 
-    yPos += 8;
+    yPos += 10;
     drawSection("V. Material Need To Deliver");
+
+    // Neem Oil Needed - Get data from API
+    const materialNeedsDelivery = fullApiData.material_needs_delivery;
+    
+    let neemOilNeededAnswer = "No";
+    if (materialNeedsDelivery !== undefined && materialNeedsDelivery !== null) {
+      const strValue = String(materialNeedsDelivery).toLowerCase().trim();
+      if (strValue === "yes" || strValue === "y" || strValue === "true" || strValue === "1") {
+        neemOilNeededAnswer = "Yes";
+      }
+    }
+    
+    // Also check material_delivered_neemo11 as a fallback
+    if (neemOilNeededAnswer === "No" && neemoilDelivered !== undefined && neemoilDelivered !== null) {
+      const strValue = String(neemoilDelivered).toLowerCase().trim();
+      if (strValue === "yes" || strValue === "y" || strValue === "true" || strValue === "1") {
+        neemOilNeededAnswer = "Yes";
+      }
+    }
+    
+    drawYesNo("Neem Oil:", neemOilNeededAnswer);
 
     // Needed Plants
     const needPlants = Array.isArray(fullApiData.needPlants) ?
@@ -717,31 +738,31 @@ const drawLineField = (label, value = "", width = 60) => {
       yPos += 6;
       doc.setFont(undefined, "normal");
 
-     drawTable(
-    needNutrients.map((n, index) => {
-      const tankCap = parseFloat(n.tank_capacity) || 0;
-      const topups = parseFloat(n.topups) || 0;
-      const total = tankCap * topups;
+      drawTable(
+        needNutrients.map((n, index) => {
+          const tankCap = parseFloat(n.tank_capacity) || 0;
+          const topups = parseFloat(n.topups) || 0;
+          const total = tankCap * topups;
 
-      return {
-        no: index + 1,
-        nutrient_type:
-          n.nutrient_type === "Others"
-            ? (n.other_nutrient_name || "Others")
-            : (n.nutrient_type || "-"),
-        tank_capacity: tankCap || "-",
-        topups: topups || "-",
-        total: total ? `${total} Ltr` : "-"
-      };
-    }),
-    [
-      { key: "no", header: "#", width: 15 },
-      { key: "nutrient_type", header: "Type", width: 50 },
-      { key: "tank_capacity", header: "Tank Cap.", width: 30 },
-      { key: "topups", header: "Topup", width: 25 },
-      { key: "total", header: "Total (Ltr)", width: 30 }
-    ]
-    );
+          return {
+            no: index + 1,
+            nutrient_type:
+              n.nutrient_type === "Others"
+                ? (n.other_nutrient_name || "Others")
+                : (n.nutrient_type || "-"),
+            tank_capacity: tankCap || "-",
+            topups: topups || "-",
+            total: total ? `${total} Ltr` : "-"
+          };
+        }),
+        [
+          { key: "no", header: "#", width: 15 },
+          { key: "nutrient_type", header: "Type", width: 50 },
+          { key: "tank_capacity", header: "Tank Cap.", width: 30 },
+          { key: "topups", header: "Topup", width: 25 },
+          { key: "total", header: "Total (Ltr)", width: 30 }
+        ]
+      );
     }
 
     // Needed Chargeable Items
@@ -875,7 +896,7 @@ const drawLineField = (label, value = "", width = 60) => {
 
     doc.setFontSize(20);
     doc.setFont(undefined, "bold");
-    doc.text("Happy Growing!", margin, yPos); // Left aligned
+    doc.text("Happy Growing!", margin, yPos);
     
     yPos += 15;
     doc.setFontSize(12);
@@ -890,28 +911,23 @@ const drawLineField = (label, value = "", width = 60) => {
     });
 
     /* ----------------------------------
-       FOOTER - EXACTLY AS IN YOUR EXAMPLE
-       Format: Email on left | GrowPro Solutions center | Phone on right
+       FOOTER
     ---------------------------------- */
 
-    const footerY = pageHeight - 10; // Position for footer text
+    const footerY = pageHeight - 10;
     
-    // ADD GREY MARGIN LINE ABOVE THE FOOTER
-    doc.setDrawColor(200, 200, 200); // Grey color
+    doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.3);
-    doc.line(margin, footerY - 8, pageWidth - margin, footerY - 8); // Line 8mm above footer text
+    doc.line(margin, footerY - 8, pageWidth - margin, footerY - 8);
     
     doc.setFontSize(9);
     doc.setFont(undefined, "normal");
     
-    // Left: Email
     doc.text("Email: sales@growpro.co.in", margin, footerY);
     
-    // Center: GrowPro Solutions (not Technology)
     doc.setFont(undefined, "bold");
     doc.text("GrowPro Solutions", pageWidth / 2, footerY, { align: "center" });
     
-    // Right: Phone
     doc.setFont(undefined, "normal");
     doc.text("Phone: +91 859 175 3001", pageWidth - margin, footerY, { align: "right" });
 
