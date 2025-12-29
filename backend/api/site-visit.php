@@ -449,21 +449,26 @@ switch ($method) {
 
                 foreach ($_FILES as $key => $file) {
 
-                    // Match only keys like setupPhotos_0, setupPhotos_1, etc.
-                    if (preg_match('/setupPhotos_\d+/', $key)) {
+                if (preg_match('/setupPhotos_\d+/', $key)) {
 
                         if ($file['error'] === UPLOAD_ERR_OK) {
+
                             $filename = "site_visit_installation_" . time() . "_" . basename($file['name']);
                             $targetPath = $uploadDir . $filename;
 
-                            if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+                            // 🔥 USE COMPRESSION HERE
+                            if (compressImage($file['tmp_name'], $targetPath, 70)) {
+
                                 $savedFiles[] = $filename;
-                                $sql7 = "INSERT INTO `site_visit_photos`(`visit_id`, `image_url`) VALUES ('$visit_id','$filename')";
+
+                                $sql7 = "INSERT INTO `site_visit_photos`(`visit_id`, `image_url`) 
+                                        VALUES ('$visit_id','$filename')";
                                 $conn->query($sql7);
                             }
                         }
                     }
                 }
+
                 $updateScheduleStatus = "UPDATE `site_visit_schedule` SET `status`='completed' WHERE id='$scheduleId'";
                 $conn->query($updateScheduleStatus);
 
@@ -627,7 +632,7 @@ switch ($method) {
             }
 
 
-            function compressImage($source, $destination, $quality = 80) {
+            function compressImage($source, $destination, $quality = 70) {
                 $info = getimagesize($source);
                 if ($info['mime'] == 'image/jpeg') {
                     $img = imagecreatefromjpeg($source);
@@ -750,25 +755,27 @@ switch ($method) {
                 if (!is_dir($uploadDir)) {
                     mkdir($uploadDir, 0777, true);
                 }
-                $savedFiles = [];
 
                 foreach ($_FILES as $key => $file) {
 
-                    // Match only keys like setupPhotos_0, setupPhotos_1, etc.
                     if (preg_match('/setupPhotos_\d+/', $key)) {
 
                         if ($file['error'] === UPLOAD_ERR_OK) {
+
                             $filename = "site_visit_installation_" . time() . "_" . basename($file['name']);
                             $targetPath = $uploadDir . $filename;
 
-                            if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-                                $savedFiles[] = $filename;
-                                $sql7 = "INSERT INTO `site_visit_photos`(`visit_id`, `image_url`) VALUES ('$visitId','$filename')";
+                            // 🔥 COMPRESS IMAGE HERE
+                            if (compressImage($file['tmp_name'], $targetPath, 60)) {
+
+                                $sql7 = "INSERT INTO site_visit_photos (visit_id, image_url) 
+                                        VALUES ('$visitId', '$filename')";
                                 $conn->query($sql7);
                             }
                         }
                     }
                 }
+
                 $sqlSchedule = "SELECT * FROM `site_visit` WHERE id='$visitId'";
                 $scheduleResult = $conn->query($sqlSchedule);
 

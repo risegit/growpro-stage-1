@@ -305,7 +305,7 @@ const generatePDF = async (visitData, fullApiData) => {
     };
 
     /* ----------------------------------
-       PROCESS AND ADD IMAGE HELPER
+       PROCESS AND ADD IMAGE HELPER - MODIFIED
     ---------------------------------- */
     const processAndAddImage = async (doc, imageFileName, xPos, yPos, width, height, photoNumber) => {
       try {
@@ -345,10 +345,11 @@ const generatePDF = async (visitData, fullApiData) => {
         doc.setLineWidth(0.2);
         doc.rect(xPos, yPos, width, height);
         
-        doc.setFontSize(8);
+        // Moved text lower and made it smaller
+        doc.setFontSize(7);
         doc.setFont(undefined, "normal");
         doc.text(`Photo ${photoNumber}`, 
-                 xPos + width/2, yPos + height + 4, { align: "center" });
+                 xPos + width/2, yPos + height + 6, { align: "center" });
         
         return true;
         
@@ -358,10 +359,10 @@ const generatePDF = async (visitData, fullApiData) => {
         doc.rect(xPos, yPos, width, height, 'F');
         doc.setDrawColor(0, 0, 0);
         doc.rect(xPos, yPos, width, height);
-        doc.setFontSize(8);
+        doc.setFontSize(7);
         doc.setTextColor(0, 0, 0);
         doc.text("Image unavailable", xPos + width/2, yPos + height/2, { align: "center" });
-        doc.text(`Photo ${photoNumber}`, xPos + width/2, yPos + height + 4, { align: "center" });
+        doc.text(`Photo ${photoNumber}`, xPos + width/2, yPos + height + 6, { align: "center" });
         return false;
       }
     };
@@ -795,7 +796,7 @@ const generatePDF = async (visitData, fullApiData) => {
     }
 
     /* ----------------------------------
-       SETUP PHOTOS
+       SETUP PHOTOS - MODIFIED SECTION
     ---------------------------------- */
 
     const photos = Array.isArray(fullApiData.suppliedPhotoSetup) ? 
@@ -809,19 +810,20 @@ const generatePDF = async (visitData, fullApiData) => {
       totalPages = currentPage;
       await addLogoToPage(currentPage);
       
-      yPos = 40;
+      // Start photos lower on the page
+      yPos = 50; // Increased from 40
       doc.setFont(undefined, "bold");
       doc.setFontSize(14);
       doc.text("Setup Photos", pageWidth / 2, yPos, { align: "center" });
-      yPos += 20;
+      yPos += 25; // Increased from 20
       
       const photosPerRow = 2;
       const horizontalSpacing = 20;
-      const verticalSpacing = 45;
+      const verticalSpacing = 55; // Increased from 45 to give more space for text
       
       const availableWidth = pageWidth - (2 * margin) - (horizontalSpacing * (photosPerRow - 1));
       const imageWidth = availableWidth / photosPerRow;
-      const imageHeight = imageWidth * 0.75;
+      const imageHeight = imageWidth * 0.7; // Reduced aspect ratio for more vertical space
       
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
@@ -832,35 +834,36 @@ const generatePDF = async (visitData, fullApiData) => {
         const rowIndex = Math.floor(i / photosPerRow);
         const colIndex = i % photosPerRow;
         
-        const photoYPosition = 60 + (rowIndex * verticalSpacing);
+        const xPos = margin + (colIndex * (imageWidth + horizontalSpacing));
+        const yPosPhoto = yPos + (rowIndex * verticalSpacing);
         
-        if (photoYPosition + imageHeight > pageHeight - 40) {
+        // Check if we need a new page
+        if (yPosPhoto + imageHeight + 20 > pageHeight - 40) { // Added 20 for text buffer
           doc.addPage();
           currentPage++;
           totalPages = currentPage;
           await addLogoToPage(currentPage);
           
-          yPos = 40;
+          yPos = 50;
           doc.setFont(undefined, "bold");
           doc.setFontSize(14);
           doc.text("Setup Photos (Continued)", pageWidth / 2, yPos, { align: "center" });
-          yPos = 60;
+          yPos += 25;
           
+          // Recalculate rowIndex for new page
           const newRowIndex = 0;
-          const xPos = margin + (colIndex * (imageWidth + horizontalSpacing));
-          const yPosPhoto = 60;
+          const newXPos = margin + (colIndex * (imageWidth + horizontalSpacing));
+          const newYPosPhoto = yPos + (newRowIndex * verticalSpacing);
           
-          await processAndAddImage(doc, imageFileName, xPos, yPosPhoto, imageWidth, imageHeight, i + 1);
+          await processAndAddImage(doc, imageFileName, newXPos, newYPosPhoto, imageWidth, imageHeight, i + 1);
         } else {
-          const xPos = margin + (colIndex * (imageWidth + horizontalSpacing));
-          const yPosPhoto = 60 + (rowIndex * verticalSpacing);
-          
           await processAndAddImage(doc, imageFileName, xPos, yPosPhoto, imageWidth, imageHeight, i + 1);
         }
       }
       
-      const lastPhotoRows = Math.ceil((photos.length % (photosPerRow * 2)) / photosPerRow) || 1;
-      yPos = 60 + (lastPhotoRows * verticalSpacing) + 20;
+      // Calculate final yPos after all photos
+      const lastRowIndex = Math.floor((photos.length - 1) / photosPerRow);
+      yPos = yPos + ((lastRowIndex + 1) * verticalSpacing) + 20;
     }
 
     /* ----------------------------------
