@@ -1546,7 +1546,7 @@ const StepperCustomerForm = () => {
                   </button>
                 ) : (
                   <div className="flex gap-3">
-                    <button
+                    {/* <button
                       type="button"
                       onClick={downloadReviewAsImage}
                       className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg flex items-center gap-2 transition"
@@ -1555,7 +1555,7 @@ const StepperCustomerForm = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                       </svg>
                       Download
-                    </button>
+                    </button> */}
                     <button
                       type="button"
                       onClick={handleSubmit}
