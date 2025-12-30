@@ -647,6 +647,24 @@ const generatePDF = (user) => {
     yPos += 8;
   }
 
+  /* -------------------------------------------------------
+     🔹 FINAL MESSAGE SECTION (Moved with page checking)
+  --------------------------------------------------------*/
+  // Check if there's enough space for the final message section
+  // The section requires about 60 units of vertical space (15 + 15 + 8 + 6 + 6 = ~50 units)
+  const finalSectionHeight = 60;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const footerHeight = 22; // Height of your footer
+  
+  // Calculate available space above footer
+  const availableSpace = pageHeight - yPos - footerHeight - 10; // 10 units buffer
+  
+  // If not enough space, add a new page
+  if (availableSpace < finalSectionHeight) {
+    doc.addPage();
+    yPos = 20;
+  }
+
   yPos += 15;
   doc.setFontSize(12);
   doc.setFont(undefined, "bold");

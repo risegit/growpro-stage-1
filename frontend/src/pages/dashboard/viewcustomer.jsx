@@ -43,20 +43,27 @@ export default function UserTable() {
     fetchUsers();
   }, []);
 
-  // 🔹 Search + Sorting
+  // 🔹 Search + Sorting - FIXED SEARCH LOGIC
   const filteredUsers = useMemo(() => {
     let users = [...allUsers];
 
-    // Search filter
+    // Search filter - FIXED to search all relevant fields
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      users = users.filter(
-        (user) =>
-          user.name.toLowerCase().includes(query) ||
-          user.email.toLowerCase().includes(query) ||
-          user.role.toLowerCase().includes(query) ||
-          user.phone.includes(query)
-      );
+      users = users.filter((user) => {
+        // Check all possible fields for search
+        const nameMatch = user.name?.toLowerCase().includes(query) || false;
+        const emailMatch = user.email?.toLowerCase().includes(query) || false;
+        const phoneMatch = user.phone?.includes(query) || false;
+        const localityMatch = user.locality?.toLowerCase().includes(query) || false;
+        const landmarkMatch = user.landmark?.toLowerCase().includes(query) || false;
+        const plantsMatch = user.total_no_of_plants?.toString().includes(query) || false;
+        const statusMatch = user.status?.toLowerCase().includes(query) || false;
+
+        // Return true if any field matches
+        return nameMatch || emailMatch || phoneMatch || localityMatch || 
+               landmarkMatch || plantsMatch || statusMatch;
+      });
     }
 
     // Sorting logic
@@ -182,21 +189,21 @@ export default function UserTable() {
 
                       <th
                         className="py-4 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-50 transition"
-                        onClick={() => handleSort("phone")}
+                        onClick={() => handleSort("locality")}
                       >
                         <div className="flex items-center">
                           Locality
-                          <SortArrow columnKey="phone" />
+                          <SortArrow columnKey="locality" />
                         </div>
                       </th>
 
                       <th
                         className="py-4 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-50 transition"
-                        onClick={() => handleSort("email")}
+                        onClick={() => handleSort("total_no_of_plants")}
                       >
                         <div className="flex items-center">
                           Plants
-                          <SortArrow columnKey="email" />
+                          <SortArrow columnKey="total_no_of_plants" />
                         </div>
                       </th>
 
@@ -235,15 +242,11 @@ export default function UserTable() {
                         </td>
 
                         <td className="w-[35%] py-4 px-4 text-gray-700">
-                          {/* <a href={`tel:${user.phone}`} className="text-blue-600 hover:underline"> */}
-                            {user.locality}, {user.landmark}
-                          {/* </a> */}
+                          {user.locality}, {user.landmark}
                         </td>
 
                         <td className="w-[15%] py-4 px-4 text-gray-700">
-                          {/* <a href={`mailto:${user.email}`} className="text-blue-600 hover:underline"> */}
-                            {user.total_no_of_plants}
-                          {/* </a> */}
+                          {user.total_no_of_plants}
                         </td>
 
                         <td className="w-[10%] py-4 px-4">
@@ -302,9 +305,7 @@ export default function UserTable() {
                     <div className="space-y-2 mb-4">
                       <div>
                         <p className="text-xs text-gray-500">Plants</p>
-                        {/* <a href={`mailto:${user.email}`} className="text-sm text-blue-600 hover:underline"> */}
-                          {user.total_no_of_plants}
-                        {/* </a> */}
+                        {user.total_no_of_plants}
                       </div>
 
                       <div>

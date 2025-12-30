@@ -471,6 +471,9 @@ const generatePDF = async (visitData, fullApiData) => {
     drawLineField("2. Corrected pH:", siteVisit.corrected_ph);
     drawLineField("3. Initial TDS (ppm):", siteVisit.initial_tds);
     drawLineField("4. Corrected TDS (ppm):", siteVisit.corrected_tds);
+    
+    // ADDED: Which Crop field
+    drawLineField("5. Which Crop?", siteVisit.which_crop);
 
     /* ----------------------------------
        FILTER BY CURRENT VISIT ID
@@ -490,7 +493,9 @@ const generatePDF = async (visitData, fullApiData) => {
       : [];
 
     const problemAnswer = filteredPlantProblems.length ? "yes" : "no";
-    drawYesNo("5. Plant Problems?", problemAnswer);
+    
+    // CHANGED: Changed from 5 to 6
+    drawYesNo("6. Plant Problems?", problemAnswer);
 
     if (filteredPlantProblems.length) {
       const problemNames = filteredPlantProblems
@@ -512,7 +517,9 @@ const generatePDF = async (visitData, fullApiData) => {
       : [];
 
     const pestAnswer = filteredPests.length ? "yes" : "no";
-    drawYesNo("6. Presence of pests?", pestAnswer);
+    
+    // CHANGED: Changed from 6 to 7
+    drawYesNo("7. Presence of pests?", pestAnswer);
 
     if (filteredPests.length) {
       const pestNames = filteredPests
@@ -526,7 +533,8 @@ const generatePDF = async (visitData, fullApiData) => {
       drawLineField("    If yes, which?", pestNames, 100);
     }
 
-    drawLineField("7. Any nutrient deficiency?", siteVisit.nutrient_deficiency);
+    // CHANGED: Changed from 7 to 8
+    drawLineField("8. Any nutrient deficiency?", siteVisit.nutrient_deficiency);
     drawLineField("    Other:", siteVisit.deficiency_details || siteVisit.other_observation, 120);
 
     /* ----------------------------------
@@ -551,30 +559,32 @@ const generatePDF = async (visitData, fullApiData) => {
     yPos += 10;
     drawSection("IV. Material Supply");
 
-    // Neem Oil Supplied - Get data from API
-    const neemoilSupplied = siteVisit.material_supplied_neemoil;
-    const neemoilDelivered = siteVisit.material_delivered_neemoil;
+    // Check all materials from API response
+    const hasNeemOil = siteVisit.material_supplied_neemoil && 
+                      String(siteVisit.material_supplied_neemoil).toLowerCase() === "yes";
     
-    // Check for Neem Oil in material supply
-    let neemOilAnswer = "No";
-    
-    if (neemoilSupplied !== undefined && neemoilSupplied !== null) {
-      const strValue = String(neemoilSupplied).toLowerCase().trim();
-      if (strValue === "yes" || strValue === "Yes" || strValue === "y" || strValue === "true" || strValue === "1") {
-        neemOilAnswer = "Yes";
-      }else{
-        neemOilAnswer = "No";
-      }
-    }
-
-    drawYesNo("Neem Oil:", neemOilAnswer);
-
-    // Supplied Plants
-    const suppliedPlants = Array.isArray(siteVisit.suppliedPlants) ?
-      siteVisit.suppliedPlants.filter(p =>
-        String(p.visit_id) === String(visitData.site_visit_id || visitData.visit_id || visitData.id)
+    // Use the data from your API response
+    const suppliedPlants = Array.isArray(fullApiData.suppliedPlants) ?
+      fullApiData.suppliedPlants.filter(p =>
+        String(p.visit_id) === String(currentVisitId)
       ) : [];
 
+    const suppliedNutrients = Array.isArray(fullApiData.suppliedNutrients) ?
+      fullApiData.suppliedNutrients.filter(n =>
+        String(n.visit_id) === String(currentVisitId)
+      ) : [];
+
+    const suppliedChargeable = Array.isArray(fullApiData.suppliedChargeableItem) ?
+      fullApiData.suppliedChargeableItem.filter(i =>
+        String(i.visit_id) === String(currentVisitId)
+      ) : [];
+
+    // Show Neem Oil only if it exists
+    if (hasNeemOil) {
+      drawYesNo("Neem Oil:", "Yes");
+    }
+
+    // Supplied Plants Table
     if (suppliedPlants.length > 0) {
       ensureSpace(15);
       doc.setFontSize(10);
@@ -597,12 +607,7 @@ const generatePDF = async (visitData, fullApiData) => {
       );
     }
 
-    // Supplied Nutrients
-    const suppliedNutrients = Array.isArray(siteVisit.suppliedNutrients) ?
-      siteVisit.suppliedNutrients.filter(n =>
-        String(n.visit_id) === String(visitData.site_visit_id || visitData.visit_id || visitData.id)
-      ) : [];
-
+    // Supplied Nutrients Table
     if (suppliedNutrients.length > 0) {
       ensureSpace(15);
       doc.setFontSize(10);
@@ -638,12 +643,7 @@ const generatePDF = async (visitData, fullApiData) => {
       );
     }
 
-    // Supplied Chargeable Items
-    const suppliedChargeable = Array.isArray(fullApiData.suppliedChargeableItem) ?
-      fullApiData.suppliedChargeableItem.filter(i =>
-        String(i.visit_id) === String(visitData.site_visit_id || visitData.visit_id || visitData.id)
-      ) : [];
-
+    // Supplied Chargeable Items Table
     if (suppliedChargeable.length > 0) {
       ensureSpace(15);
       doc.setFontSize(10);
@@ -664,8 +664,19 @@ const generatePDF = async (visitData, fullApiData) => {
           { key: "no", header: "#", width: 15 },
           { key: "item_name", header: "Item Name", width: 60 },
           { key: "quantity", header: "Qty", width: 25 },
+          { key: "unit_price", header: "Unit Price", width: 25 },
+          { key: "total", header: "Total", width: 25 }
         ]
       );
+    }
+
+    // If no materials were supplied, show a message
+    if (!hasNeemOil && suppliedPlants.length === 0 && suppliedNutrients.length === 0 && suppliedChargeable.length === 0) {
+      ensureSpace();
+      doc.setFontSize(10);
+      doc.setFont(undefined, "normal");
+      doc.text("No materials were supplied during this visit.", margin, yPos);
+      yPos += 7;
     }
 
     /* ----------------------------------
@@ -675,33 +686,32 @@ const generatePDF = async (visitData, fullApiData) => {
     yPos += 10;
     drawSection("V. Material Need To Deliver");
 
-    // Neem Oil Needed - Get data from API
-    const materialNeedsDelivery = fullApiData.material_needs_delivery;
+    // Check for materials to deliver
+    const needsNeemOil = siteVisit.material_needs_delivery && 
+                        String(siteVisit.material_needs_delivery).toLowerCase() === "yes";
     
-    let neemOilNeededAnswer = "No";
-    if (materialNeedsDelivery !== undefined && materialNeedsDelivery !== null) {
-      const strValue = String(materialNeedsDelivery).toLowerCase().trim();
-      if (strValue === "yes" || strValue === "y" || strValue === "true" || strValue === "1") {
-        neemOilNeededAnswer = "Yes";
-      }
-    }
-    
-    // Also check material_delivered_neemo11 as a fallback
-    if (neemOilNeededAnswer === "No" && neemoilDelivered !== undefined && neemoilDelivered !== null) {
-      const strValue = String(neemoilDelivered).toLowerCase().trim();
-      if (strValue === "yes" || strValue === "y" || strValue === "true" || strValue === "1") {
-        neemOilNeededAnswer = "Yes";
-      }
-    }
-    
-    drawYesNo("Neem Oil:", neemOilNeededAnswer);
-
-    // Needed Plants
+    // Use the data from your API response
     const needPlants = Array.isArray(fullApiData.needPlants) ?
       fullApiData.needPlants.filter(p =>
-        String(p.visit_id) === String(visitData.site_visit_id || visitData.visit_id || visitData.id)
+        String(p.visit_id) === String(currentVisitId)
       ) : [];
 
+    const needNutrients = Array.isArray(fullApiData.needNutrients) ?
+      fullApiData.needNutrients.filter(n =>
+        String(n.visit_id) === String(currentVisitId)
+      ) : [];
+
+    const needChargeable = Array.isArray(fullApiData.needChargeableItem) ?
+      fullApiData.needChargeableItem.filter(i =>
+        String(i.visit_id) === String(currentVisitId)
+      ) : [];
+
+    // Show Neem Oil only if needed
+    if (needsNeemOil) {
+      drawYesNo("Neem Oil:", "Yes");
+    }
+
+    // Needed Plants Table
     if (needPlants.length > 0) {
       ensureSpace(15);
       doc.setFontSize(10);
@@ -725,12 +735,7 @@ const generatePDF = async (visitData, fullApiData) => {
       );
     }
 
-    // Needed Nutrients
-    const needNutrients = Array.isArray(fullApiData.needNutrients) ?
-      fullApiData.needNutrients.filter(n =>
-        String(n.visit_id) === String(visitData.site_visit_id || visitData.visit_id || visitData.id)
-      ) : [];
-
+    // Needed Nutrients Table
     if (needNutrients.length > 0) {
       ensureSpace(15);
       doc.setFontSize(10);
@@ -766,12 +771,7 @@ const generatePDF = async (visitData, fullApiData) => {
       );
     }
 
-    // Needed Chargeable Items
-    const needChargeable = Array.isArray(fullApiData.needChargeableItem) ?
-      fullApiData.needChargeableItem.filter(i =>
-        String(i.visit_id) === String(visitData.site_visit_id || visitData.visit_id || visitData.id)
-      ) : [];
-
+    // Needed Chargeable Items Table
     if (needChargeable.length > 0) {
       ensureSpace(15);
       doc.setFontSize(10);
@@ -791,8 +791,18 @@ const generatePDF = async (visitData, fullApiData) => {
           { key: "no", header: "#", width: 15 },
           { key: "item_name", header: "Item Name", width: 80 },
           { key: "quantity", header: "Qty", width: 25 },
+          { key: "estimated_price", header: "Est. Price", width: 30 }
         ]
       );
+    }
+
+    // If no materials needed, show a message
+    if (!needsNeemOil && needPlants.length === 0 && needNutrients.length === 0 && needChargeable.length === 0) {
+      ensureSpace();
+      doc.setFontSize(10);
+      doc.setFont(undefined, "normal");
+      doc.text("No materials need to be delivered.", margin, yPos);
+      yPos += 7;
     }
 
     /* ----------------------------------
@@ -801,7 +811,7 @@ const generatePDF = async (visitData, fullApiData) => {
 
     const photos = Array.isArray(fullApiData.suppliedPhotoSetup) ? 
       fullApiData.suppliedPhotoSetup.filter(p => 
-        String(p.visit_id) === String(visitData.site_visit_id || visitData.visit_id || visitData.id)
+        String(p.visit_id) === String(currentVisitId)
       ) : [];
 
     if (photos.length > 0) {
@@ -978,46 +988,6 @@ const generatePDF = async (visitData, fullApiData) => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        // Mock data for demonstration - replace with actual API call
-        // const mockData = [
-        //   {
-        //     site_visit_id: "1",
-        //     created_date: "2025-12-04",
-        //     customer_id: "14",
-        //     customer_name: "Mayuresh Warke",
-        //     phone: "0976543667",
-        //     profile_pic: "",
-        //     technician_id: "1",
-        //     technician_name: "Dilip Gupta",
-        //     visited_by: "AD0001"
-        //   },
-        //   {
-        //     site_visit_id: "2",
-        //     created_date: "2025-12-03",
-        //     customer_id: "15",
-        //     customer_name: "Priya Sharma",
-        //     phone: "0987654321",
-        //     profile_pic: "",
-        //     technician_id: "2",
-        //     technician_name: "Rahul Kumar",
-        //     visited_by: "AD0002"
-        //   },
-        //   {
-        //     site_visit_id: "3",
-        //     created_date: "2025-12-02",
-        //     customer_id: "16",
-        //     customer_name: "Amit Patel",
-        //     phone: "0912345678",
-        //     profile_pic: "",
-        //     technician_id: "1",
-        //     technician_name: "Dilip Gupta",
-        //     visited_by: "AD0001"
-        //   }
-        // ];
-
-        // setAllUsers(mockData);
-
-        /* Uncomment for actual API call*/
         const response = await fetch(
           `${import.meta.env.VITE_API_URL}api/site-visit.php?view-visit='viewvisit'&user_code=${user_code}`,
           { method: "GET" }

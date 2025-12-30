@@ -122,6 +122,30 @@ export default function ReportTable() {
       }
     };
 
+    // Helper function to group data by customer
+    const groupByCustomer = (dataArray) => {
+      const grouped = {};
+      
+      if (Array.isArray(dataArray)) {
+        dataArray.forEach(item => {
+          const customerId = item.id || item.customer_id || "unknown";
+          const customerName = item.name || "Unknown Customer";
+          
+          if (!grouped[customerId]) {
+            grouped[customerId] = {
+              id: customerId,
+              name: customerName,
+              items: []
+            };
+          }
+          
+          grouped[customerId].items.push(item);
+        });
+      }
+      
+      return Object.values(grouped);
+    };
+
     // Helper function to check if we need a new page
     const checkPageBreak = (requiredSpace = 20) => {
       if (yPos > pageHeight - footerHeight - requiredSpace) {
@@ -324,7 +348,7 @@ export default function ReportTable() {
     }
     
     /* =====================
-       NUTRIENT REPORTS (Existing code)
+       NUTRIENT REPORTS
        ===================== */
     else if (selectedReport === "RAW Material") {
       if (
@@ -338,6 +362,9 @@ export default function ReportTable() {
       } else {
         const groupedNeed = groupByCustomer(data.need_nutrients);
         const groupedSupplied = groupByCustomer(data.supplied_nutrients);
+        const groupedPlants = groupByCustomer(data.supplied_plants);
+        const groupedChargeableItem = groupByCustomer(data.supplied_chargeable_item);
+        const groupedNeedChargeableItem = groupByCustomer(data.need_chargeable_item);
 
         // Process each customer
         groupedNeed.forEach((customer, customerIndex) => {
@@ -352,53 +379,114 @@ export default function ReportTable() {
           doc.setTextColor(0, 0, 0); // Reset to black
           yPos += 10;
 
-          /* NEED NUTRIENTS TABLE */
+          /* NEED CHARGEABLE ITEMS TABLE - NEW SECTION */
+          const needChargeableItem = groupedNeedChargeableItem.find((s) => s.id === customer.id);
+
+          if (needChargeableItem && needChargeableItem.items.length > 0) {
+            doc.setFontSize(11);
+            doc.setFont(undefined, "bold");
+            doc.setTextColor(255, 102, 0); // Orange
+            doc.text("Need Chargeable Items", margin, yPos);
+            doc.setTextColor(0, 0, 0); // Reset to black
+            yPos += 6;
+
+            // Prepare table data for need chargeable items
+            const needChargeableItemTableBody = needChargeableItem.items.map((i) => {
+              const item_name = i.item_name || "";
+              const other_item_name = i.other_item_name || "";
+              const quantity = parseFloat(i.quantity) || 0;
+              
+              // Use other_item_name if item_name is "Others", otherwise use item_name
+              const displayName = item_name === 'Others' && other_item_name 
+                ? other_item_name 
+                : item_name || "Unknown Item";
+              
+              return [
+                displayName,
+                quantity ? `${quantity}` : "-",
+              ];
+            });
+
+            autoTable(doc, {
+              startY: yPos,
+              head: [["Item Name", "Quantity"]],
+              body: needChargeableItemTableBody,
+              theme: "grid",
+              styles: { 
+                fontSize: 9,
+                cellPadding: 3,
+                lineColor: [100, 100, 100],
+                lineWidth: 0.2
+              },
+              headStyles: {
+                fillColor: [255, 255, 255],
+                textColor: [0, 0, 0],
+                fontStyle: 'bold',
+                lineWidth: 0.2,
+                lineColor: [100, 100, 100]
+              },
+              margin: { left: margin, right: margin },
+              didDrawPage: function(data) {
+                yPos = data.cursor.y + 15;
+              }
+            });
+
+            yPos = doc.lastAutoTable.finalY + 15;
+          }
+
+          /* SUPPLIED PLANTS */
+          const suppliedPlant = groupedPlants.find((s) => s.id === customer.id);
+
           doc.setFontSize(11);
           doc.setFont(undefined, "bold");
           doc.setTextColor(255, 102, 0); // Orange
-          doc.text("Need Nutrients", margin, yPos);
+          doc.text("Supplied Plants", margin, yPos);
           doc.setTextColor(0, 0, 0); // Reset to black
           yPos += 6;
 
-          // Calculate total for each need nutrient
-          const needTableBody = customer.items.map((i) => {
-            const tankCap = parseFloat(i.tank_capacity) || 0;
-            const topups = parseFloat(i.topups) || 0;
-            const total = tankCap * topups;
-            
-            return [
-              i.nutrient_type || "-",
-              tankCap ? `${tankCap} Ltr` : "-",
-              topups || "-",
-              total ? `${total} Ltr` : "-"
-            ];
-          });
+          if (suppliedPlant) {
+            // Calculate total for each suppliedPlant nutrient
+            const suppliedPlantTableBody = suppliedPlant.items.map((i) => {
+              const plant_name = i.plant_name;
+              const quantity = parseFloat(i.quantity) || 0;
+              
+              return [
+                plant_name ? `${plant_name}` : "-",
+                quantity ? `${quantity}` : "-",
+              ];
+            });
 
-          autoTable(doc, {
-            startY: yPos,
-            head: [["Nutrient Type", "Tank Capacity", "Topups", "Total (Ltr)"]],
-            body: needTableBody,
-            theme: "grid",
-            styles: { 
-              fontSize: 9,
-              cellPadding: 3,
-              lineColor: [100, 100, 100],
-              lineWidth: 0.2
-            },
-            headStyles: {
-              fillColor: [255, 255, 255],
-              textColor: [0, 0, 0],
-              fontStyle: 'bold',
-              lineWidth: 0.2,
-              lineColor: [100, 100, 100]
-            },
-            margin: { left: margin, right: margin },
-            didDrawPage: function(data) {
-              yPos = data.cursor.y + 10;
-            }
-          });
+            autoTable(doc, {
+              startY: yPos,
+              head: [["Plant Name", "Quantity"]],
+              body: suppliedPlantTableBody,
+              theme: "grid",
+              styles: { 
+                fontSize: 9,
+                cellPadding: 3,
+                lineColor: [100, 100, 100],
+                lineWidth: 0.2
+              },
+              headStyles: {
+                fillColor: [255, 255, 255],
+                textColor: [0, 0, 0],
+                fontStyle: 'bold',
+                lineWidth: 0.2,
+                lineColor: [100, 100, 100]
+              },
+              margin: { left: margin, right: margin },
+              didDrawPage: function(data) {
+                yPos = data.cursor.y + 15;
+              }
+            });
 
-          yPos = doc.lastAutoTable.finalY + 10;
+            yPos = doc.lastAutoTable.finalY + 15;
+          } else {
+            doc.setFontSize(10);
+            doc.setFont(undefined, "normal");
+            doc.text("No supplied plants found.", margin, yPos);
+            yPos += 15;
+          }
 
           /* SUPPLIED NUTRIENTS */
           const supplied = groupedSupplied.find((s) => s.id === customer.id);
@@ -456,6 +544,114 @@ export default function ReportTable() {
             doc.text("No supplied nutrients found.", margin, yPos);
             yPos += 15;
           }
+
+          /* SUPPLIED CHARGEABLE ITEMS */
+          const suppliedChargeableItem = groupedChargeableItem.find((s) => s.id === customer.id);
+
+          doc.setFontSize(11);
+          doc.setFont(undefined, "bold");
+          doc.setTextColor(255, 102, 0); // Orange
+          doc.text("Supplied Chargeable Items", margin, yPos);
+          doc.setTextColor(0, 0, 0); // Reset to black
+          yPos += 6;
+
+          if (suppliedChargeableItem) {
+            // Calculate total for each suppliedChargeableItem nutrient
+            const suppliedChargeableItemTableBody = suppliedChargeableItem.items.map((i) => {
+              const item_name = i.item_name;
+              const other_item_name = i.other_item_name;
+              const quantity = parseFloat(i.quantity) || 0;
+              
+              // Use other_item_name if item_name is "Others", otherwise use item_name
+              const displayName = item_name === 'Others' && other_item_name 
+                ? other_item_name 
+                : item_name || "Unknown Item";
+              
+              return [
+                displayName,
+                quantity ? `${quantity}` : "-",
+              ];
+            });
+
+            autoTable(doc, {
+              startY: yPos,
+              head: [["Item Name", "Quantity"]],
+              body: suppliedChargeableItemTableBody,
+              theme: "grid",
+              styles: { 
+                fontSize: 9,
+                cellPadding: 3,
+                lineColor: [100, 100, 100],
+                lineWidth: 0.2
+              },
+              headStyles: {
+                fillColor: [255, 255, 255],
+                textColor: [0, 0, 0],
+                fontStyle: 'bold',
+                lineWidth: 0.2,
+                lineColor: [100, 100, 100]
+              },
+              margin: { left: margin, right: margin },
+              didDrawPage: function(data) {
+                yPos = data.cursor.y + 15;
+              }
+            });
+
+            yPos = doc.lastAutoTable.finalY + 15;
+          } else {
+            doc.setFontSize(10);
+            doc.setFont(undefined, "normal");
+            doc.text("No supplied chargeable items found.", margin, yPos);
+            yPos += 15;
+          }
+
+          /* NEED NUTRIENTS TABLE */
+          doc.setFontSize(11);
+          doc.setFont(undefined, "bold");
+          doc.setTextColor(255, 102, 0); // Orange
+          doc.text("Need Nutrients", margin, yPos);
+          doc.setTextColor(0, 0, 0); // Reset to black
+          yPos += 6;
+
+          // Calculate total for each need nutrient
+          const needTableBody = customer.items.map((i) => {
+            const tankCap = parseFloat(i.tank_capacity) || 0;
+            const topups = parseFloat(i.topups) || 0;
+            const total = tankCap * topups;
+            
+            return [
+              i.nutrient_type || "-",
+              tankCap ? `${tankCap} Ltr` : "-",
+              topups || "-",
+              total ? `${total} Ltr` : "-"
+            ];
+          });
+
+          autoTable(doc, {
+            startY: yPos,
+            head: [["Nutrient Type", "Tank Capacity", "Topups", "Total (Ltr)"]],
+            body: needTableBody,
+            theme: "grid",
+            styles: { 
+              fontSize: 9,
+              cellPadding: 3,
+              lineColor: [100, 100, 100],
+              lineWidth: 0.2
+            },
+            headStyles: {
+              fillColor: [255, 255, 255],
+              textColor: [0, 0, 0],
+              fontStyle: 'bold',
+              lineWidth: 0.2,
+              lineColor: [100, 100, 100]
+            },
+            margin: { left: margin, right: margin },
+            didDrawPage: function(data) {
+              yPos = data.cursor.y + 10;
+            }
+          });
+
+          yPos = doc.lastAutoTable.finalY + 10;
 
           // Add separator line between customers
           if (customerIndex < groupedNeed.length - 1) {
