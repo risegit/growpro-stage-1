@@ -226,19 +226,21 @@ export default function ReportTable() {
             const recordDate = record.created_date || "N/A";
             const recordTime = record.created_time || "N/A";
             const dateTime = `${recordDate} ${recordTime}`;
+            const technicianName = record.technician_name || "N/A";
             
             return [
               index + 1,
               record.id || "N/A",
               dateTime,
               ratingText,
-              getRatingDescription(siteRating)
+              getRatingDescription(siteRating),
+              technicianName
             ];
           });
 
           autoTable(doc, {
             startY: yPos,
-            head: [["#", "ID", "Date & Time", "Site Rating", "Description"]],
+            head: [["#", "ID", "Date & Time", "Site Rating", "Description","Technician Name"]],
             body: performanceTableBody,
             theme: "grid",
             styles: { 

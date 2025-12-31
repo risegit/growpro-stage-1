@@ -46,7 +46,6 @@ export default function UserTable() {
   }, []);
 
   // Generate PDF Report
-  // Generate PDF Report
 const generatePDF = async (visitData, fullApiData) => {
   try {
     console.log("Starting PDF generation...");
@@ -307,65 +306,129 @@ const generatePDF = async (visitData, fullApiData) => {
     /* ----------------------------------
        PROCESS AND ADD IMAGE HELPER - MODIFIED
     ---------------------------------- */
-    const processAndAddImage = async (doc, imageFileName, xPos, yPos, width, height, photoNumber) => {
-      try {
-        const imageUrl = getImageUrl(imageFileName);
-        if (!imageUrl) return false;
-        
-        const dataUrl = await loadImageToDataURL(imageUrl);
-        if (!dataUrl) return false;
-        
-        const img = new Image();
-        await new Promise((resolve, reject) => {
-          img.onload = resolve;
-          img.onerror = reject;
-          img.src = dataUrl;
-          if (img.complete) resolve();
-        });
-        
-        const aspectRatio = img.width / img.height;
-        let displayWidth = width;
-        let displayHeight = height;
-        
-        if (aspectRatio > 1) {
-          displayHeight = width / aspectRatio;
-        } else {
-          displayWidth = height * aspectRatio;
-        }
-        
-        const xOffset = (width - displayWidth) / 2;
-        const yOffset = (height - displayHeight) / 2;
-        
-        let format = 'JPEG';
-        if (dataUrl.startsWith('data:image/png')) format = 'PNG';
-        
-        doc.addImage(dataUrl, format, xPos + xOffset, yPos + yOffset, displayWidth, displayHeight);
-        
-        doc.setDrawColor(0, 0, 0);
-        doc.setLineWidth(0.2);
-        doc.rect(xPos, yPos, width, height);
-        
-        // Moved text lower and made it smaller
-        doc.setFontSize(7);
-        doc.setFont(undefined, "normal");
-        doc.text(`Photo ${photoNumber}`, 
-                 xPos + width/2, yPos + height + 6, { align: "center" });
-        
-        return true;
-        
-      } catch (error) {
-        console.error(`Failed to process image:`, error);
+ /* ----------------------------------
+   PROCESS AND ADD IMAGE HELPER - MODIFIED
+---------------------------------- */
+const processAndAddImage = async (doc, imageFileName, xPos, yPos, width, height, photoNumber) => {
+  try {
+    const imageUrl = getImageUrl(imageFileName);
+    if (!imageUrl) {
+      // Show URL path if imageUrl is null
+      doc.setFillColor(240, 240, 240);
+      doc.rect(xPos, yPos, width, height, 'F');
+      doc.setDrawColor(0, 0, 0);
+      doc.rect(xPos, yPos, width, height);
+      doc.setFontSize(6); // Smaller font for URL
+      doc.setTextColor(0, 0, 0);
+      doc.text("Image URL:", xPos + width/2, yPos + height/2 - 5, { align: "center" });
+      // Show truncated URL to fit in box
+      const truncatedUrl = imageFileName ? 
+        (imageFileName.length > 40 ? imageFileName.substring(0, 40) + "..." : imageFileName) : 
+        "No image URL";
+      doc.text(truncatedUrl, xPos + width/2, yPos + height/2, { align: "center" });
+      doc.text(`Photo ${photoNumber}`, xPos + width/2, yPos + height + 6, { align: "center" });
+      return false;
+    }
+    
+    const dataUrl = await loadImageToDataURL(imageUrl);
+    if (!dataUrl) {
+      // Show URL path if dataUrl is null
+      doc.setFillColor(240, 240, 240);
+      doc.rect(xPos, yPos, width, height, 'F');
+      doc.setDrawColor(0, 0, 0);
+      doc.rect(xPos, yPos, width, height);
+      doc.setFontSize(6);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Failed to load:", xPos + width/2, yPos + height/2 - 5, { align: "center" });
+      const truncatedUrl = imageUrl.length > 40 ? imageUrl.substring(0, 40) + "..." : imageUrl;
+      doc.text(truncatedUrl, xPos + width/2, yPos + height/2, { align: "center" });
+      doc.text(`Photo ${photoNumber}`, xPos + width/2, yPos + height + 6, { align: "center" });
+      return false;
+    }
+    
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => {
+        // Show URL on image load error
         doc.setFillColor(240, 240, 240);
         doc.rect(xPos, yPos, width, height, 'F');
         doc.setDrawColor(0, 0, 0);
         doc.rect(xPos, yPos, width, height);
-        doc.setFontSize(7);
+        doc.setFontSize(6);
         doc.setTextColor(0, 0, 0);
-        doc.text("Image unavailable", xPos + width/2, yPos + height/2, { align: "center" });
+        doc.text("Image failed to load:", xPos + width/2, yPos + height/2 - 5, { align: "center" });
+        const truncatedUrl = imageUrl.length > 40 ? imageUrl.substring(0, 40) + "..." : imageUrl;
+        doc.text(truncatedUrl, xPos + width/2, yPos + height/2, { align: "center" });
         doc.text(`Photo ${photoNumber}`, xPos + width/2, yPos + height + 6, { align: "center" });
-        return false;
-      }
-    };
+        reject(new Error('Image failed to load'));
+      };
+      img.src = dataUrl;
+      if (img.complete) resolve();
+    });
+    
+    const aspectRatio = img.width / img.height;
+    let displayWidth = width;
+    let displayHeight = height;
+    
+    if (aspectRatio > 1) {
+      displayHeight = width / aspectRatio;
+    } else {
+      displayWidth = height * aspectRatio;
+    }
+    
+    const xOffset = (width - displayWidth) / 2;
+    const yOffset = (height - displayHeight) / 2;
+    
+    let format = 'JPEG';
+    if (dataUrl.startsWith('data:image/png')) format = 'PNG';
+    
+    doc.addImage(dataUrl, format, xPos + xOffset, yPos + yOffset, displayWidth, displayHeight);
+    
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.2);
+    doc.rect(xPos, yPos, width, height);
+    
+    // Moved text lower and made it smaller
+    doc.setFontSize(7);
+    doc.setFont(undefined, "normal");
+    doc.text(`Photo ${photoNumber}`, 
+             xPos + width/2, yPos + height + 6, { align: "center" });
+    
+    return true;
+    
+  } catch (error) {
+    console.error(`Failed to process image:`, error);
+    
+    // Show the image URL when all else fails
+    const imageUrl = getImageUrl(imageFileName) || imageFileName || "No URL available";
+    
+    doc.setFillColor(240, 240, 240);
+    doc.rect(xPos, yPos, width, height, 'F');
+    doc.setDrawColor(0, 0, 0);
+    doc.rect(xPos, yPos, width, height);
+    doc.setFontSize(6);
+    doc.setTextColor(0, 0, 0);
+    
+    doc.text("Image unavailable:", xPos + width/2, yPos + height/2 - 8, { align: "center" });
+    
+    // Truncate URL to fit in the box
+    const maxChars = Math.floor(width / 1.5); // Rough estimation
+    let displayUrl = imageUrl;
+    if (displayUrl.length > maxChars) {
+      displayUrl = displayUrl.substring(0, maxChars) + "...";
+    }
+    
+    // Split URL into multiple lines if needed
+    const lines = doc.splitTextToSize(displayUrl, width - 50);
+    lines.forEach((line, index) => {
+      doc.text(line, xPos + width/2, yPos + height/2 + (index * 4) - 4, { align: "center" });
+    });
+    
+    doc.text(`Photo ${photoNumber}`, xPos + width/2, yPos + height + 6, { align: "center" });
+    return false;
+  }
+};
 
     /* ----------------------------------
        HEADER WITH LOGO
@@ -404,10 +467,65 @@ const generatePDF = async (visitData, fullApiData) => {
     yPos += 15;
 
     /* ----------------------------------
-       DATA SHORTCUTS
+       CRITICAL FIX: GET CORRECT SITE VISIT DATA
     ---------------------------------- */
 
-    const siteVisit = fullApiData.site_visit?.[0] || {};
+    // Get current visit ID from visitData
+    const currentVisitId = visitData.site_visit_id || visitData.visit_id || visitData.id;
+    console.log("Current Visit ID for filtering:", currentVisitId);
+    
+    // Initialize siteVisit with empty object
+    let siteVisit = {};
+    
+    // First, try to find the matching site_visit in the array
+    if (Array.isArray(fullApiData.site_visit)) {
+      console.log("Searching in site_visit array, length:", fullApiData.site_visit.length);
+      
+      // Try different ID field combinations
+      for (const visit of fullApiData.site_visit) {
+        console.log("Checking visit:", visit);
+        
+        // Check all possible ID fields
+        if ((visit.id && String(visit.id) === String(currentVisitId)) ||
+            (visit.visit_id && String(visit.visit_id) === String(currentVisitId)) ||
+            (visit.site_visit_id && String(visit.site_visit_id) === String(currentVisitId)) ||
+            (visit.visitId && String(visit.visitId) === String(currentVisitId)) ||
+            (visit.siteVisitId && String(visit.siteVisitId) === String(currentVisitId))) {
+          
+          console.log("Found matching site visit!");
+          siteVisit = visit;
+          break;
+        }
+      }
+      
+      // If still not found, check if visitData itself has the site_visit fields
+      if (Object.keys(siteVisit).length === 0) {
+        console.log("No matching site_visit found in array, checking if visitData has the fields");
+        
+        // Check if visitData has site_visit fields directly
+        if (visitData.are_plants_getting_water !== undefined || 
+            visitData.water_above_pump !== undefined) {
+          console.log("Using visitData as siteVisit data");
+          siteVisit = visitData;
+        }
+      }
+      
+      // Last resort: use first site_visit if array has data
+      if (Object.keys(siteVisit).length === 0 && fullApiData.site_visit.length > 0) {
+        console.warn("No matching site_visit found, using first entry from array");
+        siteVisit = fullApiData.site_visit[0];
+      }
+    } else {
+      // If site_visit is not an array, try to use visitData
+      console.log("site_visit is not an array, checking visitData");
+      if (visitData.are_plants_getting_water !== undefined || 
+          visitData.water_above_pump !== undefined) {
+        console.log("Using visitData as siteVisit data");
+        siteVisit = visitData;
+      }
+    }
+    
+    console.log("Final siteVisit data being used:", siteVisit);
 
     /* ----------------------------------
        I. BASIC VISUAL INSPECTION
@@ -471,21 +589,10 @@ const generatePDF = async (visitData, fullApiData) => {
     drawLineField("2. Corrected pH:", siteVisit.corrected_ph);
     drawLineField("3. Initial TDS (ppm):", siteVisit.initial_tds);
     drawLineField("4. Corrected TDS (ppm):", siteVisit.corrected_tds);
-    
-    // ADDED: Which Crop field
-    drawLineField("5. Which Crop?", siteVisit.which_crop);
 
     /* ----------------------------------
-       FILTER BY CURRENT VISIT ID
+       Plant Problems (FILTERED)
     ---------------------------------- */
-
-    const currentVisitId =
-      visitData.site_visit_id ||
-      visitData.visit_id ||
-      visitData.id ||
-      siteVisit.id;
-
-    /* Plant Problems (FILTERED) */
     const filteredPlantProblems = Array.isArray(fullApiData.plantProblems)
       ? fullApiData.plantProblems.filter(p =>
           String(p.visit_id) === String(currentVisitId)
@@ -493,9 +600,7 @@ const generatePDF = async (visitData, fullApiData) => {
       : [];
 
     const problemAnswer = filteredPlantProblems.length ? "yes" : "no";
-    
-    // CHANGED: Changed from 5 to 6
-    drawYesNo("6. Plant Problems?", problemAnswer);
+    drawYesNo("5. Plant Problems?", problemAnswer);
 
     if (filteredPlantProblems.length) {
       const problemNames = filteredPlantProblems
@@ -516,9 +621,9 @@ const generatePDF = async (visitData, fullApiData) => {
         )
       : [];
 
+    drawLineField("6. State which crops:", siteVisit.which_crop);
+
     const pestAnswer = filteredPests.length ? "yes" : "no";
-    
-    // CHANGED: Changed from 6 to 7
     drawYesNo("7. Presence of pests?", pestAnswer);
 
     if (filteredPests.length) {
@@ -533,7 +638,6 @@ const generatePDF = async (visitData, fullApiData) => {
       drawLineField("    If yes, which?", pestNames, 100);
     }
 
-    // CHANGED: Changed from 7 to 8
     drawLineField("8. Any nutrient deficiency?", siteVisit.nutrient_deficiency);
     drawLineField("    Other:", siteVisit.deficiency_details || siteVisit.other_observation, 120);
 
@@ -559,32 +663,30 @@ const generatePDF = async (visitData, fullApiData) => {
     yPos += 10;
     drawSection("IV. Material Supply");
 
-    // Check all materials from API response
-    const hasNeemOil = siteVisit.material_supplied_neemoil && 
-                      String(siteVisit.material_supplied_neemoil).toLowerCase() === "yes";
+    // Neem Oil Supplied - Get data from siteVisit
+    const neemoilSupplied = siteVisit.material_supplied_neemoil;
+    const neemoilDelivered = siteVisit.material_delivered_neemoil;
     
-    // Use the data from your API response
+    // Check for Neem Oil in material supply
+    let neemOilAnswer = "No";
+    
+    if (neemoilSupplied !== undefined && neemoilSupplied !== null) {
+      const strValue = String(neemoilSupplied).toLowerCase().trim();
+      if (strValue === "yes" || strValue === "Yes" || strValue === "y" || strValue === "true" || strValue === "1") {
+        neemOilAnswer = "Yes";
+      } else {
+        neemOilAnswer = "No";
+      }
+    }
+
+    drawYesNo("Neem Oil:", neemOilAnswer);
+
+    // Supplied Plants - Filter with currentVisitId
     const suppliedPlants = Array.isArray(fullApiData.suppliedPlants) ?
       fullApiData.suppliedPlants.filter(p =>
         String(p.visit_id) === String(currentVisitId)
       ) : [];
 
-    const suppliedNutrients = Array.isArray(fullApiData.suppliedNutrients) ?
-      fullApiData.suppliedNutrients.filter(n =>
-        String(n.visit_id) === String(currentVisitId)
-      ) : [];
-
-    const suppliedChargeable = Array.isArray(fullApiData.suppliedChargeableItem) ?
-      fullApiData.suppliedChargeableItem.filter(i =>
-        String(i.visit_id) === String(currentVisitId)
-      ) : [];
-
-    // Show Neem Oil only if it exists
-    if (hasNeemOil) {
-      drawYesNo("Neem Oil:", "Yes");
-    }
-
-    // Supplied Plants Table
     if (suppliedPlants.length > 0) {
       ensureSpace(15);
       doc.setFontSize(10);
@@ -607,7 +709,12 @@ const generatePDF = async (visitData, fullApiData) => {
       );
     }
 
-    // Supplied Nutrients Table
+    // Supplied Nutrients - Filter with currentVisitId
+    const suppliedNutrients = Array.isArray(fullApiData.suppliedNutrients) ?
+      fullApiData.suppliedNutrients.filter(n =>
+        String(n.visit_id) === String(currentVisitId)
+      ) : [];
+
     if (suppliedNutrients.length > 0) {
       ensureSpace(15);
       doc.setFontSize(10);
@@ -643,7 +750,12 @@ const generatePDF = async (visitData, fullApiData) => {
       );
     }
 
-    // Supplied Chargeable Items Table
+    // Supplied Chargeable Items - Filter with currentVisitId
+    const suppliedChargeable = Array.isArray(fullApiData.suppliedChargeableItem) ?
+      fullApiData.suppliedChargeableItem.filter(i =>
+        String(i.visit_id) === String(currentVisitId)
+      ) : [];
+
     if (suppliedChargeable.length > 0) {
       ensureSpace(15);
       doc.setFontSize(10);
@@ -664,19 +776,8 @@ const generatePDF = async (visitData, fullApiData) => {
           { key: "no", header: "#", width: 15 },
           { key: "item_name", header: "Item Name", width: 60 },
           { key: "quantity", header: "Qty", width: 25 },
-          { key: "unit_price", header: "Unit Price", width: 25 },
-          { key: "total", header: "Total", width: 25 }
         ]
       );
-    }
-
-    // If no materials were supplied, show a message
-    if (!hasNeemOil && suppliedPlants.length === 0 && suppliedNutrients.length === 0 && suppliedChargeable.length === 0) {
-      ensureSpace();
-      doc.setFontSize(10);
-      doc.setFont(undefined, "normal");
-      doc.text("No materials were supplied during this visit.", margin, yPos);
-      yPos += 7;
     }
 
     /* ----------------------------------
@@ -686,32 +787,33 @@ const generatePDF = async (visitData, fullApiData) => {
     yPos += 10;
     drawSection("V. Material Need To Deliver");
 
-    // Check for materials to deliver
-    const needsNeemOil = siteVisit.material_needs_delivery && 
-                        String(siteVisit.material_needs_delivery).toLowerCase() === "yes";
+    // Neem Oil Needed - Get data from siteVisit
+    const materialNeedsDelivery = siteVisit.material_needs_delivery;
     
-    // Use the data from your API response
+    let neemOilNeededAnswer = "No";
+    if (materialNeedsDelivery !== undefined && materialNeedsDelivery !== null) {
+      const strValue = String(materialNeedsDelivery).toLowerCase().trim();
+      if (strValue === "yes" || strValue === "y" || strValue === "true" || strValue === "1") {
+        neemOilNeededAnswer = "Yes";
+      }
+    }
+    
+    // Also check material_delivered_neemoil as a fallback
+    if (neemOilNeededAnswer === "No" && neemoilDelivered !== undefined && neemoilDelivered !== null) {
+      const strValue = String(neemoilDelivered).toLowerCase().trim();
+      if (strValue === "yes" || strValue === "y" || strValue === "true" || strValue === "1") {
+        neemOilNeededAnswer = "Yes";
+      }
+    }
+    
+    drawYesNo("Neem Oil:", neemOilNeededAnswer);
+
+    // Needed Plants - Filter with currentVisitId
     const needPlants = Array.isArray(fullApiData.needPlants) ?
       fullApiData.needPlants.filter(p =>
         String(p.visit_id) === String(currentVisitId)
       ) : [];
 
-    const needNutrients = Array.isArray(fullApiData.needNutrients) ?
-      fullApiData.needNutrients.filter(n =>
-        String(n.visit_id) === String(currentVisitId)
-      ) : [];
-
-    const needChargeable = Array.isArray(fullApiData.needChargeableItem) ?
-      fullApiData.needChargeableItem.filter(i =>
-        String(i.visit_id) === String(currentVisitId)
-      ) : [];
-
-    // Show Neem Oil only if needed
-    if (needsNeemOil) {
-      drawYesNo("Neem Oil:", "Yes");
-    }
-
-    // Needed Plants Table
     if (needPlants.length > 0) {
       ensureSpace(15);
       doc.setFontSize(10);
@@ -735,7 +837,12 @@ const generatePDF = async (visitData, fullApiData) => {
       );
     }
 
-    // Needed Nutrients Table
+    // Needed Nutrients - Filter with currentVisitId
+    const needNutrients = Array.isArray(fullApiData.needNutrients) ?
+      fullApiData.needNutrients.filter(n =>
+        String(n.visit_id) === String(currentVisitId)
+      ) : [];
+
     if (needNutrients.length > 0) {
       ensureSpace(15);
       doc.setFontSize(10);
@@ -771,7 +878,12 @@ const generatePDF = async (visitData, fullApiData) => {
       );
     }
 
-    // Needed Chargeable Items Table
+    // Needed Chargeable Items - Filter with currentVisitId
+    const needChargeable = Array.isArray(fullApiData.needChargeableItem) ?
+      fullApiData.needChargeableItem.filter(i =>
+        String(i.visit_id) === String(currentVisitId)
+      ) : [];
+
     if (needChargeable.length > 0) {
       ensureSpace(15);
       doc.setFontSize(10);
@@ -791,18 +903,8 @@ const generatePDF = async (visitData, fullApiData) => {
           { key: "no", header: "#", width: 15 },
           { key: "item_name", header: "Item Name", width: 80 },
           { key: "quantity", header: "Qty", width: 25 },
-          { key: "estimated_price", header: "Est. Price", width: 30 }
         ]
       );
-    }
-
-    // If no materials needed, show a message
-    if (!needsNeemOil && needPlants.length === 0 && needNutrients.length === 0 && needChargeable.length === 0) {
-      ensureSpace();
-      doc.setFontSize(10);
-      doc.setFont(undefined, "normal");
-      doc.text("No materials need to be delivered.", margin, yPos);
-      yPos += 7;
     }
 
     /* ----------------------------------
@@ -984,10 +1086,51 @@ const generatePDF = async (visitData, fullApiData) => {
     alert(`Failed to generate PDF: ${error.message}`);
   }
 };
+  // Fetch data from backend API                                                                                       
   // Fetch data from backend API
   useEffect(() => {
     const fetchUsers = async () => {
       try {
+        // Mock data for demonstration - replace with actual API call
+        // const mockData = [
+        //   {
+        //     site_visit_id: "1",
+        //     created_date: "2025-12-04",
+        //     customer_id: "14",
+        //     customer_name: "Mayuresh Warke",
+        //     phone: "0976543667",
+        //     profile_pic: "",
+        //     technician_id: "1",
+        //     technician_name: "Dilip Gupta",
+        //     visited_by: "AD0001"
+        //   },
+        //   {
+        //     site_visit_id: "2",
+        //     created_date: "2025-12-03",
+        //     customer_id: "15",
+        //     customer_name: "Priya Sharma",
+        //     phone: "0987654321",
+        //     profile_pic: "",
+        //     technician_id: "2",
+        //     technician_name: "Rahul Kumar",
+        //     visited_by: "AD0002"
+        //   },
+        //   {
+        //     site_visit_id: "3",
+        //     created_date: "2025-12-02",
+        //     customer_id: "16",
+        //     customer_name: "Amit Patel",
+        //     phone: "0912345678",
+        //     profile_pic: "",
+        //     technician_id: "1",
+        //     technician_name: "Dilip Gupta",
+        //     visited_by: "AD0001"
+        //   }
+        // ];
+
+        // setAllUsers(mockData);
+
+        /* Uncomment for actual API call*/
         const response = await fetch(
           `${import.meta.env.VITE_API_URL}api/site-visit.php?view-visit='viewvisit'&user_code=${user_code}`,
           { method: "GET" }
