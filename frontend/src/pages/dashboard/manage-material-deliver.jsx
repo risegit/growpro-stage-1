@@ -270,7 +270,7 @@ export default function UserTable() {
        🔹 PLANTS DELIVERED
     --------------------------------------------------------*/
     // Check if we need a new page before plants
-    if (yPos > 250 && user.plants && user.plants.length > 0) {
+    if (yPos > 200 && user.plants && user.plants.length > 0) {
       doc.addPage();
       yPos = 20;
     }
@@ -564,8 +564,14 @@ export default function UserTable() {
     }
 
     /* -------------------------------------------------------
-       🔹 OVERALL SUMMARY
+       🔹 OVERALL SUMMARY & CLOSING CONTENT
     --------------------------------------------------------*/
+    // Check if we need a new page before overall summary
+    if (yPos > 150) {
+      doc.addPage();
+      yPos = 20;
+    }
+
     yPos += 5;
     doc.setFontSize(14);
     doc.setFont(undefined, "bold");
@@ -612,6 +618,12 @@ export default function UserTable() {
         sum + (parseInt(item.quantity) || 0), 0);
       doc.text(`Total Chargeable Items: ${totalChargeableQty} units`, 25, yPos);
       yPos += 8;
+    }
+
+    // Check if we need a new page before closing content
+    if (yPos > 180) {
+      doc.addPage();
+      yPos = 20;
     }
 
     yPos += 15;
