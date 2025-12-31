@@ -1,7 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // Added useRef
 import Select from 'react-select';
 import { useParams } from 'react-router-dom';
 import { toast } from "react-toastify";
+import html2canvas from 'html2canvas'; // Added import
+
+const convertImagesToBase64 = (element) => {
+  const promises = [];
+  
+  // Find all img elements within the review section
+  const images = element.querySelectorAll('img');
+  
+  images.forEach((img) => {
+    const promise = new Promise((resolve) => {
+      // If image already has a data URL, no need to convert
+      if (img.src.startsWith('data:')) {
+        resolve();
+        return;
+      }
+      
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const imgElement = new Image();
+      
+      imgElement.crossOrigin = 'anonymous'; // Important for CORS
+      imgElement.onload = () => {
+        canvas.width = imgElement.width;
+        canvas.height = imgElement.height;
+        ctx.drawImage(imgElement, 0, 0);
+        
+        // Convert to data URL
+        img.src = canvas.toDataURL('image/png');
+        resolve();
+      };
+      
+      imgElement.onerror = () => {
+        console.warn('Failed to load image:', img.src);
+        resolve();
+      };
+      
+      imgElement.src = img.src;
+    });
+    
+    promises.push(promise);
+  });
+  
+  return Promise.all(promises);
+};
 
 const StepperCustomerForm = () => {
   const [formData, setFormData] = useState({
@@ -71,7 +115,8 @@ const StepperCustomerForm = () => {
   // Timer options array - updated to match second code example
   const timerOptions = ['Digital', 'Cyclic-15 mins', 'TSIWI', '800XC', 'Other'];
 
-  // Remove initialTimerQuantities object since we'll handle it differently
+  // Add ref for review section
+  const reviewRef = useRef(null);
 
   const [growers, setGrowers] = useState([{
     growerId: '',
@@ -970,7 +1015,41 @@ useEffect(() => {
   };
   
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
-  
+
+  // Add download function
+  const downloadReviewAsImage = async () => {
+    if (!reviewRef.current) return;
+
+    try {
+      toast.info("Generating image... Please wait.");
+      
+      const canvas = await html2canvas(reviewRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        width: reviewRef.current.scrollWidth,
+        height: reviewRef.current.scrollHeight,
+        scrollY: -window.scrollY
+      });
+
+      const image = canvas.toDataURL('image/png', 1.0);
+      
+      const link = document.createElement('a');
+      const fileName = `customer-review-${formData.name || 'customer'}-${Date.now()}.png`;
+      link.download = fileName;
+      link.href = image;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success(`Review downloaded as ${fileName}`);
+    } catch (error) {
+      console.error("Error downloading review:", error);
+      toast.error("Failed to download review. Please try again.");
+    }
+  };
+
   const StepperHeader = () => (
     <div className="flex overflow-x-auto md:overflow-visible space-x-4 md:space-x-0 justify-between mb-8 pl-4 md:pl-0 pt-3">
       {[1, 2, 3].map((step, idx) => (
@@ -1489,11 +1568,6 @@ useEffect(() => {
                         {errors[`timerUsedOther_${index}`] && (
                           <span className="text-red-500 text-sm mt-1">{errors[`timerUsedOther_${index}`]}</span>
                         )}
-                        {/* {grower.timerUsedOther && (
-                          <div className="text-sm text-gray-600 mt-1">
-                            Custom timer name: <span className="font-medium">{grower.timerUsedOther}</span>
-                          </div>
-                        )} */}
                       </div>
                     )}
                   </div>
@@ -1680,280 +1754,295 @@ useEffect(() => {
       case 3:
         return (
           <div className="px-6 py-6">
-            <h3 className="md:text-2xl sm:text-xl font-bold mb-6 text-gray-800">Review Your Information</h3>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="md:text-2xl sm:text-xl font-bold text-gray-800">Review Your Information</h3>
+              <button
+                type="button"
+                onClick={downloadReviewAsImage}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg flex items-center gap-2 transition"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Download Review
+              </button>
+            </div>
 
-            <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-              <h4 className="text-lg font-semibold mb-4 text-gray-700">Customer Details</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-gray-800">
-                    <span className="font-medium text-gray-600">Name: </span>
-                    {formData.name}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-800">
-                    <span className="font-medium text-gray-600">Phone Number: </span>
-                    {formData.phoneNumber}
-                  </p>
-                </div>
-
-                {formData.staffPhoneNumber && (
+            {/* Wrap the review content in a div with ref for capturing */}
+            <div ref={reviewRef}>
+              <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+                <h4 className="text-lg font-semibold mb-4 text-gray-700">Customer Details</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Staff Phone Number: </span>
-                      {formData.staffPhoneNumber}
+                      <span className="font-medium text-gray-600">Name: </span>
+                      {formData.name}
                     </p>
                   </div>
-                )}
+                  <div>
+                    <p className="text-gray-800">
+                      <span className="font-medium text-gray-600">Phone Number: </span>
+                      {formData.phoneNumber}
+                    </p>
+                  </div>
 
-                <div>
-                  <p className="text-gray-800">
-                    <span className="font-medium text-gray-600">State: </span>
-                    {formData.state}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-800">
-                    <span className="font-medium text-gray-600">City: </span>
-                    {formData.city}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-800">
-                    <span className="font-medium text-gray-600">Locality: </span>
-                    {formData.locality}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-800">
-                    <span className="font-medium text-gray-600">Pincode: </span>
-                    {formData.pincode}
-                  </p>
-                </div>
-                {formData.landmark && (
+                  {formData.staffPhoneNumber && (
+                    <div>
+                      <p className="text-gray-800">
+                        <span className="font-medium text-gray-600">Staff Phone Number: </span>
+                        {formData.staffPhoneNumber}
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="text-gray-800">
+                      <span className="font-medium text-gray-600">State: </span>
+                      {formData.state}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-800">
+                      <span className="font-medium text-gray-600">City: </span>
+                      {formData.city}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-800">
+                      <span className="font-medium text-gray-600">Locality: </span>
+                      {formData.locality}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-800">
+                      <span className="font-medium text-gray-600">Pincode: </span>
+                      {formData.pincode}
+                    </p>
+                  </div>
+                  {formData.landmark && (
+                    <div className="md:col-span-2">
+                      <p className="text-gray-800">
+                        <span className="font-medium text-gray-600">Landmark: </span>
+                        {formData.landmark}
+                      </p>
+                    </div>
+                  )}
                   <div className="md:col-span-2">
                     <p className="text-gray-800">
-                      <span className="font-medium text-gray-600">Landmark: </span>
-                      {formData.landmark}
+                      <span className="font-medium text-gray-600">Address: </span>
+                      {formData.address}
                     </p>
                   </div>
-                )}
-                <div className="md:col-span-2">
-                  <p className="text-gray-800">
-                    <span className="font-medium text-gray-600">Address: </span>
-                    {formData.address}
-                  </p>
-                </div>
 
-                <div>
-                  <p className="text-gray-800">
-                    <span className="font-medium text-gray-600">Profile Pic:</span>{" "}
-                    {formData.profilePic ? (
-                      <span>
-                        {typeof formData.profilePic === "string"
-                          ? formData.profilePic.split("/").pop()
-                          : formData.profilePic.name}
-                      </span>
-                    ) : (
-                      "No file uploaded"
-                    )}
-                  </p>
+                  <div>
+                    <p className="text-gray-800">
+                      <span className="font-medium text-gray-600">Profile Pic:</span>{" "}
+                      {formData.profilePic ? (
+                        <span>
+                          {typeof formData.profilePic === "string"
+                            ? formData.profilePic.split("/").pop()
+                            : formData.profilePic.name}
+                        </span>
+                      ) : (
+                        "No file uploaded"
+                      )}
+                    </p>
 
-                  {formData.profilePic && (
-                    <img
-                      src={
-                        typeof formData.profilePic === "string"
-                          ? `${import.meta.env.VITE_API_URL}uploads/customers/${formData.profilePic}`
-                          : URL.createObjectURL(formData.profilePic)
-                      }
-                      alt="Profile Pic"
-                      className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <div className="border border-gray-200 rounded-lg p-6 bg-gray-50 mt-6">
-              <h4 className="text-lg font-semibold mb-4 text-gray-700">Grower Information</h4>
-
-              {growers && growers.length > 0 ? (
-                growers.map((grower, index) => (
-                  <div key={index} className="mb-6 last:mb-0">
-                    <h5 className="font-semibold text-gray-700 mb-3">
-                      Grower {index + 1}
-                    </h5>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">System Type: </span>
-                          {grower.systemType === "Other"
-                            ? grower.systemTypeOther
-                            : grower.systemType}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Plants: </span>
-                          {grower.numPlants}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Levels: </span>
-                          {grower.numLevels}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Channels per Level: </span>
-                          {grower.numChannelPerLevel}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Holes per Channel: </span>
-                          {grower.numHolesPerChannel}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Setup Dimension: </span>
-                          {grower.setupDimension}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Motor Used: </span>
-                          {grower.motorType === "Other"
-                            ? grower.motorTypeOther
-                            : grower.motorType}
-                        </p>
-                      </div>
-                      
-                      {/* Timer Used in Review - FIXED */}
-                      <div className="md:col-span-2">
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Timer Used: </span>
-                          {grower.timerUsed && grower.timerUsed.length > 0 ? (
-                            <ul className="list-disc pl-5 mt-1">
-                              {grower.timerUsed.map((timer, idx) => (
-                                <li key={idx} className="text-gray-800">
-                                  {timer === 'Other' && grower.timerUsedOther ? grower.timerUsedOther : timer}: 
-                                  <span className="font-semibold ml-1">
-                                    {grower.timerQuantities?.[timer === 'Other' ? 'Other' : timer] || '0'} qty
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : 'N/A'}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">No. of Lights: </span>
-                          {grower.numLights}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Model of Lights: </span>
-                          {grower.modelOfLight === "Other"
-                            ? grower.modelOfLightOther
-                            : grower.modelOfLight}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Length of Lights: </span>
-                          {grower.lengthOfLight === "Other"
-                            ? grower.lengthOfLightOther
-                            : grower.lengthOfLight}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Tank Capacity: </span>
-                          {grower.tankCapacity === "Other"
-                            ? grower.tankCapacityOther
-                            : grower.tankCapacity}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Nutrition Given: </span>
-                          {grower.nutritionGiven}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Other Specifications: </span>
-                          {grower.otherSpecifications || "N/A"}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">
-                            Photo at Time of Installation:
-                          </span>{" "}
-                          {grower.photoAtInstallation ? (
-                            <span>
-                              {typeof grower.photoAtInstallation === "string"
-                                ? grower.photoAtInstallation.split("/").pop()
-                                : grower.photoAtInstallation.name}
-                            </span>
-                          ) : (
-                            "No file uploaded"
-                          )}
-                        </p>
-
-                        {grower.photoAtInstallation && (
-                          <img
-                            src={
-                              typeof grower.photoAtInstallation === "string"
-                                ? `${import.meta.env.VITE_API_URL}uploads/customers/${grower.photoAtInstallation}`
-                                : URL.createObjectURL(grower.photoAtInstallation)
-                            }
-                            alt="Installation Preview"
-                            className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
-                          />
-                        )}
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Plants Chosen: </span>
-                          {grower.selectedPlants && grower.selectedPlants.length > 0
-                            ? grower.selectedPlants.map((p) => p.label).join(", ")
-                            : "N/A"}
-                        </p>
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <p className="text-gray-800">
-                          <span className="font-medium text-gray-600">Status: </span>
-                          <span
-                            className={`font-semibold ${formData.isActive ? "text-green-600" : "text-red-600"
-                              }`}
-                          >
-                            {formData.isActive ? "Active" : "Inactive"}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-
-                    {index < growers.length - 1 && (
-                      <hr className="my-4 border-gray-300" />
+                    {formData.profilePic && (
+                      <img
+                        src={
+                          typeof formData.profilePic === "string"
+                            ? `${import.meta.env.VITE_API_URL}uploads/customers/${formData.profilePic}`
+                            : URL.createObjectURL(formData.profilePic)
+                        }
+                        alt="Profile Pic"
+                        className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
+                      />
                     )}
                   </div>
-                ))
-              ) : (
-                <p className="text-gray-600 italic">No grower information added yet.</p>
-              )}
+                  
+                  <div className="md:col-span-2">
+                    <p className="text-gray-800">
+                      <span className="font-medium text-gray-600">Status: </span>
+                      <span
+                        className={`font-semibold ${formData.isActive ? "text-green-600" : "text-red-600"
+                          }`}
+                      >
+                        {formData.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="border border-gray-200 rounded-lg p-6 bg-gray-50 mt-6">
+                <h4 className="text-lg font-semibold mb-4 text-gray-700">Grower Information</h4>
+
+                {growers && growers.length > 0 ? (
+                  growers.map((grower, index) => (
+                    <div key={index} className="mb-6 last:mb-0">
+                      <h5 className="font-semibold text-gray-700 mb-3">
+                        Grower {index + 1}
+                      </h5>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">System Type: </span>
+                            {grower.systemType === "Other"
+                              ? grower.systemTypeOther
+                              : grower.systemType}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">No. of Plants: </span>
+                            {grower.numPlants}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">No. of Levels: </span>
+                            {grower.numLevels}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">No. of Channels per Level: </span>
+                            {grower.numChannelPerLevel}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">No. of Holes per Channel: </span>
+                            {grower.numHolesPerChannel}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Setup Dimension: </span>
+                            {grower.setupDimension}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Motor Used: </span>
+                            {grower.motorType === "Other"
+                              ? grower.motorTypeOther
+                              : grower.motorType}
+                          </p>
+                        </div>
+                        
+                        {/* Timer Used in Review - FIXED */}
+                        <div className="md:col-span-2">
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Timer Used: </span>
+                            {grower.timerUsed && grower.timerUsed.length > 0 ? (
+                              <ul className="list-disc pl-5 mt-1">
+                                {grower.timerUsed.map((timer, idx) => (
+                                  <li key={idx} className="text-gray-800">
+                                    {timer === 'Other' && grower.timerUsedOther ? grower.timerUsedOther : timer}: 
+                                    <span className="font-semibold ml-1">
+                                      {grower.timerQuantities?.[timer === 'Other' ? 'Other' : timer] || '0'} qty
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : 'N/A'}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">No. of Lights: </span>
+                            {grower.numLights}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Model of Lights: </span>
+                            {grower.modelOfLight === "Other"
+                              ? grower.modelOfLightOther
+                              : grower.modelOfLight}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Length of Lights: </span>
+                            {grower.lengthOfLight === "Other"
+                              ? grower.lengthOfLightOther
+                              : grower.lengthOfLight}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Tank Capacity: </span>
+                            {grower.tankCapacity === "Other"
+                              ? grower.tankCapacityOther
+                              : grower.tankCapacity}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Nutrition Given: </span>
+                            {grower.nutritionGiven}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Other Specifications: </span>
+                            {grower.otherSpecifications || "N/A"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">
+                              Photo at Time of Installation:
+                            </span>{" "}
+                            {grower.photoAtInstallation ? (
+                              <span>
+                                {typeof grower.photoAtInstallation === "string"
+                                  ? grower.photoAtInstallation.split("/").pop()
+                                  : grower.photoAtInstallation.name}
+                              </span>
+                            ) : (
+                              "No file uploaded"
+                            )}
+                          </p>
+
+                          {grower.photoAtInstallation && (
+                            <img
+                              src={
+                                typeof grower.photoAtInstallation === "string"
+                                  ? `${import.meta.env.VITE_API_URL}uploads/customers/${grower.photoAtInstallation}`
+                                  : URL.createObjectURL(grower.photoAtInstallation)
+                              }
+                              alt="Installation Preview"
+                              className="w-24 h-24 object-cover rounded-md mt-2 border border-gray-300 shadow-sm"
+                            />
+                          )}
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <p className="text-gray-800">
+                            <span className="font-medium text-gray-600">Plants Chosen: </span>
+                            {grower.selectedPlants && grower.selectedPlants.length > 0
+                              ? grower.selectedPlants.map((p) => p.label).join(", ")
+                              : "N/A"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {index < growers.length - 1 && (
+                        <hr className="my-4 border-gray-300" />
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-600 italic">No grower information added yet.</p>
+                )}
+              </div>
             </div>
           </div>
         );
