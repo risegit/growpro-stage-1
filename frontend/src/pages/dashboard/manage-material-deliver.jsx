@@ -984,7 +984,7 @@ export default function UserTable() {
                               <img
                                 src={
                                   user.profile_pic
-                                    ? `${import.meta.env.VITE_API_URL}uploads/users/${user.profile_pic}`
+                                    ? `${import.meta.env.VITE_API_URL}uploads/customers/${user.profile_pic}`
                                     : `https://ui-avatars.com/api/?name=${encodeURIComponent(
                                       user.name
                                     )}&background=3b82f6&color=fff`
@@ -1071,7 +1071,7 @@ export default function UserTable() {
                         <img
                           src={
                             user.profile_pic
-                              ? `${import.meta.env.VITE_API_URL}uploads/users/${user.profile_pic}`
+                              ? `${import.meta.env.VITE_API_URL}uploads/customers/${user.profile_pic}`
                               : `https://ui-avatars.com/api/?name=${encodeURIComponent(
                                 user.name
                               )}&background=3b82f6&color=fff`
