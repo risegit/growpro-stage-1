@@ -159,7 +159,7 @@ switch ($method) {
                 $roleLower = strtolower(trim($_POST['role'])); 
                 $prefix = '';
 
-                if ($roleLower === 'co-ordinator') $prefix = '';
+                if ($roleLower === 'co-ordinator') $prefix = 'CO';
                 elseif ($roleLower === 'admin') $prefix = 'AD';
                 elseif ($roleLower === 'technician') $prefix = 'TC';
                 else $prefix = 'OT'; // default prefix
@@ -184,7 +184,7 @@ switch ($method) {
                     if (empty($row['user_code'])) {
                         $roleLower = strtolower(trim($row['role']));
                         $prefix = ($roleLower === 'admin') ? 'AD' :
-                                (($roleLower === 'co-ordinator') ? '' :
+                                (($roleLower === 'co-ordinator') ? 'CO' :
                                 (($roleLower === 'technician') ? 'TC' : 'US'));
 
                         $user_code = $prefix . str_pad($user_id, 4, '0', STR_PAD_LEFT);
