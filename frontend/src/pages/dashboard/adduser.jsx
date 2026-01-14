@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from "react-toastify";
+import statesData from '@/data/state';
 
 export default function AddUserForm() {
     const [formData, setFormData] = useState({
@@ -29,13 +30,7 @@ export default function AddUserForm() {
     const [previewImage, setPreviewImage] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    const statesAndCities = {
-        Maharashtra: ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
-        Karnataka: ['Bengaluru', 'Mysore', 'Mangalore'],
-        Gujarat: ['Ahmedabad', 'Surat', 'Vadodara'],
-        Delhi: ['New Delhi', 'Central Delhi', 'South Delhi', 'North Delhi'],
-        'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem']
-    };
+
 
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
@@ -81,12 +76,24 @@ export default function AddUserForm() {
 
     const handleStateChange = (e) => {
         const selectedState = e.target.value;
-        setFormData({ ...formData, state: selectedState, city: '' });
-        setCities(statesAndCities[selectedState] || []);
+
+        const stateObj = statesData.find(
+            (item) => item.state === selectedState
+        );
+
+        setFormData({
+            ...formData,
+            state: selectedState,
+            city: "",
+        });
+
+        setCities(stateObj ? stateObj.cities : []);
+
         if (errors.state) {
-            setErrors({ ...errors, state: '' });
+            setErrors({ ...errors, state: "" });
         }
     };
+
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -210,57 +217,6 @@ export default function AddUserForm() {
 
     };
 
-    // const handleSubmit = async () => {
-    //     if (!validateForm()) return;
-
-    //     try {
-    //         const form = new FormData();
-    //         Object.entries(formData).forEach(([key, value]) => {
-    //             if (value !== null) form.append(key, value);
-    //         });
-
-    //         const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php`, {
-    //             method: 'POST',
-    //             body: form,
-    //         });
-
-    //         const result = await response.json();
-    //         // alert(`result1 = ${result.message}`);
-    //         if (result.status == 'success') {
-    //             toast.success(result.message);
-    //             setFormData({
-    //                 name: '',
-    //                 email: '',
-    //                 password: '',
-    //                 phone: '',
-    //                 bankName: '',
-    //                 accountNumber: '',
-    //                 ifscNo: '',
-    //                 profilePic: null,
-    //                 locality: '',
-    //                 landmark: '',
-    //                 state: '',
-    //                 city: '',
-    //                 pincode: '',
-    //                 streetAddress: '',
-    //                 role: '',
-    //                 aadhaarNo: ''
-    //             });
-    //             setCities([]);
-    //             setErrors({});
-    //             if (fileInputRef.current) {
-    //                 fileInputRef.current.value = "";
-    //             }
-
-    //         } else {
-    //             toast.error(result.message || 'Failed to add user');
-    //         }
-
-    //     } catch (error) {
-    //         // console.error('Error submitting form:', error);
-    //         toast.error('Something went wrong!');
-    //     }
-    // };
 
 
     const handleSubmit = async () => {
@@ -270,7 +226,7 @@ export default function AddUserForm() {
 
         try {
             await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
             const form = new FormData();
             Object.entries(formData).forEach(([key, value]) => {
                 if (value !== null) form.append(key, value);
@@ -467,39 +423,74 @@ export default function AddUserForm() {
                     {/* Row 4: State, City, Locality, Landmark, Pincode */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:col-span-2">
                         <div className="flex flex-col">
-                            <label className="mb-1 font-medium text-gray-700">State (राज्य) <span className="text-red-500">*</span></label>
+                            <label className="mb-1 font-medium text-gray-700">
+                                State (राज्य) <span className="text-red-500">*</span>
+                            </label>
+
                             <select
                                 name="state"
                                 value={formData.state}
                                 onChange={handleStateChange}
-                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.state ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.state
+                                    ? "border-red-500 focus:ring-red-400"
+                                    : "border-gray-300 focus:ring-blue-400"
                                     }`}
                             >
-                                <option value="" disabled>Select state</option>
-                                {Object.keys(statesAndCities).map((state) => (
-                                    <option key={state} value={state}>{state}</option>
+                                <option value="" disabled>
+                                    Select state
+                                </option>
+
+                                {statesData.map((item) => (
+                                    <option key={item.state} value={item.state}>
+                                        {item.state}
+                                    </option>
                                 ))}
                             </select>
-                            {errors.state && <span className="text-red-500 text-sm mt-1">{errors.state}</span>}
-                        </div>
 
+                            {errors.state && (
+                                <span className="text-red-500 text-sm mt-1">
+                                    {errors.state}
+                                </span>
+                            )}
+                        </div>
                         <div className="flex flex-col">
-                            <label className="mb-1 font-medium text-gray-700">City (शहर) <span className="text-red-500">*</span></label>
+                            <label className="mb-1 font-medium text-gray-700">
+                                City (शहर) <span className="text-red-500">*</span>
+                            </label>
+
                             <select
                                 name="city"
                                 value={formData.city}
-                                onChange={handleInputChange}
+                                onChange={(e) =>
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        city: e.target.value,
+                                    }))
+                                }
                                 disabled={!cities.length}
-                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.city ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                                className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.city
+                                        ? "border-red-500 focus:ring-red-400"
+                                        : "border-gray-300 focus:ring-blue-400"
                                     }`}
                             >
-                                <option value="" disabled>Select city</option>
+                                <option value="" disabled>
+                                    Select city
+                                </option>
+
                                 {cities.map((city) => (
-                                    <option key={city} value={city}>{city}</option>
+                                    <option key={city} value={city}>
+                                        {city}
+                                    </option>
                                 ))}
                             </select>
-                            {errors.city && <span className="text-red-500 text-sm mt-1">{errors.city}</span>}
+
+                            {errors.city && (
+                                <span className="text-red-500 text-sm mt-1">
+                                    {errors.city}
+                                </span>
+                            )}
                         </div>
+
 
                         <div className="flex flex-col">
                             <label className="mb-1 font-medium text-gray-700">Locality (स्थानीयता) <span className="text-red-500">*</span></label>

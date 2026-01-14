@@ -3,13 +3,14 @@ import Select from 'react-select';
 import { useParams } from 'react-router-dom';
 import { toast } from "react-toastify";
 import html2canvas from 'html2canvas'; // Added import
+import statesData from '@/data/state';
 
 const convertImagesToBase64 = (element) => {
   const promises = [];
-  
+
   // Find all img elements within the review section
   const images = element.querySelectorAll('img');
-  
+
   images.forEach((img) => {
     const promise = new Promise((resolve) => {
       // If image already has a data URL, no need to convert
@@ -17,33 +18,33 @@ const convertImagesToBase64 = (element) => {
         resolve();
         return;
       }
-      
+
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const imgElement = new Image();
-      
+
       imgElement.crossOrigin = 'anonymous'; // Important for CORS
       imgElement.onload = () => {
         canvas.width = imgElement.width;
         canvas.height = imgElement.height;
         ctx.drawImage(imgElement, 0, 0);
-        
+
         // Convert to data URL
         img.src = canvas.toDataURL('image/png');
         resolve();
       };
-      
+
       imgElement.onerror = () => {
         console.warn('Failed to load image:', img.src);
         resolve();
       };
-      
+
       imgElement.src = img.src;
     });
-    
+
     promises.push(promise);
   });
-  
+
   return Promise.all(promises);
 };
 
@@ -111,7 +112,7 @@ const StepperCustomerForm = () => {
 
   const [errors, setErrors] = useState({});
   const [currentStep, setCurrentStep] = useState(1);
-  
+
   // Timer options array - updated to match second code example
   const timerOptions = ['Digital', 'Cyclic-15 mins', 'TSIWI', '800XC', 'Other'];
 
@@ -159,7 +160,7 @@ const StepperCustomerForm = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
-    
+
     // Clear phone exists flag when user edits phone number
     if (name === 'phoneNumber') {
       setPhoneExists(false);
@@ -173,15 +174,15 @@ const StepperCustomerForm = () => {
     ) {
       return;
     }
-  
+
     const delayDebounce = setTimeout(() => {
       checkEmailPhoneExists(formData.email, formData.phoneNumber);
     }, 600);
-  
+
     return () => clearTimeout(delayDebounce);
   }, [formData.email, formData.phoneNumber]);
-  
-  
+
+
   const checkEmailPhoneExists = async (email, phone) => {
     setChecking(true);
     setPhoneExists(false);
@@ -238,10 +239,10 @@ const StepperCustomerForm = () => {
   const handleTimerSelectChange = (index, selectedOptions) => {
     const updatedGrowers = [...growers];
     const selectedValues = selectedOptions ? selectedOptions.map(opt => opt.value) : [];
-    
+
     // Update the timerUsed array
     updatedGrowers[index].timerUsed = selectedValues;
-    
+
     // Initialize or update timer quantities
     if (updatedGrowers[index].timerQuantities) {
       // Remove quantities for deselected timers
@@ -255,14 +256,14 @@ const StepperCustomerForm = () => {
     } else {
       updatedGrowers[index].timerQuantities = {};
     }
-    
+
     // Initialize quantities for new selections
     selectedValues.forEach(timer => {
       if (!updatedGrowers[index].timerQuantities[timer]) {
         updatedGrowers[index].timerQuantities[timer] = '1';
       }
     });
-    
+
     // Clear timerUsedOther if "Other" is not selected
     if (!selectedValues.includes('Other')) {
       updatedGrowers[index].timerUsedOther = '';
@@ -271,7 +272,7 @@ const StepperCustomerForm = () => {
         delete updatedGrowers[index].timerQuantities['Other'];
       }
     }
-    
+
     setGrowers(updatedGrowers);
     setErrors(prev => ({ ...prev, [`timerUsed_${index}`]: '' }));
   };
@@ -279,17 +280,17 @@ const StepperCustomerForm = () => {
   // Handle timer quantity change - FIXED
   const handleTimerQuantityChange = (index, timerType, value) => {
     const updatedGrowers = [...growers];
-    
+
     // Initialize timerQuantities if it doesn't exist
     if (!updatedGrowers[index].timerQuantities) {
       updatedGrowers[index].timerQuantities = {};
     }
-    
+
     // Update the quantity for the specific timer type
     updatedGrowers[index].timerQuantities[timerType] = value;
-    
+
     setGrowers(updatedGrowers);
-    
+
     // Clear any error for this timer quantity
     const errorKey = `timerQuantity_${timerType}_${index}`;
     setErrors(prev => {
@@ -346,370 +347,370 @@ const StepperCustomerForm = () => {
     console.log("FormData updated:", formData);
   }, [formData]);
 
-useEffect(() => {
-  const fetchUser = async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?id=${id}`);
-      const data = await response.json();
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/customer.php?id=${id}`);
+        const data = await response.json();
 
-      console.log("✅ Full API Response:", data);
-      console.log("📊 Grower Timer Data (raw):", data.grower_timer);
-      console.log("📊 Individual Grower Data:", data.grower);
+        console.log("✅ Full API Response:", data);
+        console.log("📊 Grower Timer Data (raw):", data.grower_timer);
+        console.log("📊 Individual Grower Data:", data.grower);
 
-      if (data.status === "success" && data.data) {
-        const user = Array.isArray(data.data) ? data.data[0] : data.data;
-        const growerArray = Array.isArray(data.grower) ? data.grower : (data.grower ? [data.grower] : []);
-        const customerPlants = Array.isArray(data.customer_plant) ? data.customer_plant : [];
-        const growerTimerData = Array.isArray(data.grower_timer) ? data.grower_timer : [];
+        if (data.status === "success" && data.data) {
+          const user = Array.isArray(data.data) ? data.data[0] : data.data;
+          const growerArray = Array.isArray(data.grower) ? data.grower : (data.grower ? [data.grower] : []);
+          const customerPlants = Array.isArray(data.customer_plant) ? data.customer_plant : [];
+          const growerTimerData = Array.isArray(data.grower_timer) ? data.grower_timer : [];
 
-        const newFormData = {
-          name: user.name || '',
-          email: user.email || '',
-          phoneNumber: user.phone || '',
-          staffPhoneNumber: user.staff_phone || '',
-          state: user.state || '',
-          city: user.city || '',
-          pincode: user.pincode || '',
-          landmark: user.landmark || '',
-          locality: user.locality || '',
-          address: user.street_address || '',
-          profilePic: user.profile_pic || '',
-          isActive: user.status ? user.status === "active" : true,
-        };
-        setFormData(newFormData);
+          const newFormData = {
+            name: user.name || '',
+            email: user.email || '',
+            phoneNumber: user.phone || '',
+            staffPhoneNumber: user.staff_phone || '',
+            state: user.state || '',
+            city: user.city || '',
+            pincode: user.pincode || '',
+            landmark: user.landmark || '',
+            locality: user.locality || '',
+            address: user.street_address || '',
+            profilePic: user.profile_pic || '',
+            isActive: user.status ? user.status === "active" : true,
+          };
+          setFormData(newFormData);
 
-        // Group timers by grower_id if it exists
-        const timersByGrowerId = {};
-        growerTimerData.forEach(timer => {
-          const growerId = timer.grower_id || timer.growerId || null;
-          
-          if (growerId) {
-            if (!timersByGrowerId[growerId]) {
-              timersByGrowerId[growerId] = [];
+          // Group timers by grower_id if it exists
+          const timersByGrowerId = {};
+          growerTimerData.forEach(timer => {
+            const growerId = timer.grower_id || timer.growerId || null;
+
+            if (growerId) {
+              if (!timersByGrowerId[growerId]) {
+                timersByGrowerId[growerId] = [];
+              }
+              timersByGrowerId[growerId].push(timer);
+            } else {
+              if (!timersByGrowerId['ungrouped']) {
+                timersByGrowerId['ungrouped'] = [];
+              }
+              timersByGrowerId['ungrouped'].push(timer);
             }
-            timersByGrowerId[growerId].push(timer);
-          } else {
-            if (!timersByGrowerId['ungrouped']) {
-              timersByGrowerId['ungrouped'] = [];
-            }
-            timersByGrowerId['ungrouped'].push(timer);
-          }
-        });
+          });
 
-        console.log("📊 Timers grouped by grower ID:", timersByGrowerId);
+          console.log("📊 Timers grouped by grower ID:", timersByGrowerId);
 
-        const newGrowersData = growerArray.map((g, growerIndex) => {
-          const growerId = g.id || g.grower_id || `grower_${growerIndex}`;
-          
-          // Handle selectedPlants - always keep as array
-          let plantsForThisGrower = [];
-          
-          // Try to get plants from customer_plant table
-          const plantsFromTable = customerPlants
-            .filter((p) => {
-              if (!p) return false;
-              return String(p.grower_id ?? p.growerId ?? '') === String(growerId);
-            })
-            .map((p) => ({
-              value: p.name,
-              label: p.name,
-            }));
-          
-          if (plantsFromTable.length > 0) {
-            plantsForThisGrower = plantsFromTable;
-          } else if (g.selected_plants) {
-            // Fallback: parse from selected_plants field
-            try {
-              let parsedPlants = g.selected_plants;
-              if (typeof g.selected_plants === 'string') {
-                if (g.selected_plants.startsWith('[') || g.selected_plants.startsWith('{')) {
-                  parsedPlants = JSON.parse(g.selected_plants);
-                }
-              }
-              
-              if (Array.isArray(parsedPlants)) {
-                plantsForThisGrower = parsedPlants;
-              } else if (typeof parsedPlants === 'string') {
-                plantsForThisGrower = [{ value: parsedPlants, label: parsedPlants }];
-              }
-            } catch (e) {
-              console.error("Error parsing selected plants:", e);
-            }
-          }
-          
-          // Parse timer data for THIS specific grower
-          let timerUsed = [];
-          let timerQuantities = {};
-          let timerUsedOther = '';
-          
-          // First, try to get timers specifically assigned to this grower
-          const timersForThisGrower = timersByGrowerId[growerId] || [];
-          
-          console.log(`Grower ${growerId} - specific timers:`, timersForThisGrower);
+          const newGrowersData = growerArray.map((g, growerIndex) => {
+            const growerId = g.id || g.grower_id || `grower_${growerIndex}`;
 
-          if (timersForThisGrower.length > 0) {
-            timersForThisGrower.forEach(timer => {
-              const timerType = timer.timer_used;
-              const quantity = timer.quantity || '1';
-              
-              // IMPORTANT: Check if timerType is actually a custom timer name
-              // If it's not in our predefined timerOptions, it's a custom timer
-              const isCustomTimer = !timerOptions.includes(timerType);
-              
-              if (isCustomTimer) {
-                // This is a custom timer, so we need to add "Other" to timerUsed
-                // and store the custom name in timerUsedOther
-                if (!timerUsed.includes('Other')) {
-                  timerUsed.push('Other');
-                }
-                timerUsedOther = timerType; // Store custom name
-                timerQuantities['Other'] = quantity; // Quantity goes under "Other" key
-              } else {
-                // This is a standard timer from timerOptions
-                if (!timerUsed.includes(timerType)) {
-                  timerUsed.push(timerType);
-                }
-                timerQuantities[timerType] = quantity;
-              }
-            });
-          } else if (growerTimerData.length > 0) {
-            const totalGrowers = growerArray.length;
-            const timersPerGrower = Math.ceil(growerTimerData.length / totalGrowers);
-            const startIndex = growerIndex * timersPerGrower;
-            const endIndex = Math.min(startIndex + timersPerGrower, growerTimerData.length);
-            
-            const assignedTimers = growerTimerData.slice(startIndex, endIndex);
-            
-            console.log(`Grower ${growerId} - assigned timers (index ${growerIndex}):`, assignedTimers);
-            
-            assignedTimers.forEach(timer => {
-              const timerType = timer.timer_used;
-              const quantity = timer.quantity || '1';
-              
-              // Check if timerType is a custom timer
-              if (timerType === 'Other') {
-                if (!timerUsed.includes('Other')) {
-                  timerUsed.push('Other');
-                }
+            // Handle selectedPlants - always keep as array
+            let plantsForThisGrower = [];
 
-                // ✅ THIS IS THE FIX
-                timerUsedOther = timer.timer_used_other || '';
-                timerQuantities['Other'] = quantity;
+            // Try to get plants from customer_plant table
+            const plantsFromTable = customerPlants
+              .filter((p) => {
+                if (!p) return false;
+                return String(p.grower_id ?? p.growerId ?? '') === String(growerId);
+              })
+              .map((p) => ({
+                value: p.name,
+                label: p.name,
+              }));
 
-              } else {
-                if (!timerUsed.includes(timerType)) {
-                  timerUsed.push(timerType);
-                }
-                timerQuantities[timerType] = quantity;
-              }
-
-            });
-          }
-          
-          // Fallback: Check individual grower fields for timer data
-          if (timerUsed.length === 0 && g.timer_used) {
-            console.log(`Grower ${growerId} - using individual grower timer fields`);
-            
-            try {
-              let parsedTimerUsed = g.timer_used;
-              if (typeof g.timer_used === 'string') {
-                if (g.timer_used.startsWith('[') || g.timer_used.startsWith('{')) {
-                  parsedTimerUsed = JSON.parse(g.timer_used);
-                }
-              }
-              
-              let parsedTimerQuantity = g.timer_quantity;
-              if (g.timer_quantity && typeof g.timer_quantity === 'string') {
-                if (g.timer_quantity.startsWith('{') || g.timer_quantity.startsWith('[')) {
-                  parsedTimerQuantity = JSON.parse(g.timer_quantity);
-                }
-              }
-              
-              if (Array.isArray(parsedTimerUsed)) {
-                // Check if array contains custom timers
-                const containsCustomTimer = parsedTimerUsed.some(timer => !timerOptions.includes(timer));
-                
-                if (containsCustomTimer) {
-                  // If we have custom timers, add "Other" to timerUsed
-                  timerUsed = ['Other'];
-                  
-                  // Find the custom timer name (first one not in timerOptions)
-                  const customTimer = parsedTimerUsed.find(timer => !timerOptions.includes(timer));
-                  if (customTimer) {
-                    timerUsedOther = customTimer;
+            if (plantsFromTable.length > 0) {
+              plantsForThisGrower = plantsFromTable;
+            } else if (g.selected_plants) {
+              // Fallback: parse from selected_plants field
+              try {
+                let parsedPlants = g.selected_plants;
+                if (typeof g.selected_plants === 'string') {
+                  if (g.selected_plants.startsWith('[') || g.selected_plants.startsWith('{')) {
+                    parsedPlants = JSON.parse(g.selected_plants);
                   }
-                  
-                  // Get quantity for "Other"
-                  if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
-                    // Look for quantity under custom timer name or "Other" key
-                    if (parsedTimerQuantity[customTimer]) {
-                      timerQuantities['Other'] = parsedTimerQuantity[customTimer];
-                    } else if (parsedTimerQuantity['Other']) {
-                      timerQuantities['Other'] = parsedTimerQuantity['Other'];
+                }
+
+                if (Array.isArray(parsedPlants)) {
+                  plantsForThisGrower = parsedPlants;
+                } else if (typeof parsedPlants === 'string') {
+                  plantsForThisGrower = [{ value: parsedPlants, label: parsedPlants }];
+                }
+              } catch (e) {
+                console.error("Error parsing selected plants:", e);
+              }
+            }
+
+            // Parse timer data for THIS specific grower
+            let timerUsed = [];
+            let timerQuantities = {};
+            let timerUsedOther = '';
+
+            // First, try to get timers specifically assigned to this grower
+            const timersForThisGrower = timersByGrowerId[growerId] || [];
+
+            console.log(`Grower ${growerId} - specific timers:`, timersForThisGrower);
+
+            if (timersForThisGrower.length > 0) {
+              timersForThisGrower.forEach(timer => {
+                const timerType = timer.timer_used;
+                const quantity = timer.quantity || '1';
+
+                // IMPORTANT: Check if timerType is actually a custom timer name
+                // If it's not in our predefined timerOptions, it's a custom timer
+                const isCustomTimer = !timerOptions.includes(timerType);
+
+                if (isCustomTimer) {
+                  // This is a custom timer, so we need to add "Other" to timerUsed
+                  // and store the custom name in timerUsedOther
+                  if (!timerUsed.includes('Other')) {
+                    timerUsed.push('Other');
+                  }
+                  timerUsedOther = timerType; // Store custom name
+                  timerQuantities['Other'] = quantity; // Quantity goes under "Other" key
+                } else {
+                  // This is a standard timer from timerOptions
+                  if (!timerUsed.includes(timerType)) {
+                    timerUsed.push(timerType);
+                  }
+                  timerQuantities[timerType] = quantity;
+                }
+              });
+            } else if (growerTimerData.length > 0) {
+              const totalGrowers = growerArray.length;
+              const timersPerGrower = Math.ceil(growerTimerData.length / totalGrowers);
+              const startIndex = growerIndex * timersPerGrower;
+              const endIndex = Math.min(startIndex + timersPerGrower, growerTimerData.length);
+
+              const assignedTimers = growerTimerData.slice(startIndex, endIndex);
+
+              console.log(`Grower ${growerId} - assigned timers (index ${growerIndex}):`, assignedTimers);
+
+              assignedTimers.forEach(timer => {
+                const timerType = timer.timer_used;
+                const quantity = timer.quantity || '1';
+
+                // Check if timerType is a custom timer
+                if (timerType === 'Other') {
+                  if (!timerUsed.includes('Other')) {
+                    timerUsed.push('Other');
+                  }
+
+                  // ✅ THIS IS THE FIX
+                  timerUsedOther = timer.timer_used_other || '';
+                  timerQuantities['Other'] = quantity;
+
+                } else {
+                  if (!timerUsed.includes(timerType)) {
+                    timerUsed.push(timerType);
+                  }
+                  timerQuantities[timerType] = quantity;
+                }
+
+              });
+            }
+
+            // Fallback: Check individual grower fields for timer data
+            if (timerUsed.length === 0 && g.timer_used) {
+              console.log(`Grower ${growerId} - using individual grower timer fields`);
+
+              try {
+                let parsedTimerUsed = g.timer_used;
+                if (typeof g.timer_used === 'string') {
+                  if (g.timer_used.startsWith('[') || g.timer_used.startsWith('{')) {
+                    parsedTimerUsed = JSON.parse(g.timer_used);
+                  }
+                }
+
+                let parsedTimerQuantity = g.timer_quantity;
+                if (g.timer_quantity && typeof g.timer_quantity === 'string') {
+                  if (g.timer_quantity.startsWith('{') || g.timer_quantity.startsWith('[')) {
+                    parsedTimerQuantity = JSON.parse(g.timer_quantity);
+                  }
+                }
+
+                if (Array.isArray(parsedTimerUsed)) {
+                  // Check if array contains custom timers
+                  const containsCustomTimer = parsedTimerUsed.some(timer => !timerOptions.includes(timer));
+
+                  if (containsCustomTimer) {
+                    // If we have custom timers, add "Other" to timerUsed
+                    timerUsed = ['Other'];
+
+                    // Find the custom timer name (first one not in timerOptions)
+                    const customTimer = parsedTimerUsed.find(timer => !timerOptions.includes(timer));
+                    if (customTimer) {
+                      timerUsedOther = customTimer;
+                    }
+
+                    // Get quantity for "Other"
+                    if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
+                      // Look for quantity under custom timer name or "Other" key
+                      if (parsedTimerQuantity[customTimer]) {
+                        timerQuantities['Other'] = parsedTimerQuantity[customTimer];
+                      } else if (parsedTimerQuantity['Other']) {
+                        timerQuantities['Other'] = parsedTimerQuantity['Other'];
+                      } else {
+                        timerQuantities['Other'] = '1';
+                      }
+                    } else {
+                      timerQuantities['Other'] = g.timer_quantity || '1';
+                    }
+
+                    // Also add any standard timers from the array
+                    parsedTimerUsed.forEach(timer => {
+                      if (timerOptions.includes(timer) && !timerUsed.includes(timer)) {
+                        timerUsed.push(timer);
+                        if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
+                          timerQuantities[timer] = parsedTimerQuantity[timer] || '1';
+                        } else {
+                          timerQuantities[timer] = '1';
+                        }
+                      }
+                    });
+                  } else {
+                    // No custom timers, all are standard
+                    timerUsed = [...new Set(parsedTimerUsed)];
+
+                    if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
+                      timerQuantities = { ...parsedTimerQuantity };
+                    } else {
+                      parsedTimerUsed.forEach(timer => {
+                        timerQuantities[timer] = '1';
+                      });
+                    }
+                  }
+                } else if (typeof parsedTimerUsed === 'object' && parsedTimerUsed !== null) {
+                  // Handle object case
+                  const timerKeys = Object.keys(parsedTimerUsed);
+                  const containsCustomTimer = timerKeys.some(key => !timerOptions.includes(key));
+
+                  if (containsCustomTimer) {
+                    timerUsed = ['Other'];
+                    const customTimer = timerKeys.find(key => !timerOptions.includes(key));
+                    if (customTimer) {
+                      timerUsedOther = customTimer;
+                      timerQuantities['Other'] = parsedTimerUsed[customTimer] || '1';
+                    }
+
+                    // Add standard timers
+                    timerKeys.forEach(key => {
+                      if (timerOptions.includes(key) && !timerUsed.includes(key)) {
+                        timerUsed.push(key);
+                        timerQuantities[key] = parsedTimerUsed[key] || '1';
+                      }
+                    });
+                  } else {
+                    timerUsed = timerKeys;
+                    timerQuantities = parsedTimerUsed;
+                  }
+                } else if (typeof parsedTimerUsed === 'string') {
+                  const isCustomTimer = !timerOptions.includes(parsedTimerUsed);
+
+                  if (isCustomTimer) {
+                    timerUsed = ['Other'];
+                    timerUsedOther = parsedTimerUsed;
+
+                    if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
+                      timerQuantities['Other'] = parsedTimerQuantity[parsedTimerUsed] || parsedTimerQuantity['Other'] || '1';
+                    } else if (g.timer_quantity) {
+                      timerQuantities['Other'] = g.timer_quantity;
                     } else {
                       timerQuantities['Other'] = '1';
                     }
                   } else {
-                    timerQuantities['Other'] = g.timer_quantity || '1';
-                  }
-                  
-                  // Also add any standard timers from the array
-                  parsedTimerUsed.forEach(timer => {
-                    if (timerOptions.includes(timer) && !timerUsed.includes(timer)) {
-                      timerUsed.push(timer);
-                      if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
-                        timerQuantities[timer] = parsedTimerQuantity[timer] || '1';
-                      } else {
-                        timerQuantities[timer] = '1';
-                      }
+                    timerUsed = [parsedTimerUsed];
+
+                    if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
+                      timerQuantities = parsedTimerQuantity;
+                    } else if (g.timer_quantity) {
+                      timerQuantities[parsedTimerUsed] = g.timer_quantity;
+                    } else {
+                      timerQuantities[parsedTimerUsed] = '1';
                     }
-                  });
-                } else {
-                  // No custom timers, all are standard
-                  timerUsed = [...new Set(parsedTimerUsed)];
-                  
-                  if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
-                    timerQuantities = { ...parsedTimerQuantity };
-                  } else {
-                    parsedTimerUsed.forEach(timer => {
-                      timerQuantities[timer] = '1';
-                    });
                   }
                 }
-              } else if (typeof parsedTimerUsed === 'object' && parsedTimerUsed !== null) {
-                // Handle object case
-                const timerKeys = Object.keys(parsedTimerUsed);
-                const containsCustomTimer = timerKeys.some(key => !timerOptions.includes(key));
-                
-                if (containsCustomTimer) {
-                  timerUsed = ['Other'];
-                  const customTimer = timerKeys.find(key => !timerOptions.includes(key));
-                  if (customTimer) {
-                    timerUsedOther = customTimer;
-                    timerQuantities['Other'] = parsedTimerUsed[customTimer] || '1';
-                  }
-                  
-                  // Add standard timers
-                  timerKeys.forEach(key => {
-                    if (timerOptions.includes(key) && !timerUsed.includes(key)) {
-                      timerUsed.push(key);
-                      timerQuantities[key] = parsedTimerUsed[key] || '1';
-                    }
-                  });
-                } else {
-                  timerUsed = timerKeys;
-                  timerQuantities = parsedTimerUsed;
-                }
-              } else if (typeof parsedTimerUsed === 'string') {
-                const isCustomTimer = !timerOptions.includes(parsedTimerUsed);
-                
-                if (isCustomTimer) {
-                  timerUsed = ['Other'];
-                  timerUsedOther = parsedTimerUsed;
-                  
-                  if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
-                    timerQuantities['Other'] = parsedTimerQuantity[parsedTimerUsed] || parsedTimerQuantity['Other'] || '1';
-                  } else if (g.timer_quantity) {
-                    timerQuantities['Other'] = g.timer_quantity;
+
+                timerUsedOther = g.timer_used_other || timerUsedOther;
+
+              } catch (e) {
+                console.error("Error parsing timer data:", e);
+                if (typeof g.timer_used === 'string') {
+                  const isCustomTimer = !timerOptions.includes(g.timer_used);
+
+                  if (isCustomTimer) {
+                    timerUsed = ['Other'];
+                    timerUsedOther = g.timer_used;
+                    timerQuantities = { 'Other': g.timer_quantity || '1' };
                   } else {
-                    timerQuantities['Other'] = '1';
+                    timerUsed = [g.timer_used];
+                    timerQuantities = { [g.timer_used]: g.timer_quantity || '1' };
                   }
-                } else {
-                  timerUsed = [parsedTimerUsed];
-                  
-                  if (typeof parsedTimerQuantity === 'object' && parsedTimerQuantity !== null) {
-                    timerQuantities = parsedTimerQuantity;
-                  } else if (g.timer_quantity) {
-                    timerQuantities[parsedTimerUsed] = g.timer_quantity;
-                  } else {
-                    timerQuantities[parsedTimerUsed] = '1';
-                  }
-                }
-              }
-              
-              timerUsedOther = g.timer_used_other || timerUsedOther;
-              
-            } catch (e) {
-              console.error("Error parsing timer data:", e);
-              if (typeof g.timer_used === 'string') {
-                const isCustomTimer = !timerOptions.includes(g.timer_used);
-                
-                if (isCustomTimer) {
-                  timerUsed = ['Other'];
-                  timerUsedOther = g.timer_used;
-                  timerQuantities = { 'Other': g.timer_quantity || '1' };
-                } else {
-                  timerUsed = [g.timer_used];
-                  timerQuantities = { [g.timer_used]: g.timer_quantity || '1' };
                 }
               }
             }
+
+            // Ensure all quantity values are strings
+            Object.keys(timerQuantities).forEach(key => {
+              if (typeof timerQuantities[key] !== 'string') {
+                timerQuantities[key] = String(timerQuantities[key]);
+              }
+            });
+
+            console.log(`Grower ${growerId} FINAL timer data:`, {
+              timerUsed,
+              timerQuantities,
+              timerUsedOther,
+              timerCount: timerUsed.length
+            });
+
+            return {
+              growerId: growerId,
+              systemType: g.system_type || '',
+              systemTypeOther: g.system_type_other || '',
+              growerQuantity: g.grower_qty || '',
+              numPlants: g.no_of_plants || '',
+              numLevels: g.no_of_levels || '',
+              numChannelPerLevel: g.channel_per_level || '',
+              numHolesPerChannel: g.holes_per_channel || '',
+              setupDimension: g.setup_dimension || '',
+              motorType: g.motor_used || '',
+              motorTypeOther: g.motor_used_other || '',
+              timerUsed: timerUsed,
+              timerQuantities: timerQuantities,
+              timerUsedOther: timerUsedOther,
+              numLights: g.no_of_lights || '',
+              modelOfLight: g.model_of_lights || '',
+              modelOfLightOther: g.model_of_lights_other || '',
+              lengthOfLight: g.length_of_lights || '',
+              lengthOfLightOther: g.length_of_lights_other || '',
+              tankCapacity: g.tank_capacity || '',
+              tankCapacityOther: g.tank_capacity_other || '',
+              nutritionGiven: g.nutrition_given || '',
+              otherSpecifications: g.other_specifications || '',
+              photoAtInstallation: g.installation_photo_url || '',
+              selectedPlants: plantsForThisGrower
+            };
+          });
+
+          setGrowers(newGrowersData);
+
+          if (user.state && statesAndCities[user.state]) {
+            setCities(statesAndCities[user.state]);
           }
-          
-          // Ensure all quantity values are strings
-          Object.keys(timerQuantities).forEach(key => {
-            if (typeof timerQuantities[key] !== 'string') {
-              timerQuantities[key] = String(timerQuantities[key]);
-            }
-          });
-          
-          console.log(`Grower ${growerId} FINAL timer data:`, {
-            timerUsed,
-            timerQuantities,
-            timerUsedOther,
-            timerCount: timerUsed.length
-          });
-
-          return {
-            growerId: growerId,
-            systemType: g.system_type || '',
-            systemTypeOther: g.system_type_other || '',
-            growerQuantity: g.grower_qty || '',
-            numPlants: g.no_of_plants || '',
-            numLevels: g.no_of_levels || '',
-            numChannelPerLevel: g.channel_per_level || '',
-            numHolesPerChannel: g.holes_per_channel ||'',
-            setupDimension: g.setup_dimension || '',
-            motorType: g.motor_used || '',
-            motorTypeOther: g.motor_used_other || '',
-            timerUsed: timerUsed,
-            timerQuantities: timerQuantities,
-            timerUsedOther: timerUsedOther,
-            numLights: g.no_of_lights || '',
-            modelOfLight: g.model_of_lights || '',
-            modelOfLightOther: g.model_of_lights_other || '',
-            lengthOfLight: g.length_of_lights || '',
-            lengthOfLightOther: g.length_of_lights_other || '',
-            tankCapacity: g.tank_capacity || '',
-            tankCapacityOther: g.tank_capacity_other || '',
-            nutritionGiven: g.nutrition_given || '',
-            otherSpecifications: g.other_specifications || '',
-            photoAtInstallation: g.installation_photo_url || '',
-            selectedPlants: plantsForThisGrower
-          };
-        });
-
-        setGrowers(newGrowersData);
-
-        if (user.state && statesAndCities[user.state]) {
-          setCities(statesAndCities[user.state]);
+        } else {
+          console.error("API returned error or no data");
+          alert('User not found!');
         }
-      } else {
-        console.error("API returned error or no data");
-        alert('User not found!');
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        alert('Failed to fetch user details!');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      alert('Failed to fetch user details!');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  fetchUser();
-}, [id]);
+    fetchUser();
+  }, [id]);
 
   const validateStep = () => {
     let stepErrors = {};
@@ -754,7 +755,7 @@ useEffect(() => {
         if (!grower.setupDimension.trim()) stepErrors[`setupDimension_${index}`] = 'Setup dimension is required';
         if (!grower.motorType) stepErrors[`motorType_${index}`] = 'Motor type is required';
         if (grower.motorType === 'Other' && !grower.motorTypeOther.trim()) stepErrors[`motorTypeOther_${index}`] = 'Please specify other motor type';
-        
+
         // Timer validation - updated for new structure
         if (!grower.timerUsed || grower.timerUsed.length === 0) {
           stepErrors[`timerUsed_${index}`] = 'At least one timer type is required';
@@ -769,11 +770,11 @@ useEffect(() => {
             }
           });
         }
-        
+
         if (grower.timerUsed?.includes('Other') && !grower.timerUsedOther.trim()) {
           stepErrors[`timerUsedOther_${index}`] = 'Please specify other timer';
         }
-        
+
         if (!grower.modelOfLight) stepErrors[`modelOfLight_${index}`] = 'Model of Light is required';
         if (grower.modelOfLight === 'Other' && !grower.modelOfLightOther.trim()) stepErrors[`modelOfLightOther_${index}`] = 'Please specify other model of light';
         if (!grower.lengthOfLight) stepErrors[`lengthOfLight_${index}`] = 'Length of Light is required';
@@ -793,227 +794,234 @@ useEffect(() => {
     return Object.keys(stepErrors).length === 0;
   };
 
- const handleSubmit = async () => {
-  if (!validateStep()) return;
+  const handleSubmit = async () => {
+    if (!validateStep()) return;
 
-  setLoading(true);
+    setLoading(true);
 
-  const formPayload = new FormData();
+    const formPayload = new FormData();
 
-  // Append basic form data
-  for (const key in formData) {
-    if (formData[key] !== undefined && formData[key] !== null) {
-      formPayload.append(key, formData[key]);
-    }
-  }
-
-  formPayload.append('id', id);
-  formPayload.append('_method', 'PUT');
-
-  // Prepare growers data properly
-  const processedGrowers = growers.map((grower, index) => {
-    const growerData = { ...grower };
-    
-    // Deep clone timerQuantities to avoid mutations
-    let finalTimerQuantities = {};
-    if (growerData.timerQuantities && typeof growerData.timerQuantities === 'object') {
-      finalTimerQuantities = JSON.parse(JSON.stringify(growerData.timerQuantities));
-    }
-    
-    // Process timerUsed array - keep "Other" if it exists
-    let finalTimerUsed = [...(growerData.timerUsed || [])];
-    const hasOtherInTimerUsed = finalTimerUsed.includes('Other');
-    const timerOtherName = growerData.timerUsedOther?.trim();
-    
-    // IMPORTANT: Keep "Other" in timerQuantities for custom timers
-    // If we have a custom timer name and "Other" is selected:
-    if (hasOtherInTimerUsed && timerOtherName) {
-      // Check if the custom timer name already exists in timerUsed
-      const customTimerExists = finalTimerUsed.includes(timerOtherName);
-      
-      if (!customTimerExists) {
-        // Add custom timer name to timerUsed array while keeping "Other"
-        finalTimerUsed = [...finalTimerUsed, timerOtherName];
-      }
-      
-      // Ensure "Other" has a quantity in timerQuantities
-      if (!finalTimerQuantities['Other'] && growerData.timerQuantities?.[timerOtherName]) {
-        // If no quantity for "Other" but there is for custom name, use that
-        finalTimerQuantities['Other'] = growerData.timerQuantities[timerOtherName];
-      } else if (!finalTimerQuantities['Other']) {
-        // Default to 1 if no quantity specified
-        finalTimerQuantities['Other'] = '1';
+    // Append basic form data
+    for (const key in formData) {
+      if (formData[key] !== undefined && formData[key] !== null) {
+        formPayload.append(key, formData[key]);
       }
     }
-    
-    // Ensure all timer quantity values are strings
-    Object.keys(finalTimerQuantities).forEach(key => {
-      if (typeof finalTimerQuantities[key] !== 'string') {
-        finalTimerQuantities[key] = String(finalTimerQuantities[key]);
+
+    formPayload.append('id', id);
+    formPayload.append('_method', 'PUT');
+
+    // Prepare growers data properly
+    const processedGrowers = growers.map((grower, index) => {
+      const growerData = { ...grower };
+
+      // Deep clone timerQuantities to avoid mutations
+      let finalTimerQuantities = {};
+      if (growerData.timerQuantities && typeof growerData.timerQuantities === 'object') {
+        finalTimerQuantities = JSON.parse(JSON.stringify(growerData.timerQuantities));
       }
-    });
-    
-    // Handle quantities for timer types that aren't in timerUsed
-    // Remove quantities for timers that aren't in timerUsed (except "Other")
-    Object.keys(finalTimerQuantities).forEach(timerKey => {
-      if (timerKey !== 'Other' && !finalTimerUsed.includes(timerKey)) {
-        delete finalTimerQuantities[timerKey];
+
+      // Process timerUsed array - keep "Other" if it exists
+      let finalTimerUsed = [...(growerData.timerUsed || [])];
+      const hasOtherInTimerUsed = finalTimerUsed.includes('Other');
+      const timerOtherName = growerData.timerUsedOther?.trim();
+
+      // IMPORTANT: Keep "Other" in timerQuantities for custom timers
+      // If we have a custom timer name and "Other" is selected:
+      if (hasOtherInTimerUsed && timerOtherName) {
+        // Check if the custom timer name already exists in timerUsed
+        const customTimerExists = finalTimerUsed.includes(timerOtherName);
+
+        if (!customTimerExists) {
+          // Add custom timer name to timerUsed array while keeping "Other"
+          finalTimerUsed = [...finalTimerUsed, timerOtherName];
+        }
+
+        // Ensure "Other" has a quantity in timerQuantities
+        if (!finalTimerQuantities['Other'] && growerData.timerQuantities?.[timerOtherName]) {
+          // If no quantity for "Other" but there is for custom name, use that
+          finalTimerQuantities['Other'] = growerData.timerQuantities[timerOtherName];
+        } else if (!finalTimerQuantities['Other']) {
+          // Default to 1 if no quantity specified
+          finalTimerQuantities['Other'] = '1';
+        }
       }
-    });
-    
-    // DO NOT stringify selectedPlants here - let JSON.stringify handle it
-    // Just ensure it's a valid array
-    let finalSelectedPlants = growerData.selectedPlants;
-    if (!Array.isArray(finalSelectedPlants)) {
-      // If it's already a string (JSON), parse it
-      if (typeof finalSelectedPlants === 'string') {
-        try {
-          finalSelectedPlants = JSON.parse(finalSelectedPlants);
-        } catch (e) {
+
+      // Ensure all timer quantity values are strings
+      Object.keys(finalTimerQuantities).forEach(key => {
+        if (typeof finalTimerQuantities[key] !== 'string') {
+          finalTimerQuantities[key] = String(finalTimerQuantities[key]);
+        }
+      });
+
+      // Handle quantities for timer types that aren't in timerUsed
+      // Remove quantities for timers that aren't in timerUsed (except "Other")
+      Object.keys(finalTimerQuantities).forEach(timerKey => {
+        if (timerKey !== 'Other' && !finalTimerUsed.includes(timerKey)) {
+          delete finalTimerQuantities[timerKey];
+        }
+      });
+
+      // DO NOT stringify selectedPlants here - let JSON.stringify handle it
+      // Just ensure it's a valid array
+      let finalSelectedPlants = growerData.selectedPlants;
+      if (!Array.isArray(finalSelectedPlants)) {
+        // If it's already a string (JSON), parse it
+        if (typeof finalSelectedPlants === 'string') {
+          try {
+            finalSelectedPlants = JSON.parse(finalSelectedPlants);
+          } catch (e) {
+            finalSelectedPlants = [];
+          }
+        } else {
           finalSelectedPlants = [];
         }
+      }
+
+      // Store photo separately
+      const photoFile = growerData.photoAtInstallation;
+
+      // Create clean grower object
+      const cleanGrower = {
+        growerId: growerData.growerId,
+        systemType: growerData.systemType || '',
+        systemTypeOther: growerData.systemTypeOther || '',
+        growerQuantity: growerData.growerQuantity || '',
+        numPlants: growerData.numPlants || '',
+        numLevels: growerData.numLevels || '',
+        numChannelPerLevel: growerData.numChannelPerLevel || '',
+        numHolesPerChannel: growerData.numHolesPerChannel || '',
+        setupDimension: growerData.setupDimension || '',
+        motorType: growerData.motorType || '',
+        motorTypeOther: growerData.motorTypeOther || '',
+        timerUsed: finalTimerUsed, // Use the processed array
+        timerQuantities: finalTimerQuantities, // Object with "Other" key
+        timerUsedOther: timerOtherName || '', // Custom timer name
+        numLights: growerData.numLights || '',
+        modelOfLight: growerData.modelOfLight || '',
+        modelOfLightOther: growerData.modelOfLightOther || '',
+        lengthOfLight: growerData.lengthOfLight || '',
+        lengthOfLightOther: growerData.lengthOfLightOther || '',
+        tankCapacity: growerData.tankCapacity || '',
+        tankCapacityOther: growerData.tankCapacityOther || '',
+        nutritionGiven: growerData.nutritionGiven || '',
+        otherSpecifications: growerData.otherSpecifications || '',
+        selectedPlants: finalSelectedPlants // Array, not string
+      };
+
+      return {
+        cleanGrower,
+        photoFile,
+        index
+      };
+    });
+
+    // Extract clean growers for JSON
+    const growersForJson = processedGrowers.map(item => item.cleanGrower);
+
+    // Append growers as JSON
+    formPayload.append("growers", JSON.stringify(growersForJson));
+
+    // Append photos separately
+    processedGrowers.forEach(item => {
+      const { photoFile, index } = item;
+      if (photoFile instanceof File) {
+        formPayload.append(`photoAtInstallation_${index}`, photoFile);
+      } else if (typeof photoFile === 'string' && photoFile) {
+        formPayload.append(`existing_photo_${index}`, photoFile);
+      }
+    });
+
+    // Debug logging
+    console.log("=== FORM PAYLOAD DEBUG ===");
+    console.log("Full processed growers array:", growersForJson);
+
+    // Check data types
+    growersForJson.forEach((grower, index) => {
+      console.log(`\nGrower ${index}:`);
+      console.log(`timerUsed:`, grower.timerUsed);
+      console.log(`timerQuantities:`, grower.timerQuantities);
+      console.log(`timerUsedOther:`, grower.timerUsedOther);
+    });
+
+    console.log("\nFinal growers JSON to send:");
+    console.log(JSON.stringify(growersForJson, null, 2));
+
+    // Log FormData entries
+    console.log("\nFormData entries:");
+    for (let pair of formPayload.entries()) {
+      if (pair[0] === 'growers') {
+        try {
+          const parsed = JSON.parse(pair[1]);
+          console.log("growers (parsed):", parsed);
+        } catch (e) {
+          console.log("growers (raw):", pair[1]);
+        }
+      } else if (!(pair[1] instanceof File)) {
+        console.log(pair[0] + ": ", pair[1]);
       } else {
-        finalSelectedPlants = [];
+        console.log(pair[0] + ": [File]");
       }
     }
-    
-    // Store photo separately
-    const photoFile = growerData.photoAtInstallation;
-    
-    // Create clean grower object
-    const cleanGrower = {
-      growerId: growerData.growerId,
-      systemType: growerData.systemType || '',
-      systemTypeOther: growerData.systemTypeOther || '',
-      growerQuantity: growerData.growerQuantity || '',
-      numPlants: growerData.numPlants || '',
-      numLevels: growerData.numLevels || '',
-      numChannelPerLevel: growerData.numChannelPerLevel || '',
-      numHolesPerChannel: growerData.numHolesPerChannel ||'',
-      setupDimension: growerData.setupDimension || '',
-      motorType: growerData.motorType || '',
-      motorTypeOther: growerData.motorTypeOther || '',
-      timerUsed: finalTimerUsed, // Use the processed array
-      timerQuantities: finalTimerQuantities, // Object with "Other" key
-      timerUsedOther: timerOtherName || '', // Custom timer name
-      numLights: growerData.numLights || '',
-      modelOfLight: growerData.modelOfLight || '',
-      modelOfLightOther: growerData.modelOfLightOther || '',
-      lengthOfLight: growerData.lengthOfLight || '',
-      lengthOfLightOther: growerData.lengthOfLightOther || '',
-      tankCapacity: growerData.tankCapacity || '',
-      tankCapacityOther: growerData.tankCapacityOther || '',
-      nutritionGiven: growerData.nutritionGiven || '',
-      otherSpecifications: growerData.otherSpecifications || '',
-      selectedPlants: finalSelectedPlants // Array, not string
-    };
-    
-    return {
-      cleanGrower,
-      photoFile,
-      index
-    };
-  });
 
-  // Extract clean growers for JSON
-  const growersForJson = processedGrowers.map(item => item.cleanGrower);
-  
-  // Append growers as JSON
-  formPayload.append("growers", JSON.stringify(growersForJson));
+    try {
+      // Actual API call
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}api/customer.php`,
+        {
+          method: "POST",
+          body: formPayload
+        }
+      );
 
-  // Append photos separately
-  processedGrowers.forEach(item => {
-    const { photoFile, index } = item;
-    if (photoFile instanceof File) {
-      formPayload.append(`photoAtInstallation_${index}`, photoFile);
-    } else if (typeof photoFile === 'string' && photoFile) {
-      formPayload.append(`existing_photo_${index}`, photoFile);
-    }
-  });
+      const result = await response.json();
+      console.log("Server response:", result);
 
-  // Debug logging
-  console.log("=== FORM PAYLOAD DEBUG ===");
-  console.log("Full processed growers array:", growersForJson);
-  
-  // Check data types
-  growersForJson.forEach((grower, index) => {
-    console.log(`\nGrower ${index}:`);
-    console.log(`timerUsed:`, grower.timerUsed);
-    console.log(`timerQuantities:`, grower.timerQuantities);
-    console.log(`timerUsedOther:`, grower.timerUsedOther);
-  });
-
-  console.log("\nFinal growers JSON to send:");
-  console.log(JSON.stringify(growersForJson, null, 2));
-
-  // Log FormData entries
-  console.log("\nFormData entries:");
-  for (let pair of formPayload.entries()) {
-    if (pair[0] === 'growers') {
-      try {
-        const parsed = JSON.parse(pair[1]);
-        console.log("growers (parsed):", parsed);
-      } catch (e) {
-        console.log("growers (raw):", pair[1]);
+      if (result.status === "success") {
+        toast.success(result.message);
+        setErrors({});
+      } else {
+        toast.error(result.error || "Something went wrong");
+        console.error("Server error details:", result);
       }
-    } else if (!(pair[1] instanceof File)) {
-      console.log(pair[0] + ": ", pair[1]);
-    } else {
-      console.log(pair[0] + ": [File]");
+
+    } catch (error) {
+      toast.error("Error submitting form");
+      console.error("Error submitting form:", error);
+    } finally {
+      setLoading(false);
     }
-  }
-
-  try {
-    // Actual API call
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}api/customer.php`,
-      {
-        method: "POST",
-        body: formPayload
-      }
-    );
-
-    const result = await response.json();
-    console.log("Server response:", result);
-
-    if (result.status === "success") {
-      toast.success(result.message);
-      setErrors({});
-    } else {
-      toast.error(result.error || "Something went wrong");
-      console.error("Server error details:", result);
-    }
-
-  } catch (error) {
-    toast.error("Error submitting form");
-    console.error("Error submitting form:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const [cities, setCities] = useState([]);
-  const statesAndCities = {
-    Maharashtra: ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
-    Karnataka: ['Bengaluru', 'Mysore', 'Mangalore'],
-    Gujarat: ['Ahmedabad', 'Surat', 'Vadodara'],
-  };
-  
-  const handleStateChange = (e) => {
-    const selectedState = e.target.value;
-    setFormData({ ...formData, state: selectedState, city: '' });
-    setCities(statesAndCities[selectedState] || []);
-  };
-  
+  const statesAndCities = {};
+
+ const handleStateChange = (e) => {
+  const selectedState = e.target.value;
+
+  const stateObj = statesData.find(
+    (item) => item.state === selectedState
+  );
+
+  setFormData((prev) => ({
+    ...prev,
+    state: selectedState,
+    city: "",
+  }));
+
+  setCities(stateObj?.cities || []);
+};
+
+
   const nextStep = () => {
     if (phoneExists && currentStep === 1) {
       toast.error("Phone number already exists. Please use a different number.");
       return;
     }
-    
+
     if (validateStep()) setCurrentStep(prev => Math.min(prev + 1, 3));
   };
-  
+
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
   // Add download function
@@ -1022,7 +1030,7 @@ useEffect(() => {
 
     try {
       toast.info("Generating image... Please wait.");
-      
+
       const canvas = await html2canvas(reviewRef.current, {
         scale: 2,
         useCORS: true,
@@ -1034,7 +1042,7 @@ useEffect(() => {
       });
 
       const image = canvas.toDataURL('image/png', 1.0);
-      
+
       const link = document.createElement('a');
       const fileName = `customer-review-${formData.name || 'customer'}-${Date.now()}.png`;
       link.download = fileName;
@@ -1042,7 +1050,7 @@ useEffect(() => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       toast.success(`Review downloaded as ${fileName}`);
     } catch (error) {
       console.error("Error downloading review:", error);
@@ -1095,7 +1103,7 @@ useEffect(() => {
             {/* Email */}
             <div className="flex flex-col">
               <label className="mb-1 font-medium text-gray-700">
-                Email (ईमेल) 
+                Email (ईमेल)
               </label>
               <input
                 type="email"
@@ -1188,6 +1196,7 @@ useEffect(() => {
               <label className="mb-1 font-medium text-gray-700">
                 State (राज्य) <span className="text-red-500">*</span>
               </label>
+
               <select
                 name="state"
                 value={formData.state}
@@ -1197,14 +1206,22 @@ useEffect(() => {
                   : "border-gray-300 focus:ring-blue-400"
                   }`}
               >
-                <option value="" disabled>Select state</option>
-                {Object.keys(statesAndCities).map((state) => (
-                  <option key={state} value={state}>
-                    {state}
+                <option value="" disabled>
+                  Select state
+                </option>
+
+                {statesData.map((item) => (
+                  <option key={item.state} value={item.state}>
+                    {item.state}
                   </option>
                 ))}
               </select>
-              {errors.state && <span className="text-red-500 text-sm mt-1">{errors.state}</span>}
+
+              {errors.state && (
+                <span className="text-red-500 text-sm mt-1">
+                  {errors.state}
+                </span>
+              )}
             </div>
 
             {/* City */}
@@ -1212,25 +1229,40 @@ useEffect(() => {
               <label className="mb-1 font-medium text-gray-700">
                 City (शहर) <span className="text-red-500">*</span>
               </label>
+
               <select
                 name="city"
                 value={formData.city}
-                onChange={handleInputChange}
-                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.city
-                  ? "border-red-500 focus:ring-red-400"
-                  : "border-gray-300 focus:ring-blue-400"
-                  }`}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    city: e.target.value,
+                  }))
+                }
                 disabled={!cities.length}
+                className={`px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors.city
+                    ? "border-red-500 focus:ring-red-400"
+                    : "border-gray-300 focus:ring-blue-400"
+                  }`}
               >
-                <option value="" disabled>Select city</option>
+                <option value="" disabled>
+                  Select city
+                </option>
+
                 {cities.map((city) => (
                   <option key={city} value={city}>
                     {city}
                   </option>
                 ))}
               </select>
-              {errors.city && <span className="text-red-500 text-sm mt-1">{errors.city}</span>}
+
+              {errors.city && (
+                <span className="text-red-500 text-sm mt-1">
+                  {errors.city}
+                </span>
+              )}
             </div>
+
 
             {/* Locality */}
             <div className="flex flex-col">
@@ -1495,7 +1527,7 @@ useEffect(() => {
                     <label className="mb-1 font-medium text-gray-700">
                       Timer Used <span className="text-red-500">*</span>
                     </label>
-                    
+
                     <Select
                       isMulti
                       options={timerOptions.map(option => ({ value: option, label: option }))}
@@ -1508,7 +1540,7 @@ useEffect(() => {
                       }}
                     />
                     {errors[`timerUsed_${index}`] && <span className="text-red-500 text-sm mt-1">{errors[`timerUsed_${index}`]}</span>}
-                    
+
                     {/* Quantity fields for selected timers */}
                     {grower.timerUsed && grower.timerUsed.length > 0 && (
                       <div className="mt-4 space-y-3">
@@ -1526,8 +1558,8 @@ useEffect(() => {
                                 min="1"
                                 placeholder="Quantity"
                                 // For "Other" timer, always use the quantity from timerQuantities.Other
-                                value={timer === 'Other' 
-                                  ? (grower.timerQuantities?.['Other'] || '') 
+                                value={timer === 'Other'
+                                  ? (grower.timerQuantities?.['Other'] || '')
                                   : (grower.timerQuantities?.[timer] || '')
                                 }
                                 onChange={(e) => {
@@ -1535,11 +1567,10 @@ useEffect(() => {
                                   const timerKey = timer === 'Other' ? 'Other' : timer;
                                   handleTimerQuantityChange(index, timerKey, e.target.value);
                                 }}
-                                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${
-                                  errors[`timerQuantity_${timer}_${index}`] 
-                                  ? 'border-red-500 focus:ring-red-400' 
+                                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`timerQuantity_${timer}_${index}`]
+                                  ? 'border-red-500 focus:ring-red-400'
                                   : 'border-gray-300 focus:ring-blue-400'
-                                }`}
+                                  }`}
                               />
                               {errors[`timerQuantity_${timer}_${index}`] && (
                                 <span className="text-red-500 text-sm mt-1">{errors[`timerQuantity_${timer}_${index}`]}</span>
@@ -1549,7 +1580,7 @@ useEffect(() => {
                         ))}
                       </div>
                     )}
-                    
+
                     {/* Other timer specification field - SHOWING CUSTOM TIMER NAME */}
                     {grower.timerUsed?.includes('Other') && (
                       <div className="mt-4">
@@ -1559,11 +1590,10 @@ useEffect(() => {
                           value={grower.timerUsedOther || ''}
                           onChange={(e) => handleGrowerChange(index, e)}
                           placeholder="Specify other timer"
-                          className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${
-                            errors[`timerUsedOther_${index}`] 
-                            ? 'border-red-500 focus:ring-red-400' 
+                          className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition ${errors[`timerUsedOther_${index}`]
+                            ? 'border-red-500 focus:ring-red-400'
                             : 'border-gray-300 focus:ring-blue-400'
-                          }`}
+                            }`}
                         />
                         {errors[`timerUsedOther_${index}`] && (
                           <span className="text-red-500 text-sm mt-1">{errors[`timerUsedOther_${index}`]}</span>
@@ -1860,7 +1890,7 @@ useEffect(() => {
                       />
                     )}
                   </div>
-                  
+
                   <div className="md:col-span-2">
                     <p className="text-gray-800">
                       <span className="font-medium text-gray-600">Status: </span>
@@ -1874,7 +1904,7 @@ useEffect(() => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="border border-gray-200 rounded-lg p-6 bg-gray-50 mt-6">
                 <h4 className="text-lg font-semibold mb-4 text-gray-700">Grower Information</h4>
 
@@ -1932,7 +1962,7 @@ useEffect(() => {
                               : grower.motorType}
                           </p>
                         </div>
-                        
+
                         {/* Timer Used in Review - FIXED */}
                         <div className="md:col-span-2">
                           <p className="text-gray-800">
@@ -1941,7 +1971,7 @@ useEffect(() => {
                               <ul className="list-disc pl-5 mt-1">
                                 {grower.timerUsed.map((timer, idx) => (
                                   <li key={idx} className="text-gray-800">
-                                    {timer === 'Other' && grower.timerUsedOther ? grower.timerUsedOther : timer}: 
+                                    {timer === 'Other' && grower.timerUsedOther ? grower.timerUsedOther : timer}:
                                     <span className="font-semibold ml-1">
                                       {grower.timerQuantities?.[timer === 'Other' ? 'Other' : timer] || '0'} qty
                                     </span>
@@ -2050,7 +2080,7 @@ useEffect(() => {
         return null;
     }
   };
-  
+
   return (
     <div className="w-full min-h-screen bg-gray-100 mt-10">
       <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">

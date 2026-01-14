@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import statesData from '@/data/state';
 
 export default function EditUserForm() {
   const { id } = useParams();
@@ -28,16 +29,6 @@ export default function EditUserForm() {
   const [cities, setCities] = useState([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-
-
-
-  const statesAndCities = {
-    Maharashtra: ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
-    Karnataka: ['Bengaluru', 'Mysore', 'Mangalore'],
-    Gujarat: ['Ahmedabad', 'Surat', 'Vadodara'],
-    Delhi: ['New Delhi', 'Central Delhi', 'South Delhi', 'North Delhi'],
-    'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem']
-  };
 
   // 🟢 Fetch user details when component loads
   useEffect(() => {
@@ -72,9 +63,11 @@ export default function EditUserForm() {
             profilePic: user.profile_pic ? `${import.meta.env.VITE_API_URL}uploads/users/${user.profile_pic}` : ''
           });
 
-          if (user.state && statesAndCities[user.state]) {
-            setCities(statesAndCities[user.state]);
+          if (user.state) {
+            const stateObj = statesData.find((item) => item.state === user.state);
+            setCities(stateObj?.cities || []);
           }
+
         } else {
           alert('User not found!');
         }
@@ -92,9 +85,22 @@ export default function EditUserForm() {
   // 🟡 Input handlers
   const handleStateChange = (e) => {
     const selectedState = e.target.value;
-    setFormData({ ...formData, state: selectedState, city: '' });
-    setCities(statesAndCities[selectedState] || []);
-    if (errors.state) setErrors({ ...errors, state: '' });
+
+    const stateObj = statesData.find(
+      (item) => item.state === selectedState
+    );
+
+    setFormData({
+      ...formData,
+      state: selectedState,
+      city: "",
+    });
+
+    setCities(stateObj ? stateObj.cities : []);
+
+    if (errors.state) {
+      setErrors({ ...errors, state: "" });
+    }
   };
 
   const handleInputChange = (e) => {
@@ -214,43 +220,43 @@ export default function EditUserForm() {
   //     }
   // };
 
- const handleSubmit = async () => {
+  const handleSubmit = async () => {
     if (!validateForm()) return;
 
     setLoading(true); // Disable button + change label
 
     try {
-        // ⏳ Add delay before submitting (Adjust time in ms)
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      // ⏳ Add delay before submitting (Adjust time in ms)
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-        const form = new FormData();
-        Object.entries(formData).forEach(([key, value]) => {
-            if (value !== null) form.append(key, value);
-        });
+      const form = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== null) form.append(key, value);
+      });
 
-        form.append('id', id);
-        form.append('_method', 'PUT');
+      form.append('id', id);
+      form.append('_method', 'PUT');
 
-        const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php?id=${id}`, {
-            method: 'POST',
-            body: form,
-        });
+      const response = await fetch(`${import.meta.env.VITE_API_URL}api/user.php?id=${id}`, {
+        method: 'POST',
+        body: form,
+      });
 
-        const result = await response.json();
+      const result = await response.json();
 
-        if (result.status) {
-            toast.success(result.message);
-        } else {
-            toast.error(result.message);
-        }
+      if (result.status) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
 
     } catch (error) {
-        console.error('Error submitting form:', error);
-        toast.error('Something went wrong!');
+      console.error('Error submitting form:', error);
+      toast.error('Something went wrong!');
     } finally {
-        setLoading(false); // Re-enable button
+      setLoading(false); // Re-enable button
     }
-};
+  };
 
 
 
@@ -412,39 +418,74 @@ export default function EditUserForm() {
             <label className="mb-1 font-medium text-gray-700">
               State (राज्य) <span className="text-red-500">*</span>
             </label>
+
             <select
               name="state"
               value={formData.state}
               onChange={handleStateChange}
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.state ? "border-red-500 focus:ring-red-400" : "border-gray-300 focus:ring-blue-400"}`}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.state
+                ? "border-red-500 focus:ring-red-400"
+                : "border-gray-300 focus:ring-blue-400"
+                }`}
             >
-              <option value="" disabled>Select state</option>
-              {Object.keys(statesAndCities).map((state) => (
-                <option key={state} value={state}>{state}</option>
+              <option value="" disabled>
+                Select state
+              </option>
+
+              {statesData.map((item) => (
+                <option key={item.state} value={item.state}>
+                  {item.state}
+                </option>
               ))}
             </select>
-            {errors.state && <span className="text-red-500 text-sm mt-1">{errors.state}</span>}
+
+            {errors.state && (
+              <span className="text-red-500 text-sm mt-1">
+                {errors.state}
+              </span>
+            )}
           </div>
+
 
           {/* City */}
           <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">
               City (शहर) <span className="text-red-500">*</span>
             </label>
+
             <select
               name="city"
               value={formData.city}
-              onChange={handleInputChange}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  city: e.target.value,
+                }))
+              }
               disabled={!cities.length}
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.city ? "border-red-500 focus:ring-red-400" : "border-gray-300 focus:ring-blue-400"}`}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.city
+                ? "border-red-500 focus:ring-red-400"
+                : "border-gray-300 focus:ring-blue-400"
+                }`}
             >
-              <option value="" disabled>Select city</option>
+              <option value="" disabled>
+                Select city
+              </option>
+
               {cities.map((city) => (
-                <option key={city} value={city}>{city}</option>
+                <option key={city} value={city}>
+                  {city}
+                </option>
               ))}
             </select>
-            {errors.city && <span className="text-red-500 text-sm mt-1">{errors.city}</span>}
+
+            {errors.city && (
+              <span className="text-red-500 text-sm mt-1">
+                {errors.city}
+              </span>
+            )}
           </div>
+
 
           {/* Locality */}
           <div className="flex flex-col">
