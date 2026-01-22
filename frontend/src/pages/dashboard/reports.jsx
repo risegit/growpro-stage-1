@@ -110,11 +110,11 @@ export default function ReportTable() {
           const logoHeight = 18;
           const logoX = margin;
           const logoY = 10;
-          
+
           if (pageNum > 1) {
             doc.setPage(pageNum);
           }
-          
+
           doc.addImage(logoDataUrl, 'JPEG', logoX, logoY, logoWidth, logoHeight);
         }
       } catch (error) {
@@ -125,12 +125,12 @@ export default function ReportTable() {
     // Helper function to group data by customer
     const groupByCustomer = (dataArray) => {
       const grouped = {};
-      
+
       if (Array.isArray(dataArray)) {
         dataArray.forEach(item => {
           const customerId = item.id || item.customer_id || "unknown";
           const customerName = item.name || "Unknown Customer";
-          
+
           if (!grouped[customerId]) {
             grouped[customerId] = {
               id: customerId,
@@ -138,11 +138,11 @@ export default function ReportTable() {
               items: []
             };
           }
-          
+
           grouped[customerId].items.push(item);
         });
       }
-      
+
       return Object.values(grouped);
     };
 
@@ -168,13 +168,13 @@ export default function ReportTable() {
     doc.setTextColor(255, 102, 0); // Orange color for heading
     doc.text(`${selectedReport} Report`, pageWidth / 2 + 10, yPos, { align: "center" });
     doc.setTextColor(0, 0, 0); // Reset to black
-    
+
     // Date range
     yPos += 10;
     doc.setFontSize(11);
     doc.setFont(undefined, "normal");
     doc.text(`From: ${startDate}  To: ${endDate}`, margin + 30, yPos);
-    
+
     yPos += 15;
 
     /* =====================
@@ -182,7 +182,7 @@ export default function ReportTable() {
        ===================== */
     if (selectedReport === "Client Performance") {
       const clientData = data.client_performance || [];
-      
+
       if (clientData.length === 0) {
         doc.setFontSize(12);
         doc.setFont(undefined, "normal");
@@ -227,7 +227,7 @@ export default function ReportTable() {
             const recordTime = record.created_time || "N/A";
             const dateTime = `${recordDate} ${recordTime}`;
             const technicianName = record.technician_name || "N/A";
-            
+
             return [
               index + 1,
               record.id || "N/A",
@@ -240,10 +240,10 @@ export default function ReportTable() {
 
           autoTable(doc, {
             startY: yPos,
-            head: [["#", "ID", "Date & Time", "Site Rating", "Description","Technician Name"]],
+            head: [["#", "ID", "Date & Time", "Site Rating", "Description", "Technician Name"]],
             body: performanceTableBody,
             theme: "grid",
-            styles: { 
+            styles: {
               fontSize: 9,
               cellPadding: 3,
               lineColor: [100, 100, 100],
@@ -257,7 +257,7 @@ export default function ReportTable() {
               lineColor: [100, 100, 100]
             },
             margin: { left: margin, right: margin },
-            didDrawPage: function(data) {
+            didDrawPage: function (data) {
               // Update yPos after table is drawn
               yPos = data.cursor.y + 10;
             }
@@ -269,7 +269,7 @@ export default function ReportTable() {
 
           // Check if we have space for average rating
           checkPageBreak(15);
-          
+
           doc.setFontSize(10);
           doc.setFont(undefined, "bold");
           doc.text(`Average Rating: ${avgRating.toFixed(1)}/5`, margin, yPos);
@@ -278,7 +278,7 @@ export default function ReportTable() {
           // Add separator line between customers (if not last customer)
           if (customerIndex < Object.keys(groupedByCustomer).length - 1) {
             checkPageBreak(15);
-            
+
             doc.setDrawColor(0, 0, 0);
             doc.setLineWidth(0.2);
             doc.line(margin, yPos, pageWidth - margin, yPos);
@@ -300,11 +300,11 @@ export default function ReportTable() {
         // Calculate overall statistics
         const allRatings = clientData.map(item => parseFloat(item.site_rating) || 0);
         const validRatings = allRatings.filter(rating => rating > 0);
-        const overallAvg = validRatings.length > 0 
+        const overallAvg = validRatings.length > 0
           ? (validRatings.reduce((a, b) => a + b, 0) / validRatings.length).toFixed(1)
           : "N/A";
-        
-        const ratingCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
+
+        const ratingCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
         validRatings.forEach(rating => {
           if (rating >= 1 && rating <= 5) {
             ratingCounts[Math.round(rating)]++;
@@ -326,7 +326,7 @@ export default function ReportTable() {
           startY: yPos,
           body: summaryData,
           theme: "grid",
-          styles: { 
+          styles: {
             fontSize: 9,
             cellPadding: 3,
             lineColor: [100, 100, 100],
@@ -340,7 +340,7 @@ export default function ReportTable() {
             lineColor: [100, 100, 100]
           },
           margin: { left: margin, right: margin },
-          didDrawPage: function(data) {
+          didDrawPage: function (data) {
             yPos = data.cursor.y + 10;
           }
         });
@@ -348,7 +348,10 @@ export default function ReportTable() {
         yPos = doc.lastAutoTable.finalY + 10;
       }
     }
-    
+
+    /* =====================
+       NUTRIENT REPORTS
+       ===================== */
     /* =====================
        NUTRIENT REPORTS
        ===================== */
@@ -367,6 +370,14 @@ export default function ReportTable() {
         const groupedPlants = groupByCustomer(data.supplied_plants);
         const groupedChargeableItem = groupByCustomer(data.supplied_chargeable_item);
         const groupedNeedChargeableItem = groupByCustomer(data.need_chargeable_item);
+
+        // Initialize grand totals
+        let grandTotalSuppliedNutrients = 0;
+        let grandTotalNeedNutrients = 0;
+        let grandTotalSuppliedPlants = 0;
+        let grandTotalNeedPlants = 0;
+        let grandTotalSuppliedChargeableItems = 0;
+        let grandTotalNeedChargeableItems = 0;
 
         // Process each customer
         groupedNeed.forEach((customer, customerIndex) => {
@@ -392,29 +403,44 @@ export default function ReportTable() {
             doc.setTextColor(0, 0, 0); // Reset to black
             yPos += 6;
 
+            // Calculate totals for this customer
+            let customerNeedChargeableTotal = 0;
+
             // Prepare table data for need chargeable items
             const needChargeableItemTableBody = needChargeableItem.items.map((i) => {
               const item_name = i.item_name || "";
               const other_item_name = i.other_item_name || "";
               const quantity = parseFloat(i.quantity) || 0;
-              
+
+              // Add to customer total
+              customerNeedChargeableTotal += quantity;
+
               // Use other_item_name if item_name is "Others", otherwise use item_name
-              const displayName = item_name === 'Others' && other_item_name 
-                ? other_item_name 
+              const displayName = item_name === 'Others' && other_item_name
+                ? other_item_name
                 : item_name || "Unknown Item";
-              
+
               return [
                 displayName,
                 quantity ? `${quantity}` : "-",
               ];
             });
 
+            // Add customer total row
+            needChargeableItemTableBody.push([
+              { content: "Customer Total:", styles: { fontStyle: 'bold' } },
+              { content: `${customerNeedChargeableTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
+            ]);
+
+            // Add to grand total
+            grandTotalNeedChargeableItems += customerNeedChargeableTotal;
+
             autoTable(doc, {
               startY: yPos,
               head: [["Item Name", "Quantity"]],
               body: needChargeableItemTableBody,
               theme: "grid",
-              styles: { 
+              styles: {
                 fontSize: 9,
                 cellPadding: 3,
                 lineColor: [100, 100, 100],
@@ -428,7 +454,7 @@ export default function ReportTable() {
                 lineColor: [100, 100, 100]
               },
               margin: { left: margin, right: margin },
-              didDrawPage: function(data) {
+              didDrawPage: function (data) {
                 yPos = data.cursor.y + 15;
               }
             });
@@ -446,24 +472,39 @@ export default function ReportTable() {
           doc.setTextColor(0, 0, 0); // Reset to black
           yPos += 6;
 
-          if (suppliedPlant) {
-            // Calculate total for each suppliedPlant nutrient
+          if (suppliedPlant && suppliedPlant.items.length > 0) {
+            // Calculate total for this customer
+            let customerSuppliedPlantTotal = 0;
+
+            // Prepare table data for supplied plants
             const suppliedPlantTableBody = suppliedPlant.items.map((i) => {
               const plant_name = i.plant_name;
               const quantity = parseFloat(i.quantity) || 0;
-              
+
+              // Add to customer total
+              customerSuppliedPlantTotal += quantity;
+
               return [
                 plant_name ? `${plant_name}` : "-",
                 quantity ? `${quantity}` : "-",
               ];
             });
 
+            // Add customer total row
+            suppliedPlantTableBody.push([
+              { content: "Customer Total:", styles: { fontStyle: 'bold' } },
+              { content: `${customerSuppliedPlantTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
+            ]);
+
+            // Add to grand total
+            grandTotalSuppliedPlants += customerSuppliedPlantTotal;
+
             autoTable(doc, {
               startY: yPos,
               head: [["Plant Name", "Quantity"]],
               body: suppliedPlantTableBody,
               theme: "grid",
-              styles: { 
+              styles: {
                 fontSize: 9,
                 cellPadding: 3,
                 lineColor: [100, 100, 100],
@@ -477,7 +518,7 @@ export default function ReportTable() {
                 lineColor: [100, 100, 100]
               },
               margin: { left: margin, right: margin },
-              didDrawPage: function(data) {
+              didDrawPage: function (data) {
                 yPos = data.cursor.y + 15;
               }
             });
@@ -500,27 +541,42 @@ export default function ReportTable() {
           doc.setTextColor(0, 0, 0); // Reset to black
           yPos += 6;
 
-          if (supplied) {
-            // Calculate total for each supplied nutrient
+          if (supplied && supplied.items.length > 0) {
+            // Calculate total for this customer
+            let customerSuppliedNutrientTotal = 0;
+
+            // Prepare table data for supplied nutrients
             const suppliedTableBody = supplied.items.map((i) => {
               const tankCap = parseFloat(i.tank_capacity) || 0;
               const topups = parseFloat(i.topups) || 0;
               const total = tankCap * topups;
-              
+
+              // Add to customer total
+              customerSuppliedNutrientTotal += total;
+
               return [
                 i.nutrient_type || "-",
                 tankCap ? `${tankCap} Ltr` : "-",
                 topups || "-",
-                total ? `${total} Ltr` : "-"
+                total ? `${total.toFixed(2)} Ltr` : "-"
               ];
             });
+
+            // Add customer total row
+            suppliedTableBody.push([
+              { content: "Customer Total:", colSpan: 3, styles: { fontStyle: 'bold', halign: 'right' } },
+              { content: `${customerSuppliedNutrientTotal.toFixed(2)} Ltr`, styles: { fontStyle: 'bold' } }
+            ]);
+
+            // Add to grand total
+            grandTotalSuppliedNutrients += customerSuppliedNutrientTotal;
 
             autoTable(doc, {
               startY: yPos,
               head: [["Nutrient Type", "Tank Capacity", "Topups", "Total (Ltr)"]],
               body: suppliedTableBody,
               theme: "grid",
-              styles: { 
+              styles: {
                 fontSize: 9,
                 cellPadding: 3,
                 lineColor: [100, 100, 100],
@@ -534,7 +590,7 @@ export default function ReportTable() {
                 lineColor: [100, 100, 100]
               },
               margin: { left: margin, right: margin },
-              didDrawPage: function(data) {
+              didDrawPage: function (data) {
                 yPos = data.cursor.y + 15;
               }
             });
@@ -557,30 +613,45 @@ export default function ReportTable() {
           doc.setTextColor(0, 0, 0); // Reset to black
           yPos += 6;
 
-          if (suppliedChargeableItem) {
-            // Calculate total for each suppliedChargeableItem nutrient
+          if (suppliedChargeableItem && suppliedChargeableItem.items.length > 0) {
+            // Calculate total for this customer
+            let customerSuppliedChargeableTotal = 0;
+
+            // Prepare table data for supplied chargeable items
             const suppliedChargeableItemTableBody = suppliedChargeableItem.items.map((i) => {
               const item_name = i.item_name;
               const other_item_name = i.other_item_name;
               const quantity = parseFloat(i.quantity) || 0;
-              
+
+              // Add to customer total
+              customerSuppliedChargeableTotal += quantity;
+
               // Use other_item_name if item_name is "Others", otherwise use item_name
-              const displayName = item_name === 'Others' && other_item_name 
-                ? other_item_name 
+              const displayName = item_name === 'Others' && other_item_name
+                ? other_item_name
                 : item_name || "Unknown Item";
-              
+
               return [
                 displayName,
                 quantity ? `${quantity}` : "-",
               ];
             });
 
+            // Add customer total row
+            suppliedChargeableItemTableBody.push([
+              { content: "Customer Total:", styles: { fontStyle: 'bold' } },
+              { content: `${customerSuppliedChargeableTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
+            ]);
+
+            // Add to grand total
+            grandTotalSuppliedChargeableItems += customerSuppliedChargeableTotal;
+
             autoTable(doc, {
               startY: yPos,
               head: [["Item Name", "Quantity"]],
               body: suppliedChargeableItemTableBody,
               theme: "grid",
-              styles: { 
+              styles: {
                 fontSize: 9,
                 cellPadding: 3,
                 lineColor: [100, 100, 100],
@@ -594,7 +665,7 @@ export default function ReportTable() {
                 lineColor: [100, 100, 100]
               },
               margin: { left: margin, right: margin },
-              didDrawPage: function(data) {
+              didDrawPage: function (data) {
                 yPos = data.cursor.y + 15;
               }
             });
@@ -615,26 +686,41 @@ export default function ReportTable() {
           doc.setTextColor(0, 0, 0); // Reset to black
           yPos += 6;
 
-          // Calculate total for each need nutrient
+          // Calculate total for this customer
+          let customerNeedNutrientTotal = 0;
+
+          // Prepare table data for need nutrients
           const needTableBody = customer.items.map((i) => {
             const tankCap = parseFloat(i.tank_capacity) || 0;
             const topups = parseFloat(i.topups) || 0;
             const total = tankCap * topups;
-            
+
+            // Add to customer total
+            customerNeedNutrientTotal += total;
+
             return [
               i.nutrient_type || "-",
               tankCap ? `${tankCap} Ltr` : "-",
               topups || "-",
-              total ? `${total} Ltr` : "-"
+              total ? `${total.toFixed(2)} Ltr` : "-"
             ];
           });
+
+          // Add customer total row
+          needTableBody.push([
+            { content: "Customer Total:", colSpan: 3, styles: { fontStyle: 'bold', halign: 'right' } },
+            { content: `${customerNeedNutrientTotal.toFixed(2)} Ltr`, styles: { fontStyle: 'bold' } }
+          ]);
+
+          // Add to grand total
+          grandTotalNeedNutrients += customerNeedNutrientTotal;
 
           autoTable(doc, {
             startY: yPos,
             head: [["Nutrient Type", "Tank Capacity", "Topups", "Total (Ltr)"]],
             body: needTableBody,
             theme: "grid",
-            styles: { 
+            styles: {
               fontSize: 9,
               cellPadding: 3,
               lineColor: [100, 100, 100],
@@ -648,7 +734,7 @@ export default function ReportTable() {
               lineColor: [100, 100, 100]
             },
             margin: { left: margin, right: margin },
-            didDrawPage: function(data) {
+            didDrawPage: function (data) {
               yPos = data.cursor.y + 10;
             }
           });
@@ -658,20 +744,82 @@ export default function ReportTable() {
           // Add separator line between customers
           if (customerIndex < groupedNeed.length - 1) {
             checkPageBreak(15);
-            
+
             doc.setDrawColor(0, 0, 0);
             doc.setLineWidth(0.2);
             doc.line(margin, yPos, pageWidth - margin, yPos);
             yPos += 10;
           }
         });
+
+        /* ----------------------------------
+           GRAND TOTALS SUMMARY SECTION
+           (Add this after all customers are processed)
+        ---------------------------------- */
+
+        // Check if we need a new page for grand totals
+        checkPageBreak(80);
+
+        // Add a separator line before grand totals
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.5);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 10;
+
+        // Grand Totals Heading
+        doc.setFontSize(14);
+        doc.setFont(undefined, "bold");
+        doc.setTextColor(255, 102, 0); // Orange
+        doc.text("GRAND TOTALS (All Customers)", margin, yPos);
+        doc.setTextColor(0, 0, 0); // Reset to black
+        yPos += 10;
+
+        // Prepare grand totals table
+        const grandTotalsData = [
+          ["Supplied Nutrients Total:", `${grandTotalSuppliedNutrients.toFixed(2)} Ltr`],
+          ["Need Nutrients Total:", `${grandTotalNeedNutrients.toFixed(2)} Ltr`],
+          ["", ""], // Empty row for spacing
+          ["Supplied Plants Total:", `${grandTotalSuppliedPlants.toFixed(2)} units`],
+          ["Need Plants Total:", `${grandTotalNeedPlants.toFixed(2)} units`],
+          ["", ""], // Empty row for spacing
+          ["Supplied Chargeable Items Total:", `${grandTotalSuppliedChargeableItems.toFixed(2)} units`],
+          ["Need Chargeable Items Total:", `${grandTotalNeedChargeableItems.toFixed(2)} units`]
+        ];
+
+        autoTable(doc, {
+          startY: yPos,
+          body: grandTotalsData,
+          theme: "grid",
+          styles: {
+            fontSize: 10,
+            cellPadding: 5,
+            lineColor: [100, 100, 100],
+            lineWidth: 0.2
+          },
+          columnStyles: {
+            0: { fontStyle: 'bold', halign: 'right' },
+            1: { fontStyle: 'bold', halign: 'left' }
+          },
+          margin: { left: margin, right: margin },
+          didDrawPage: function (data) {
+            yPos = data.cursor.y + 15;
+          }
+        });
+
+        yPos = doc.lastAutoTable.finalY + 15;
+
+        // Add a summary note
+        doc.setFontSize(9);
+        doc.setFont(undefined, "italic");
+        doc.text("Note: All totals are calculated across all customers in the selected date range.", margin, yPos);
+        yPos += 5;
       }
     }
 
     /* ----------------------------------
        FOOTER SECTION - Add only if we have enough space
     ---------------------------------- */
-    
+
     // Check if we need a new page for the footer
     if (yPos > pageHeight - footerHeight - 20) {
       doc.addPage();
@@ -683,7 +831,7 @@ export default function ReportTable() {
 
     // Make sure we're on the last page
     doc.setPage(totalPages);
-    
+
     // Add Happy Growing section
     yPos += 10; // Reduced space
     doc.setFontSize(16);
@@ -694,52 +842,52 @@ export default function ReportTable() {
     // Contact information - LEFT SIDE
     doc.setFontSize(11);
     doc.setFont(undefined, "normal");
-    
+
     // Email
     doc.text("Email:", margin, yPos);
     doc.textWithLink("sales@growpro.co.in", margin + 20, yPos, {
       url: "mailto:sales@growpro.co.in"
     });
     yPos += 8;
-    
+
     // Phone
     doc.text("Phone:", margin, yPos);
     doc.textWithLink("859 175 3001", margin + 25, yPos, {
       url: "tel:+918591753001"
     });
-    
+
     /* ----------------------------------
        BOTTOM FOOTER (Separator line + company info)
        Positioned at fixed bottom position
     ---------------------------------- */
-    
+
     // Calculate fixed footer position
     const footerY = pageHeight - 20;
     const separatorY = pageHeight - 25;
-    
+
     // Draw separator line at fixed position
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.3);
     doc.line(margin, separatorY, pageWidth - margin, separatorY);
-    
+
     // RIGHT: Company info
     const footerRightX = pageWidth - margin;
-    
+
     // Company name
     doc.setFont(undefined, "bold");
     doc.text("GrowPro Technology", footerRightX, footerY, { align: "right" });
-    
+
     // Add link to company name
     const companyText = "GrowPro Technology";
     const textWidth = doc.getTextWidth(companyText);
     doc.link(footerRightX - textWidth, footerY - 4, textWidth, 5, {
       url: "https://growpro.co.in/"
     });
-    
+
     // Website
     doc.setFont(undefined, "normal");
     doc.setFontSize(9);
-    doc.textWithLink("www.growpro.co.in", footerRightX, footerY + 5, { 
+    doc.textWithLink("www.growpro.co.in", footerRightX, footerY + 5, {
       align: "right",
       url: "https://growpro.co.in/"
     });
@@ -793,7 +941,7 @@ export default function ReportTable() {
           >
             <option value="Client Performance">Client Performance</option>
             {user?.role === "admin" && (
-            <option value="RAW Material">RAW Material</option>
+              <option value="RAW Material">RAW Material</option>
             )}
           </select>
 
@@ -828,11 +976,10 @@ export default function ReportTable() {
             <button
               disabled={!reportData}
               onClick={() => generatePDF(reportData)}
-              className={`px-4 py-2 rounded-lg text-white ${
-                reportData
+              className={`px-4 py-2 rounded-lg text-white ${reportData
                   ? "bg-red-600 hover:bg-red-700"
                   : "bg-gray-400 cursor-not-allowed"
-              }`}
+                }`}
             >
               Download PDF
             </button>
