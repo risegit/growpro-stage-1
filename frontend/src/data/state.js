@@ -53,7 +53,7 @@ const statesData = [
   },
   {
     state: "Maharashtra",
-    cities: ["Mumbai", "Pune", "Nagpur", "Nashik", "Aurangabad", "Thane", "Solapur", "Kolhapur", "Nanded", "Amravati"],
+    cities: ["Mumbai","Navi Mumbai", "Pune", "Nagpur", "Nashik", "Aurangabad", "Thane", "Solapur", "Kolhapur", "Nanded", "Amravati","Lonavala ","Alibaug"],
   },
   {
     state: "Manipur",
