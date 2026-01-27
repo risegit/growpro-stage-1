@@ -1,7 +1,9 @@
 // AMCForm.jsx
 import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
+import { useParams } from 'react-router-dom';
 import axios from 'axios';
+
 
 export default function AMCForm() {
     const [formData, setFormData] = useState({
@@ -21,6 +23,8 @@ export default function AMCForm() {
     const [customers, setCustomers] = useState([]);
     const [loadingCustomers, setLoadingCustomers] = useState(false);
 
+    const user = JSON.parse(localStorage.getItem("user"));
+    const user_code = user?.user_code;
 
     useEffect(() => {
         const fetchCustomers = async () => {
@@ -34,7 +38,7 @@ export default function AMCForm() {
                     : res.data.data || [];
 
                 const options = raw.map((c) => ({
-                    value: c.id,
+                    value: c.user_id,
                     label: `${c.name} - ${c.phone}`,
                 }));
 
@@ -241,22 +245,171 @@ export default function AMCForm() {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = () => {
-        if (!validateForm()) {
-            console.log("Form validation failed");
-            return;
+const handleSubmit = async () => {
+    if (!validateForm()) {
+        console.log("Form validation failed");
+        return;
+    }
+
+    setSubmitting(true);
+
+    try {
+        const formPayload = new FormData();
+
+        /* -------------------- Basic fields -------------------- */
+        formPayload.append("customer_id", formData.customer?.value || "");
+
+        /* -------------------- Plants / Materials -------------------- */
+        const materials = formData.step5Plants.map(plant => {
+            const isOther = plant.value === "Others";
+            return {
+                material_name: isOther
+                    ? formData.materialsDeliveredPlantData
+                    : plant.label,
+                material_type: plant.value,
+                quantity: formData.plantsNeeded?.[plant.value] || 0
+            };
+        });
+
+        formPayload.append("materials", JSON.stringify(materials));
+
+        /* -------------------- Nutrients -------------------- */
+        const nutrients = formData.nutrientsNeeded
+            .filter(n => n.nutrientType)
+            .map(nutrient => ({
+                type: nutrient.nutrientType,
+                tank_capacity: nutrient.tankCapacity,
+                topups: nutrient.topups
+            }));
+
+        formPayload.append("nutrients", JSON.stringify(nutrients));
+
+        /* -------------------- Neem Oil -------------------- */
+        formPayload.append(
+            "needs_neem_oil",
+            formData.material_need_neemoil === "Yes" ? "1" : "0"
+        );
+
+        /* -------------------- Chargeable Items -------------------- */
+        const chargeableItems = formData.material_need_chargeable_items.map(item => {
+            const isOther = item.value === "Others";
+            return {
+                item_name: isOther
+                    ? formData.materialsNeedChargeableItemsOptionsother
+                    : item.label,
+                item_type: item.value,
+                quantity: formData.chargeableItemsNeeded?.[item.value] || 0
+            };
+        });
+        
+        formPayload.append("chargeable_items", JSON.stringify(chargeableItems));
+
+        /* -------------------- Timestamp -------------------- */
+        formPayload.append("submitted_at", new Date().toISOString());
+        formPayload.append("id", JSON.stringify(user?.id));
+
+        /* -------------------- Debug -------------------- */
+        console.log("=== FORM DATA DEBUG ===");
+        for (let pair of formPayload.entries()) {
+            try {
+                console.log(pair[0], JSON.parse(pair[1]));
+            } catch {
+                console.log(pair[0], pair[1]);
+            }
         }
 
-        setSubmitting(true);
-        console.log("Form submitted with data:", formData);
+        /* -------------------- API Call -------------------- */
+        const response = await fetch(
+            `${import.meta.env.VITE_API_URL}api/offsite-material-order.php`,
+            {
+                method: "POST",
+                body: formPayload
+            }
+        );
 
-        // Simulate API call
-        setTimeout(() => {
-            console.log("Form submitted successfully!");
-            alert("Form submitted successfully! (This is a demo)");
-            setSubmitting(false);
-        }, 1000);
+        const result = await response.json();
+        console.log("Server response:", result);
+
+        if (result.success) {
+            alert("Form submitted successfully!");
+        } else {
+            alert("Submission failed: " + (result.message || "Unknown error"));
+        }
+
+    } catch (error) {
+        console.error("Submission error:", error);
+        alert("Error submitting form");
+    } finally {
+        setSubmitting(false);
+    }
+};
+const preparePayload = () => {
+    // Extract plant data
+    const plantsData = formData.step5Plants
+        .filter(plant => plant.value !== "Others")
+        .map(plant => ({
+            plantName: plant.label,
+            plantValue: plant.value,
+            quantity: formData.plantsNeeded?.[plant.value] || 0
+        }));
+    
+    // Add "Others" plant if exists
+    if (formData.step5Plants?.some(p => p.value === "Others") && formData.materialsDeliveredPlantData) {
+        plantsData.push({
+            plantName: formData.materialsDeliveredPlantData,
+            plantValue: "Others",
+            quantity: formData.plantsNeeded?.["Others"] || 0
+        });
+    }
+    
+    // Extract chargeable items data
+    const chargeableItemsData = formData.material_need_chargeable_items
+        .filter(item => item.value !== "Others")
+        .map(item => ({
+            itemName: item.label,
+            itemValue: item.value,
+            quantity: formData.chargeableItemsNeeded?.[item.value] || 0
+        }));
+    
+    // Add "Others" chargeable item if exists
+    if (formData.material_need_chargeable_items?.some(i => i.value === "Others") && formData.materialsNeedChargeableItemsOptionsother) {
+        chargeableItemsData.push({
+            itemName: formData.materialsNeedChargeableItemsOptionsother,
+            itemValue: "Others",
+            quantity: formData.chargeableItemsNeeded?.["Others"] || 0
+        });
+    }
+    
+    // Prepare the final payload
+    const payload = {
+        // Customer Information
+        customer: formData.customer ? {
+            id: formData.customer.value,
+            name: formData.customer.label.split(' - ')[0],
+            phone: formData.customer.label.split(' - ')[1] || ''
+        } : null,
+        
+        // Materials to Deliver
+        materialsToDeliver: {
+            plants: plantsData,
+            nutrients: formData.nutrientsNeeded
+                .filter(nutrient => nutrient.nutrientType) // Only include if nutrientType is selected
+                .map(nutrient => ({
+                    nutrientType: nutrient.nutrientType,
+                    tankCapacity: nutrient.tankCapacity,
+                    topups: nutrient.topups
+                })),
+            neemOil: formData.material_need_neemoil === "Yes",
+            chargeableItems: chargeableItemsData
+        },
+        
+        // Metadata
+        submissionDate: new Date().toISOString(),
+        formType: "Offsite Material Order"
     };
+    
+    return payload;
+};
 
     const addStep5DynamicRow = () => {
         setFormData((prevFormData) => ({
