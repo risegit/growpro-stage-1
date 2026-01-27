@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { TrashIcon } from "@heroicons/react/24/solid";
 
 export default function UserTable() {
   const [allUsers, setAllUsers] = useState([]);
@@ -46,1089 +47,1051 @@ export default function UserTable() {
   }, []);
 
   // Generate PDF Report
-const generatePDF = async (visitData, fullApiData) => {
-  try {
-    console.log("Starting PDF generation...");
-    console.log("Visit Data:", visitData);
-    console.log("Full API Data:", fullApiData);
-    
-    if (!window.jspdf) {
-      console.error("PDF library not loaded");
-      alert("PDF library is still loading. Please try again.");
-      return;
-    }
-    
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF("p", "mm", "a4");
+  const generatePDF = async (visitData, fullApiData) => {
+    try {
+      console.log("Starting PDF generation...");
+      console.log("Visit Data:", visitData);
+      console.log("Full API Data:", fullApiData);
 
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 15;
-    let yPos = 20;
-    let currentPage = 1;
-    let totalPages = 1;
-
-    /* ----------------------------------
-       LOGO HELPER
-    ---------------------------------- */
-
-    const addLogoToPage = async (pageNum) => {
-      try {
-        const logoUrl = `${import.meta.env.BASE_URL || ""}img/growprologo.jpeg`;
-        const logoDataUrl = await loadImageToDataURL(logoUrl);
-        if (logoDataUrl) {
-          const logoWidth = 25;
-          const logoHeight = 18;
-          const logoX = margin;
-          const logoY = 10;
-          
-          if (pageNum > 1) {
-            doc.setPage(pageNum);
-          }
-          
-          doc.addImage(logoDataUrl, 'JPEG', logoX, logoY, logoWidth, logoHeight);
-        }
-      } catch (error) {
-        console.error('Failed to add logo to page:', error);
-      }
-    };
-
-    /* ----------------------------------
-       HELPERS
-    ---------------------------------- */
-
-    const ensureSpace = (h = 8) => {
-      const logoSpace = 25;
-      
-      if (yPos + h > pageHeight - 25) {
-        doc.addPage();
-        currentPage++;
-        totalPages = currentPage;
-        yPos = 20 + logoSpace;
-        
-        setTimeout(() => addLogoToPage(currentPage), 0);
-      }
-    };
-
-    const drawLineField = (label, value = "", width = 60) => {
-      ensureSpace();
-      doc.setFontSize(10);
-      doc.setFont(undefined, "normal");
-      doc.text(label, margin, yPos);
-      doc.line(margin + 55, yPos + 1, margin + 55 + width, yPos + 1);
-      
-      if (value) {
-        const maxWidth = width - 2;
-        const lines = doc.splitTextToSize(String(value), maxWidth);
-        
-        lines.forEach((line, index) => {
-          if (index === 0) {
-            doc.text(line, margin + 56, yPos);
-          } else {
-            yPos += 7;
-            ensureSpace();
-            doc.text(line, margin + 56, yPos);
-            if (index < lines.length - 1) {
-              doc.line(margin + 55, yPos + 1, margin + 55 + width, yPos + 1);
-            }
-          }
-        });
-        
-        if (lines.length > 1) {
-          yPos += (lines.length - 1) * 7;
-        }
-      }
-      
-      yPos += 7;
-    };
-
-    const drawYesNo = (label, value) => {
-      ensureSpace();
-      doc.setFontSize(10);
-      doc.setFont(undefined, "normal");
-      doc.text(label, margin, yPos);
-
-      const answerX = pageWidth - 30;
-      let answer = "";
-      
-      if (value !== undefined && value !== null) {
-        const strValue = String(value).toLowerCase().trim();
-        if (strValue === "yes" || strValue === "y" || strValue === "true" || strValue === "1") {
-          answer = "Yes";
-        } else if (strValue === "no" || strValue === "n" || strValue === "false" || strValue === "0") {
-          answer = "No";
-        }
-      }
-      
-      if (answer) {
-        doc.setFont(undefined, "bold");
-        doc.text(answer, answerX, yPos, { align: "right" });
-        doc.setFont(undefined, "normal");
-      } else {
-        doc.setFont(undefined, "bold");
-        doc.text("", answerX, yPos, { align: "right" });
-        doc.setFont(undefined, "normal");
-      }
-
-      yPos += 7;
-    };
-
-    const drawSection = (title) => {
-      ensureSpace(12);
-      doc.setFont(undefined, "bold");
-      doc.setFontSize(11);
-      doc.text(title, margin, yPos);
-      yPos += 8;
-      doc.setFont(undefined, "normal");
-    };
-
-    const drawTable = (items = [], columns = [], showHeader = true) => {
-      if (!Array.isArray(items) || items.length === 0) {
+      if (!window.jspdf) {
+        console.error("PDF library not loaded");
+        alert("PDF library is still loading. Please try again.");
         return;
       }
 
-      if (showHeader) {
-        ensureSpace(10);
-        doc.setFontSize(9);
-        doc.setFont(undefined, "bold");
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF("p", "mm", "a4");
 
-        let xPos = margin + 5;
-        columns.forEach(col => {
-          doc.text(col.header || col.key, xPos, yPos);
-          xPos += col.width || 40;
-        });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 15;
+      let yPos = 20;
+      let currentPage = 1;
+      let totalPages = 1;
 
-        yPos += 5;
-        doc.setLineWidth(0.2);
-        doc.line(margin, yPos, pageWidth - margin, yPos);
-        yPos += 5;
-      }
+      /* ----------------------------------
+         LOGO HELPER
+      ---------------------------------- */
 
-      doc.setFontSize(9);
-      doc.setFont(undefined, "normal");
+      const addLogoToPage = async (pageNum) => {
+        try {
+          const logoUrl = `${import.meta.env.BASE_URL || ""}img/growprologo.jpeg`;
+          const logoDataUrl = await loadImageToDataURL(logoUrl);
+          if (logoDataUrl) {
+            const logoWidth = 25;
+            const logoHeight = 18;
+            const logoX = margin;
+            const logoY = 10;
 
-      items.forEach((item) => {
-        ensureSpace(10);
+            if (pageNum > 1) {
+              doc.setPage(pageNum);
+            }
 
-        let xPos = margin + 5;
-        columns.forEach(col => {
-          const raw = item[col.key];
-          const value = col.valueGetter ?
-            col.valueGetter(item) :
-            (raw === undefined || raw === null ? "-" : String(raw));
+            doc.addImage(logoDataUrl, 'JPEG', logoX, logoY, logoWidth, logoHeight);
+          }
+        } catch (error) {
+          console.error('Failed to add logo to page:', error);
+        }
+      };
 
-          doc.text(value, xPos, yPos);
-          xPos += col.width || 40;
-        });
+      /* ----------------------------------
+         HELPERS
+      ---------------------------------- */
+
+      const ensureSpace = (h = 8) => {
+        const logoSpace = 25;
+
+        if (yPos + h > pageHeight - 25) {
+          doc.addPage();
+          currentPage++;
+          totalPages = currentPage;
+          yPos = 20 + logoSpace;
+
+          setTimeout(() => addLogoToPage(currentPage), 0);
+        }
+      };
+
+      const drawLineField = (label, value = "", width = 60) => {
+        ensureSpace();
+        doc.setFontSize(10);
+        doc.setFont(undefined, "normal");
+        doc.text(label, margin, yPos);
+        doc.line(margin + 55, yPos + 1, margin + 55 + width, yPos + 1);
+
+        if (value) {
+          const maxWidth = width - 2;
+          const lines = doc.splitTextToSize(String(value), maxWidth);
+
+          lines.forEach((line, index) => {
+            if (index === 0) {
+              doc.text(line, margin + 56, yPos);
+            } else {
+              yPos += 7;
+              ensureSpace();
+              doc.text(line, margin + 56, yPos);
+              if (index < lines.length - 1) {
+                doc.line(margin + 55, yPos + 1, margin + 55 + width, yPos + 1);
+              }
+            }
+          });
+
+          if (lines.length > 1) {
+            yPos += (lines.length - 1) * 7;
+          }
+        }
 
         yPos += 7;
-      });
-
-      yPos += 3;
-    };
-
-    const loadImageToDataURL = async (imageUrl) => {
-      try {
-        if (imageUrl.startsWith('data:')) {
-          return imageUrl;
-        }
-        
-        const response = await fetch(imageUrl, {
-          method: 'GET',
-          cache: 'no-cache',
-          mode: 'cors',
-          credentials: 'same-origin',
-          headers: {
-            'Accept': 'image/*',
-            'Cache-Control': 'no-cache'
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        
-        const blob = await response.blob();
-        if (blob.size === 0) {
-          throw new Error('Empty image');
-        }
-        
-        const dataUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = () => reject(new Error('Failed to read'));
-          reader.readAsDataURL(blob);
-        });
-        
-        return dataUrl;
-        
-      } catch (error) {
-        console.error(`Error loading image:`, error);
-        throw error;
-      }
-    };
-
-    const getImageUrl = (imageFileName) => {
-      if (!imageFileName) return null;
-      
-      if (imageFileName.startsWith('http://') || imageFileName.startsWith('https://')) {
-        return imageFileName;
-      }
-      
-      if (imageFileName.startsWith('data:')) {
-        return imageFileName;
-      }
-      
-      const cleanFileName = imageFileName.split('?')[0];
-      const encodedFileName = encodeURIComponent(cleanFileName);
-      
-      const isDev = import.meta.env.DEV;
-      
-      let imageUrl;
-      
-      if (isDev) {
-        const viteImageBaseDev = import.meta.env.VITE_IMAGE_BASE_DEV || '/uploads/site-visit/';
-        imageUrl = `${viteImageBaseDev}${encodedFileName}`;
-      } else {
-        const viteImageBaseProd = import.meta.env.VITE_IMAGE_BASE_PROD;
-        if (viteImageBaseProd) {
-          imageUrl = `${viteImageBaseProd}${encodedFileName}`;
-        } else {
-          const protocol = window.location.protocol;
-          const host = window.location.host;
-          imageUrl = `${protocol}//${host}/growpro/backend/uploads/site-visit/${encodedFileName}`;
-        }
-      }
-      
-      return imageUrl;
-    };
-
-    /* ----------------------------------
-       PROCESS AND ADD IMAGE HELPER - MODIFIED
-    ---------------------------------- */
- /* ----------------------------------
-   PROCESS AND ADD IMAGE HELPER - MODIFIED
----------------------------------- */
-const processAndAddImage = async (doc, imageFileName, xPos, yPos, width, height, photoNumber) => {
-  try {
-    const imageUrl = getImageUrl(imageFileName);
-    if (!imageUrl) {
-      // Show URL path if imageUrl is null
-      doc.setFillColor(240, 240, 240);
-      doc.rect(xPos, yPos, width, height, 'F');
-      doc.setDrawColor(0, 0, 0);
-      doc.rect(xPos, yPos, width, height);
-      doc.setFontSize(6); // Smaller font for URL
-      doc.setTextColor(0, 0, 0);
-      doc.text("Image URL:", xPos + width/2, yPos + height/2 - 5, { align: "center" });
-      // Show truncated URL to fit in box
-      const truncatedUrl = imageFileName ? 
-        (imageFileName.length > 40 ? imageFileName.substring(0, 40) + "..." : imageFileName) : 
-        "No image URL";
-      doc.text(truncatedUrl, xPos + width/2, yPos + height/2, { align: "center" });
-      doc.text(`Photo ${photoNumber}`, xPos + width/2, yPos + height + 6, { align: "center" });
-      return false;
-    }
-    
-    const dataUrl = await loadImageToDataURL(imageUrl);
-    if (!dataUrl) {
-      // Show URL path if dataUrl is null
-      doc.setFillColor(240, 240, 240);
-      doc.rect(xPos, yPos, width, height, 'F');
-      doc.setDrawColor(0, 0, 0);
-      doc.rect(xPos, yPos, width, height);
-      doc.setFontSize(6);
-      doc.setTextColor(0, 0, 0);
-      doc.text("Failed to load:", xPos + width/2, yPos + height/2 - 5, { align: "center" });
-      const truncatedUrl = imageUrl.length > 40 ? imageUrl.substring(0, 40) + "..." : imageUrl;
-      doc.text(truncatedUrl, xPos + width/2, yPos + height/2, { align: "center" });
-      doc.text(`Photo ${photoNumber}`, xPos + width/2, yPos + height + 6, { align: "center" });
-      return false;
-    }
-    
-    const img = new Image();
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = () => {
-        // Show URL on image load error
-        doc.setFillColor(240, 240, 240);
-        doc.rect(xPos, yPos, width, height, 'F');
-        doc.setDrawColor(0, 0, 0);
-        doc.rect(xPos, yPos, width, height);
-        doc.setFontSize(6);
-        doc.setTextColor(0, 0, 0);
-        doc.text("Image failed to load:", xPos + width/2, yPos + height/2 - 5, { align: "center" });
-        const truncatedUrl = imageUrl.length > 40 ? imageUrl.substring(0, 40) + "..." : imageUrl;
-        doc.text(truncatedUrl, xPos + width/2, yPos + height/2, { align: "center" });
-        doc.text(`Photo ${photoNumber}`, xPos + width/2, yPos + height + 6, { align: "center" });
-        reject(new Error('Image failed to load'));
       };
-      img.src = dataUrl;
-      if (img.complete) resolve();
-    });
-    
-    const aspectRatio = img.width / img.height;
-    let displayWidth = width;
-    let displayHeight = height;
-    
-    if (aspectRatio > 1) {
-      displayHeight = width / aspectRatio;
-    } else {
-      displayWidth = height * aspectRatio;
-    }
-    
-    const xOffset = (width - displayWidth) / 2;
-    const yOffset = (height - displayHeight) / 2;
-    
-    let format = 'JPEG';
-    if (dataUrl.startsWith('data:image/png')) format = 'PNG';
-    
-    doc.addImage(dataUrl, format, xPos + xOffset, yPos + yOffset, displayWidth, displayHeight);
-    
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.2);
-    doc.rect(xPos, yPos, width, height);
-    
-    // Moved text lower and made it smaller
-    doc.setFontSize(7);
-    doc.setFont(undefined, "normal");
-    doc.text(`Photo ${photoNumber}`, 
-             xPos + width/2, yPos + height + 6, { align: "center" });
-    
-    return true;
-    
-  } catch (error) {
-    console.error(`Failed to process image:`, error);
-    
-    // Show the image URL when all else fails
-    const imageUrl = getImageUrl(imageFileName) || imageFileName || "No URL available";
-    
-    doc.setFillColor(240, 240, 240);
-    doc.rect(xPos, yPos, width, height, 'F');
-    doc.setDrawColor(0, 0, 0);
-    doc.rect(xPos, yPos, width, height);
-    doc.setFontSize(6);
-    doc.setTextColor(0, 0, 0);
-    
-    doc.text("Image unavailable:", xPos + width/2, yPos + height/2 - 8, { align: "center" });
-    
-    // Truncate URL to fit in the box
-    const maxChars = Math.floor(width / 1.5); // Rough estimation
-    let displayUrl = imageUrl;
-    if (displayUrl.length > maxChars) {
-      displayUrl = displayUrl.substring(0, maxChars) + "...";
-    }
-    
-    // Split URL into multiple lines if needed
-    const lines = doc.splitTextToSize(displayUrl, width - 50);
-    lines.forEach((line, index) => {
-      doc.text(line, xPos + width/2, yPos + height/2 + (index * 4) - 4, { align: "center" });
-    });
-    
-    doc.text(`Photo ${photoNumber}`, xPos + width/2, yPos + height + 6, { align: "center" });
-    return false;
-  }
-};
 
-    /* ----------------------------------
-       HEADER WITH LOGO
-    ---------------------------------- */
+      const drawYesNo = (label, value) => {
+        ensureSpace();
+        doc.setFontSize(10);
+        doc.setFont(undefined, "normal");
+        doc.text(label, margin, yPos);
 
-    await addLogoToPage(1);
+        const answerX = pageWidth - 30;
+        let answer = "";
 
-    doc.setFontSize(14);
-    doc.setFont(undefined, "bold");
-    doc.text("Site Inspection Report", pageWidth / 2 + 10, 20, { align: "center" });
-    
-    yPos = 40;
-    
-    doc.setFontSize(10);
-    doc.setFont(undefined, "normal");
-    
-    const textStartX = margin + 30;
-    doc.text("Client Name:", textStartX, yPos);
-    doc.line(textStartX + 25, yPos + 1, textStartX + 85, yPos + 1);
-    doc.text(visitData.customer_name || "", textStartX + 26, yPos);
-    
-    doc.text("Date of Visit:", pageWidth - 75, yPos);
-    doc.line(pageWidth - 45, yPos + 1, pageWidth - 15, yPos + 1);
-    doc.text(visitData.created_date || "", pageWidth - 44, yPos);
-    
-    yPos += 7;
-    doc.text("Visited By:", textStartX, yPos);
-    doc.line(textStartX + 25, yPos + 1, textStartX + 85, yPos + 1);
-    doc.text(visitData.technician_name || "", textStartX + 26, yPos);
-    
-    yPos += 10;
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.5);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    
-    yPos += 15;
+        if (value !== undefined && value !== null) {
+          const strValue = String(value).toLowerCase().trim();
+          if (strValue === "yes" || strValue === "y" || strValue === "true" || strValue === "1") {
+            answer = "Yes";
+          } else if (strValue === "no" || strValue === "n" || strValue === "false" || strValue === "0") {
+            answer = "No";
+          }
+        }
 
-    /* ----------------------------------
-       CRITICAL FIX: GET CORRECT SITE VISIT DATA
-    ---------------------------------- */
+        if (answer) {
+          doc.setFont(undefined, "bold");
+          doc.text(answer, answerX, yPos, { align: "right" });
+          doc.setFont(undefined, "normal");
+        } else {
+          doc.setFont(undefined, "bold");
+          doc.text("", answerX, yPos, { align: "right" });
+          doc.setFont(undefined, "normal");
+        }
 
-    // Get current visit ID from visitData
-    const currentVisitId = visitData.site_visit_id || visitData.visit_id || visitData.id;
-    console.log("Current Visit ID for filtering:", currentVisitId);
-    
-    // Initialize siteVisit with empty object
-    let siteVisit = {};
-    
-    // First, try to find the matching site_visit in the array
-    if (Array.isArray(fullApiData.site_visit)) {
-      console.log("Searching in site_visit array, length:", fullApiData.site_visit.length);
-      
-      // Try different ID field combinations
-      for (const visit of fullApiData.site_visit) {
-        console.log("Checking visit:", visit);
-        
-        // Check all possible ID fields
-        if ((visit.id && String(visit.id) === String(currentVisitId)) ||
+        yPos += 7;
+      };
+
+      const drawSection = (title) => {
+        ensureSpace(12);
+        doc.setFont(undefined, "bold");
+        doc.setFontSize(11);
+        doc.text(title, margin, yPos);
+        yPos += 8;
+        doc.setFont(undefined, "normal");
+      };
+
+      const drawTable = (items = [], columns = [], showHeader = true) => {
+        if (!Array.isArray(items) || items.length === 0) {
+          return;
+        }
+
+        if (showHeader) {
+          ensureSpace(10);
+          doc.setFontSize(9);
+          doc.setFont(undefined, "bold");
+
+          let xPos = margin + 5;
+          columns.forEach(col => {
+            doc.text(col.header || col.key, xPos, yPos);
+            xPos += col.width || 40;
+          });
+
+          yPos += 5;
+          doc.setLineWidth(0.2);
+          doc.line(margin, yPos, pageWidth - margin, yPos);
+          yPos += 5;
+        }
+
+        doc.setFontSize(9);
+        doc.setFont(undefined, "normal");
+
+        items.forEach((item) => {
+          ensureSpace(10);
+
+          let xPos = margin + 5;
+          columns.forEach(col => {
+            const raw = item[col.key];
+            const value = col.valueGetter ?
+              col.valueGetter(item) :
+              (raw === undefined || raw === null ? "-" : String(raw));
+
+            doc.text(value, xPos, yPos);
+            xPos += col.width || 40;
+          });
+
+          yPos += 7;
+        });
+
+        yPos += 3;
+      };
+
+      const loadImageToDataURL = async (imageUrl) => {
+        try {
+          if (imageUrl.startsWith('data:')) {
+            return imageUrl;
+          }
+
+          const response = await fetch(imageUrl, {
+            method: 'GET',
+            cache: 'no-cache',
+            mode: 'cors',
+            credentials: 'same-origin',
+            headers: {
+              'Accept': 'image/*',
+              'Cache-Control': 'no-cache'
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const blob = await response.blob();
+          if (blob.size === 0) {
+            throw new Error('Empty image');
+          }
+
+          const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Failed to read'));
+            reader.readAsDataURL(blob);
+          });
+
+          return dataUrl;
+
+        } catch (error) {
+          console.error(`Error loading image:`, error);
+          throw error;
+        }
+      };
+
+      const getImageUrl = (imageFileName) => {
+        if (!imageFileName) return null;
+
+        if (imageFileName.startsWith('http://') || imageFileName.startsWith('https://')) {
+          return imageFileName;
+        }
+
+        if (imageFileName.startsWith('data:')) {
+          return imageFileName;
+        }
+
+        const cleanFileName = imageFileName.split('?')[0];
+        const encodedFileName = encodeURIComponent(cleanFileName);
+
+        const isDev = import.meta.env.DEV;
+
+        let imageUrl;
+
+        if (isDev) {
+          const viteImageBaseDev = import.meta.env.VITE_IMAGE_BASE_DEV || '/uploads/site-visit/';
+          imageUrl = `${viteImageBaseDev}${encodedFileName}`;
+        } else {
+          const viteImageBaseProd = import.meta.env.VITE_IMAGE_BASE_PROD;
+          if (viteImageBaseProd) {
+            imageUrl = `${viteImageBaseProd}${encodedFileName}`;
+          } else {
+            const protocol = window.location.protocol;
+            const host = window.location.host;
+            imageUrl = `${protocol}//${host}/growpro/backend/uploads/site-visit/${encodedFileName}`;
+          }
+        }
+
+        return imageUrl;
+      };
+
+      /* ----------------------------------
+         PROCESS AND ADD IMAGE HELPER - MODIFIED
+      ---------------------------------- */
+      /* ----------------------------------
+        PROCESS AND ADD IMAGE HELPER - MODIFIED
+     ---------------------------------- */
+      const processAndAddImage = async (doc, imageFileName, xPos, yPos, width, height, photoNumber) => {
+        try {
+          const imageUrl = getImageUrl(imageFileName);
+          if (!imageUrl) {
+            // Show URL path if imageUrl is null
+            doc.setFillColor(240, 240, 240);
+            doc.rect(xPos, yPos, width, height, 'F');
+            doc.setDrawColor(0, 0, 0);
+            doc.rect(xPos, yPos, width, height);
+            doc.setFontSize(6); // Smaller font for URL
+            doc.setTextColor(0, 0, 0);
+            doc.text("Image URL:", xPos + width / 2, yPos + height / 2 - 5, { align: "center" });
+            // Show truncated URL to fit in box
+            const truncatedUrl = imageFileName ?
+              (imageFileName.length > 40 ? imageFileName.substring(0, 40) + "..." : imageFileName) :
+              "No image URL";
+            doc.text(truncatedUrl, xPos + width / 2, yPos + height / 2, { align: "center" });
+            doc.text(`Photo ${photoNumber}`, xPos + width / 2, yPos + height + 6, { align: "center" });
+            return false;
+          }
+
+          const dataUrl = await loadImageToDataURL(imageUrl);
+          if (!dataUrl) {
+            // Show URL path if dataUrl is null
+            doc.setFillColor(240, 240, 240);
+            doc.rect(xPos, yPos, width, height, 'F');
+            doc.setDrawColor(0, 0, 0);
+            doc.rect(xPos, yPos, width, height);
+            doc.setFontSize(6);
+            doc.setTextColor(0, 0, 0);
+            doc.text("Failed to load:", xPos + width / 2, yPos + height / 2 - 5, { align: "center" });
+            const truncatedUrl = imageUrl.length > 40 ? imageUrl.substring(0, 40) + "..." : imageUrl;
+            doc.text(truncatedUrl, xPos + width / 2, yPos + height / 2, { align: "center" });
+            doc.text(`Photo ${photoNumber}`, xPos + width / 2, yPos + height + 6, { align: "center" });
+            return false;
+          }
+
+          const img = new Image();
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = () => {
+              // Show URL on image load error
+              doc.setFillColor(240, 240, 240);
+              doc.rect(xPos, yPos, width, height, 'F');
+              doc.setDrawColor(0, 0, 0);
+              doc.rect(xPos, yPos, width, height);
+              doc.setFontSize(6);
+              doc.setTextColor(0, 0, 0);
+              doc.text("Image failed to load:", xPos + width / 2, yPos + height / 2 - 5, { align: "center" });
+              const truncatedUrl = imageUrl.length > 40 ? imageUrl.substring(0, 40) + "..." : imageUrl;
+              doc.text(truncatedUrl, xPos + width / 2, yPos + height / 2, { align: "center" });
+              doc.text(`Photo ${photoNumber}`, xPos + width / 2, yPos + height + 6, { align: "center" });
+              reject(new Error('Image failed to load'));
+            };
+            img.src = dataUrl;
+            if (img.complete) resolve();
+          });
+
+          const aspectRatio = img.width / img.height;
+          let displayWidth = width;
+          let displayHeight = height;
+
+          if (aspectRatio > 1) {
+            displayHeight = width / aspectRatio;
+          } else {
+            displayWidth = height * aspectRatio;
+          }
+
+          const xOffset = (width - displayWidth) / 2;
+          const yOffset = (height - displayHeight) / 2;
+
+          let format = 'JPEG';
+          if (dataUrl.startsWith('data:image/png')) format = 'PNG';
+
+          doc.addImage(dataUrl, format, xPos + xOffset, yPos + yOffset, displayWidth, displayHeight);
+
+          doc.setDrawColor(0, 0, 0);
+          doc.setLineWidth(0.2);
+          doc.rect(xPos, yPos, width, height);
+
+          // Moved text lower and made it smaller
+          doc.setFontSize(7);
+          doc.setFont(undefined, "normal");
+          doc.text(`Photo ${photoNumber}`,
+            xPos + width / 2, yPos + height + 6, { align: "center" });
+
+          return true;
+
+        } catch (error) {
+          console.error(`Failed to process image:`, error);
+
+          // Show the image URL when all else fails
+          const imageUrl = getImageUrl(imageFileName) || imageFileName || "No URL available";
+
+          doc.setFillColor(240, 240, 240);
+          doc.rect(xPos, yPos, width, height, 'F');
+          doc.setDrawColor(0, 0, 0);
+          doc.rect(xPos, yPos, width, height);
+          doc.setFontSize(6);
+          doc.setTextColor(0, 0, 0);
+
+          doc.text("Image unavailable:", xPos + width / 2, yPos + height / 2 - 8, { align: "center" });
+
+          // Truncate URL to fit in the box
+          const maxChars = Math.floor(width / 1.5); // Rough estimation
+          let displayUrl = imageUrl;
+          if (displayUrl.length > maxChars) {
+            displayUrl = displayUrl.substring(0, maxChars) + "...";
+          }
+
+          // Split URL into multiple lines if needed
+          const lines = doc.splitTextToSize(displayUrl, width - 50);
+          lines.forEach((line, index) => {
+            doc.text(line, xPos + width / 2, yPos + height / 2 + (index * 4) - 4, { align: "center" });
+          });
+
+          doc.text(`Photo ${photoNumber}`, xPos + width / 2, yPos + height + 6, { align: "center" });
+          return false;
+        }
+      };
+
+      /* ----------------------------------
+         HEADER WITH LOGO
+      ---------------------------------- */
+
+      await addLogoToPage(1);
+
+      doc.setFontSize(14);
+      doc.setFont(undefined, "bold");
+      doc.text("Site Inspection Report", pageWidth / 2 + 10, 20, { align: "center" });
+
+      yPos = 40;
+
+      doc.setFontSize(10);
+      doc.setFont(undefined, "normal");
+
+      const textStartX = margin + 30;
+      doc.text("Client Name:", textStartX, yPos);
+      doc.line(textStartX + 25, yPos + 1, textStartX + 85, yPos + 1);
+      doc.text(visitData.customer_name || "", textStartX + 26, yPos);
+
+      doc.text("Date of Visit:", pageWidth - 75, yPos);
+      doc.line(pageWidth - 45, yPos + 1, pageWidth - 15, yPos + 1);
+      doc.text(visitData.created_date || "", pageWidth - 44, yPos);
+
+      yPos += 7;
+      doc.text("Visited By:", textStartX, yPos);
+      doc.line(textStartX + 25, yPos + 1, textStartX + 85, yPos + 1);
+      doc.text(visitData.technician_name || "", textStartX + 26, yPos);
+
+      yPos += 10;
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.5);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+
+      yPos += 15;
+
+      /* ----------------------------------
+         CRITICAL FIX: GET CORRECT SITE VISIT DATA
+      ---------------------------------- */
+
+      // Get current visit ID from visitData
+      const currentVisitId = visitData.site_visit_id || visitData.visit_id || visitData.id;
+      console.log("Current Visit ID for filtering:", currentVisitId);
+
+      // Initialize siteVisit with empty object
+      let siteVisit = {};
+
+      // First, try to find the matching site_visit in the array
+      if (Array.isArray(fullApiData.site_visit)) {
+        console.log("Searching in site_visit array, length:", fullApiData.site_visit.length);
+
+        // Try different ID field combinations
+        for (const visit of fullApiData.site_visit) {
+          console.log("Checking visit:", visit);
+
+          // Check all possible ID fields
+          if ((visit.id && String(visit.id) === String(currentVisitId)) ||
             (visit.visit_id && String(visit.visit_id) === String(currentVisitId)) ||
             (visit.site_visit_id && String(visit.site_visit_id) === String(currentVisitId)) ||
             (visit.visitId && String(visit.visitId) === String(currentVisitId)) ||
             (visit.siteVisitId && String(visit.siteVisitId) === String(currentVisitId))) {
-          
-          console.log("Found matching site visit!");
-          siteVisit = visit;
-          break;
+
+            console.log("Found matching site visit!");
+            siteVisit = visit;
+            break;
+          }
         }
-      }
-      
-      // If still not found, check if visitData itself has the site_visit fields
-      if (Object.keys(siteVisit).length === 0) {
-        console.log("No matching site_visit found in array, checking if visitData has the fields");
-        
-        // Check if visitData has site_visit fields directly
-        if (visitData.are_plants_getting_water !== undefined || 
+
+        // If still not found, check if visitData itself has the site_visit fields
+        if (Object.keys(siteVisit).length === 0) {
+          console.log("No matching site_visit found in array, checking if visitData has the fields");
+
+          // Check if visitData has site_visit fields directly
+          if (visitData.are_plants_getting_water !== undefined ||
             visitData.water_above_pump !== undefined) {
+            console.log("Using visitData as siteVisit data");
+            siteVisit = visitData;
+          }
+        }
+
+        // Last resort: use first site_visit if array has data
+        if (Object.keys(siteVisit).length === 0 && fullApiData.site_visit.length > 0) {
+          console.warn("No matching site_visit found, using first entry from array");
+          siteVisit = fullApiData.site_visit[0];
+        }
+      } else {
+        // If site_visit is not an array, try to use visitData
+        console.log("site_visit is not an array, checking visitData");
+        if (visitData.are_plants_getting_water !== undefined ||
+          visitData.water_above_pump !== undefined) {
           console.log("Using visitData as siteVisit data");
           siteVisit = visitData;
         }
       }
-      
-      // Last resort: use first site_visit if array has data
-      if (Object.keys(siteVisit).length === 0 && fullApiData.site_visit.length > 0) {
-        console.warn("No matching site_visit found, using first entry from array");
-        siteVisit = fullApiData.site_visit[0];
-      }
-    } else {
-      // If site_visit is not an array, try to use visitData
-      console.log("site_visit is not an array, checking visitData");
-      if (visitData.are_plants_getting_water !== undefined || 
-          visitData.water_above_pump !== undefined) {
-        console.log("Using visitData as siteVisit data");
-        siteVisit = visitData;
-      }
-    }
-    
-    console.log("Final siteVisit data being used:", siteVisit);
 
-    /* ----------------------------------
-       I. BASIC VISUAL INSPECTION
-    ---------------------------------- */
-    doc.setFontSize(11);
-    doc.setFont(undefined, "normal");
-    doc.text("Dear Customer, the following are our observations from our Visit.", pageWidth / 2, yPos, { align: "center" });
+      console.log("Final siteVisit data being used:", siteVisit);
 
-    yPos += 10;
+      /* ----------------------------------
+         I. BASIC VISUAL INSPECTION
+      ---------------------------------- */
+      doc.setFontSize(11);
+      doc.setFont(undefined, "normal");
+      doc.text("Dear Customer, the following are our observations from our Visit.", pageWidth / 2, yPos, { align: "center" });
 
-    drawSection("I. Basic Visual Inspection");
+      yPos += 10;
 
-    drawYesNo("1. All plants are getting water?", siteVisit.are_plants_getting_water);
-    drawYesNo("2. Water above the pump?", siteVisit.water_above_pump);
-    drawYesNo("3. Timer working?", siteVisit.timer_working);
-    if (siteVisit.timer_working && String(siteVisit.timer_working).toLowerCase() === "no") {
+      drawSection("I. Basic Visual Inspection");
+
+      drawYesNo("1. All plants are getting water?", siteVisit.are_plants_getting_water);
+      drawYesNo("2. Water above the pump?", siteVisit.water_above_pump);
+      drawYesNo("3. Timer working?", siteVisit.timer_working);
+      if (siteVisit.timer_working && String(siteVisit.timer_working).toLowerCase() === "no") {
         const reason = siteVisit.timer_issue || "";
         if (reason) {
-            drawLineField("   If no, reason:", reason, 100);
+          drawLineField("   If no, reason:", reason, 100);
         }
-    }
-    drawYesNo("4. Motor working?", siteVisit.motor_working);
-    if (siteVisit.motor_working && String(siteVisit.motor_working).toLowerCase() === "no") {
+      }
+      drawYesNo("4. Motor working?", siteVisit.motor_working);
+      if (siteVisit.motor_working && String(siteVisit.motor_working).toLowerCase() === "no") {
         const reason = siteVisit.motor_issue || "";
         if (reason) {
-            drawLineField("   If no, reason:", reason, 100);
+          drawLineField("   If no, reason:", reason, 100);
         }
-    }
-    drawYesNo("5. Lights working?", siteVisit.light_working);
-    if (siteVisit.light_working && String(siteVisit.light_working).toLowerCase() === "no") {
+      }
+      drawYesNo("5. Lights working?", siteVisit.light_working);
+      if (siteVisit.light_working && String(siteVisit.light_working).toLowerCase() === "no") {
         const reason = siteVisit.light_issue || "";
         if (reason) {
-            drawLineField("   If no, reason:", reason, 100);
+          drawLineField("   If no, reason:", reason, 100);
         }
-    }
-    drawYesNo("6. Any other equipment damaged?", siteVisit.equipment_damaged);
-    if (siteVisit.equipment_damaged && String(siteVisit.equipment_damaged).toLowerCase() === "yes") {
+      }
+      drawYesNo("6. Any other equipment damaged?", siteVisit.equipment_damaged);
+      if (siteVisit.equipment_damaged && String(siteVisit.equipment_damaged).toLowerCase() === "yes") {
         const reason = siteVisit.damaged_items || siteVisit.equipment_damage_reason || "";
         if (reason) {
-            drawLineField("   If yes, details:", reason, 100);
+          drawLineField("   If yes, details:", reason, 100);
         }
-    }
-    drawYesNo("7. Any leaks?", siteVisit.any_leaks);
-    if (siteVisit.any_leaks && String(siteVisit.any_leaks).toLowerCase() === "yes") {
+      }
+      drawYesNo("7. Any leaks?", siteVisit.any_leaks);
+      if (siteVisit.any_leaks && String(siteVisit.any_leaks).toLowerCase() === "yes") {
         const reason = siteVisit.leaks_details || siteVisit.leaks_reason || "";
         if (reason) {
-            drawLineField("   If yes, details:", reason, 100);
+          drawLineField("   If yes, details:", reason, 100);
         }
-    }
-    drawYesNo("8. Clean growing equipment & surroundings?", siteVisit.clean_equipment);
-    drawYesNo("9. Electric connections secured by clients?", siteVisit.electric_connections_secured);
+      }
+      drawYesNo("8. Clean growing equipment & surroundings?", siteVisit.clean_equipment);
+      drawYesNo("9. Electric connections secured by clients?", siteVisit.electric_connections_secured);
 
-    /* ----------------------------------
-       II. TECHNICAL OBSERVATIONS
-    ---------------------------------- */
+      /* ----------------------------------
+         II. TECHNICAL OBSERVATIONS
+      ---------------------------------- */
 
-    yPos += 3;
-    drawSection("II. Technical Observations");
+      yPos += 3;
+      drawSection("II. Technical Observations");
 
-    drawLineField("1. pH:", siteVisit.initial_ph);
-    drawLineField("2. Corrected pH:", siteVisit.corrected_ph);
-    drawLineField("3. Initial TDS (ppm):", siteVisit.initial_tds);
-    drawLineField("4. Corrected TDS (ppm):", siteVisit.corrected_tds);
+      drawLineField("1. pH:", siteVisit.initial_ph);
+      drawLineField("2. Corrected pH:", siteVisit.corrected_ph);
+      drawLineField("3. Initial TDS (ppm):", siteVisit.initial_tds);
+      drawLineField("4. Corrected TDS (ppm):", siteVisit.corrected_tds);
 
-    /* ----------------------------------
-       Plant Problems (FILTERED)
-    ---------------------------------- */
-    const filteredPlantProblems = Array.isArray(fullApiData.plantProblems)
-      ? fullApiData.plantProblems.filter(p =>
+      /* ----------------------------------
+         Plant Problems (FILTERED)
+      ---------------------------------- */
+      const filteredPlantProblems = Array.isArray(fullApiData.plantProblems)
+        ? fullApiData.plantProblems.filter(p =>
           String(p.visit_id) === String(currentVisitId)
         )
-      : [];
+        : [];
 
-    const problemAnswer = filteredPlantProblems.length ? "yes" : "no";
-    drawYesNo("5. Plant Problems?", problemAnswer);
+      const problemAnswer = filteredPlantProblems.length ? "yes" : "no";
+      drawYesNo("5. Plant Problems?", problemAnswer);
 
-    if (filteredPlantProblems.length) {
-      const problemNames = filteredPlantProblems
-        .map(p =>
-          p.problem_name === "Others"
-            ? (p.other_problem_name || "Others")
-            : p.problem_name
-        )
-        .join(", ");
+      if (filteredPlantProblems.length) {
+        const problemNames = filteredPlantProblems
+          .map(p =>
+            p.problem_name === "Others"
+              ? (p.other_problem_name || "Others")
+              : p.problem_name
+          )
+          .join(", ");
 
-      drawLineField("    If yes, symptoms?", problemNames, 120);
-    }
+        drawLineField("    If yes, symptoms?", problemNames, 120);
+      }
 
-    /* Pests (FILTERED) */
-    const filteredPests = Array.isArray(fullApiData.pestTypes)
-      ? fullApiData.pestTypes.filter(p =>
+      /* Pests (FILTERED) */
+      const filteredPests = Array.isArray(fullApiData.pestTypes)
+        ? fullApiData.pestTypes.filter(p =>
           String(p.visit_id) === String(currentVisitId)
         )
-      : [];
+        : [];
 
-    drawLineField("6. State which crops:", siteVisit.which_crop);
+      drawLineField("6. State which crops:", siteVisit.which_crop);
 
-    const pestAnswer = filteredPests.length ? "yes" : "no";
-    drawYesNo("7. Presence of pests?", pestAnswer);
+      const pestAnswer = filteredPests.length ? "yes" : "no";
+      drawYesNo("7. Presence of pests?", pestAnswer);
 
-    if (filteredPests.length) {
-      const pestNames = filteredPests
-        .map(p =>
-          p.pest_name === "Others"
-            ? (p.other_pest_name || "Others")
-            : p.pest_name
-        )
-        .join(", ");
+      if (filteredPests.length) {
+        const pestNames = filteredPests
+          .map(p =>
+            p.pest_name === "Others"
+              ? (p.other_pest_name || "Others")
+              : p.pest_name
+          )
+          .join(", ");
 
-      drawLineField("    If yes, which?", pestNames, 100);
-    }
-
-    drawLineField("8. Any nutrient deficiency?", siteVisit.nutrient_deficiency);
-    drawLineField("    Other:", siteVisit.deficiency_details || siteVisit.other_observation, 120);
-
-    /* ----------------------------------
-       III. CLIENT TRAINING
-    ---------------------------------- */
-
-    yPos += 3;
-    drawSection("III. Client Training");
-
-    drawYesNo("1. How & When to Harvest", siteVisit.client_training_harvest);
-    drawYesNo("2. Pest Management", siteVisit.pest_management);
-    drawYesNo("3. Equipment Cleaning", siteVisit.equipment_cleaning);
-    drawYesNo("4. Plant Maintenance", siteVisit.plant_maintenance);
-
-    yPos += 5;
-    drawLineField("Scope of Improvement:", siteVisit.scope_of_improvement, 120);
-
-    /* ----------------------------------
-       IV. MATERIAL SUPPLY
-    ---------------------------------- */
-
-    yPos += 10;
-    drawSection("IV. Material Supply");
-
-    // Neem Oil Supplied - Get data from siteVisit
-    const neemoilSupplied = siteVisit.material_supplied_neemoil;
-    const neemoilDelivered = siteVisit.material_delivered_neemoil;
-    
-    // Check for Neem Oil in material supply
-    let neemOilAnswer = "No";
-    
-    if (neemoilSupplied !== undefined && neemoilSupplied !== null) {
-      const strValue = String(neemoilSupplied).toLowerCase().trim();
-      if (strValue === "yes" || strValue === "Yes" || strValue === "y" || strValue === "true" || strValue === "1") {
-        neemOilAnswer = "Yes";
-      } else {
-        neemOilAnswer = "No";
+        drawLineField("    If yes, which?", pestNames, 100);
       }
-    }
 
-    drawYesNo("Neem Oil:", neemOilAnswer);
+      drawLineField("8. Any nutrient deficiency?", siteVisit.nutrient_deficiency);
+      drawLineField("    Other:", siteVisit.deficiency_details || siteVisit.other_observation, 120);
 
-    // Supplied Plants - Filter with currentVisitId
-    const suppliedPlants = Array.isArray(fullApiData.suppliedPlants) ?
-      fullApiData.suppliedPlants.filter(p =>
-        String(p.visit_id) === String(currentVisitId)
-      ) : [];
+      /* ----------------------------------
+         III. CLIENT TRAINING
+      ---------------------------------- */
 
-    if (suppliedPlants.length > 0) {
-      ensureSpace(15);
-      doc.setFontSize(10);
-      doc.setFont(undefined, "bold");
-      doc.text("Plants Supplied:", margin, yPos);
-      yPos += 6;
-      doc.setFont(undefined, "normal");
+      yPos += 3;
+      drawSection("III. Client Training");
 
-      drawTable(
-        suppliedPlants.map((p, index) => ({
-          no: index + 1,
-          plant_name: p.plant_name === "Others" ? (p.other_plant_name || "Others") : (p.plant_name || "-"),
-          quantity: p.quantity || "-",
-        })),
-        [
-          { key: "no", header: "#", width: 15 },
-          { key: "plant_name", header: "Plant Name", width: 100 },
-          { key: "quantity", header: "Quantity", width: 35 },
-        ]
-      );
-    }
+      drawYesNo("1. How & When to Harvest", siteVisit.client_training_harvest);
+      drawYesNo("2. Pest Management", siteVisit.pest_management);
+      drawYesNo("3. Equipment Cleaning", siteVisit.equipment_cleaning);
+      drawYesNo("4. Plant Maintenance", siteVisit.plant_maintenance);
 
-    // Supplied Nutrients - Filter with currentVisitId
-    const suppliedNutrients = Array.isArray(fullApiData.suppliedNutrients) ?
-      fullApiData.suppliedNutrients.filter(n =>
-        String(n.visit_id) === String(currentVisitId)
-      ) : [];
+      yPos += 5;
+      drawLineField("Scope of Improvement:", siteVisit.scope_of_improvement, 120);
 
-    if (suppliedNutrients.length > 0) {
-      ensureSpace(15);
-      doc.setFontSize(10);
-      doc.setFont(undefined, "bold");
-      doc.text("Nutrients Supplied:", margin, yPos);
-      yPos += 6;
-      doc.setFont(undefined, "normal");
+      /* ----------------------------------
+         IV. MATERIAL SUPPLY
+      ---------------------------------- */
 
-      drawTable(
-        suppliedNutrients.map((n, index) => {
-          const tankCap = parseFloat(n.tank_capacity) || 0;
-          const topups = parseFloat(n.topups) || 0;
-          const total = tankCap * topups;
+      yPos += 10;
+      drawSection("IV. Material Supply");
 
-          return {
-            no: index + 1,
-            nutrient_type:
-              n.nutrient_type === "Others"
-                ? (n.other_nutrient_name || "Others")
-                : (n.nutrient_type || "-"),
-            tank_capacity: tankCap || "-",
-            topups: topups || "-",
-            total: total ? `${total} Ltr` : "-"
-          };
-        }),
-        [
-          { key: "no", header: "#", width: 15 },
-          { key: "nutrient_type", header: "Type", width: 55 },
-          { key: "tank_capacity", header: "Tank Cap.", width: 30 },
-          { key: "topups", header: "Topups", width: 25 },
-          { key: "total", header: "Total (Ltr)", width: 30 }
-        ]
-      );
-    }
+      // Neem Oil Supplied - Get data from siteVisit
+      const neemoilSupplied = siteVisit.material_supplied_neemoil;
+      const neemoilDelivered = siteVisit.material_delivered_neemoil;
 
-    // Supplied Chargeable Items - Filter with currentVisitId
-    const suppliedChargeable = Array.isArray(fullApiData.suppliedChargeableItem) ?
-      fullApiData.suppliedChargeableItem.filter(i =>
-        String(i.visit_id) === String(currentVisitId)
-      ) : [];
+      // Check for Neem Oil in material supply
+      let neemOilAnswer = "No";
 
-    if (suppliedChargeable.length > 0) {
-      ensureSpace(15);
-      doc.setFontSize(10);
-      doc.setFont(undefined, "bold");
-      doc.text("Other Items Supplied:", margin, yPos);
-      yPos += 6;
-      doc.setFont(undefined, "normal");
-
-      drawTable(
-        suppliedChargeable.map((i, index) => ({
-          no: index + 1,
-          item_name: i.item_name === "Others" ? (i.other_item_name || "Others") : (i.item_name || "-"),
-          quantity: i.quantity || "-",
-          unit_price: i.unit_price || "-",
-          total: ((parseFloat(i.quantity) || 0) * (parseFloat(i.unit_price) || 0)).toFixed(2)
-        })),
-        [
-          { key: "no", header: "#", width: 15 },
-          { key: "item_name", header: "Item Name", width: 60 },
-          { key: "quantity", header: "Qty", width: 25 },
-        ]
-      );
-    }
-
-    /* ----------------------------------
-       V. MATERIAL NEED TO DELIVER
-    ---------------------------------- */
-
-    yPos += 10;
-    drawSection("V. Material Need To Deliver");
-
-    // Neem Oil Needed - Get data from siteVisit
-    const materialNeedsDelivery = siteVisit.material_needs_delivery;
-    
-    let neemOilNeededAnswer = "No";
-    if (materialNeedsDelivery !== undefined && materialNeedsDelivery !== null) {
-      const strValue = String(materialNeedsDelivery).toLowerCase().trim();
-      if (strValue === "yes" || strValue === "y" || strValue === "true" || strValue === "1") {
-        neemOilNeededAnswer = "Yes";
-      }
-    }
-    
-    // Also check material_delivered_neemoil as a fallback
-    if (neemOilNeededAnswer === "No" && neemoilDelivered !== undefined && neemoilDelivered !== null) {
-      const strValue = String(neemoilDelivered).toLowerCase().trim();
-      if (strValue === "yes" || strValue === "y" || strValue === "true" || strValue === "1") {
-        neemOilNeededAnswer = "Yes";
-      }
-    }
-    
-    drawYesNo("Neem Oil:", neemOilNeededAnswer);
-
-    // Needed Plants - Filter with currentVisitId
-    const needPlants = Array.isArray(fullApiData.needPlants) ?
-      fullApiData.needPlants.filter(p =>
-        String(p.visit_id) === String(currentVisitId)
-      ) : [];
-
-    if (needPlants.length > 0) {
-      ensureSpace(15);
-      doc.setFontSize(10);
-      doc.setFont(undefined, "bold");
-      doc.text("Plants Needed:", margin, yPos);
-      yPos += 6;
-      doc.setFont(undefined, "normal");
-
-      drawTable(
-        needPlants.map((p, index) => ({
-          no: index + 1,
-          plant_name: p.plant_name === "Others" ? (p.other_plant_name || "Others") : (p.plant_name || "-"),
-          quantity: p.quantity || "-",
-          priority: p.priority || "-"
-        })),
-        [
-          { key: "no", header: "#", width: 15 },
-          { key: "plant_name", header: "Plant Name", width: 80 },
-          { key: "quantity", header: "Quantity", width: 30 },
-        ]
-      );
-    }
-
-    // Needed Nutrients - Filter with currentVisitId
-    const needNutrients = Array.isArray(fullApiData.needNutrients) ?
-      fullApiData.needNutrients.filter(n =>
-        String(n.visit_id) === String(currentVisitId)
-      ) : [];
-
-    if (needNutrients.length > 0) {
-      ensureSpace(15);
-      doc.setFontSize(10);
-      doc.setFont(undefined, "bold");
-      doc.text("Nutrients Needed:", margin, yPos);
-      yPos += 6;
-      doc.setFont(undefined, "normal");
-
-      drawTable(
-        needNutrients.map((n, index) => {
-          const tankCap = parseFloat(n.tank_capacity) || 0;
-          const topups = parseFloat(n.topups) || 0;
-          const total = tankCap * topups;
-
-          return {
-            no: index + 1,
-            nutrient_type:
-              n.nutrient_type === "Others"
-                ? (n.other_nutrient_name || "Others")
-                : (n.nutrient_type || "-"),
-            tank_capacity: tankCap || "-",
-            topups: topups || "-",
-            total: total ? `${total} Ltr` : "-"
-          };
-        }),
-        [
-          { key: "no", header: "#", width: 15 },
-          { key: "nutrient_type", header: "Type", width: 50 },
-          { key: "tank_capacity", header: "Tank Cap.", width: 30 },
-          { key: "topups", header: "Topup", width: 25 },
-          { key: "total", header: "Total (Ltr)", width: 30 }
-        ]
-      );
-    }
-
-    // Needed Chargeable Items - Filter with currentVisitId
-    const needChargeable = Array.isArray(fullApiData.needChargeableItem) ?
-      fullApiData.needChargeableItem.filter(i =>
-        String(i.visit_id) === String(currentVisitId)
-      ) : [];
-
-    if (needChargeable.length > 0) {
-      ensureSpace(15);
-      doc.setFontSize(10);
-      doc.setFont(undefined, "bold");
-      doc.text("Chargeable Items Needed:", margin, yPos);
-      yPos += 6;
-      doc.setFont(undefined, "normal");
-
-      drawTable(
-        needChargeable.map((i, index) => ({
-          no: index + 1,
-          item_name: i.item_name === "Others" ? (i.other_item_name || "Others") : (i.item_name || "-"),
-          quantity: i.quantity || "-",
-          estimated_price: i.estimated_price || "-"
-        })),
-        [
-          { key: "no", header: "#", width: 15 },
-          { key: "item_name", header: "Item Name", width: 80 },
-          { key: "quantity", header: "Qty", width: 25 },
-        ]
-      );
-    }
-
-    /* ----------------------------------
-       SETUP PHOTOS - MODIFIED SECTION
-    ---------------------------------- */
-
-    const photos = Array.isArray(fullApiData.suppliedPhotoSetup) ? 
-      fullApiData.suppliedPhotoSetup.filter(p => 
-        String(p.visit_id) === String(currentVisitId)
-      ) : [];
-
-    if (photos.length > 0) {
-      doc.addPage();
-      currentPage++;
-      totalPages = currentPage;
-      await addLogoToPage(currentPage);
-      
-      // Start photos lower on the page
-      yPos = 50; // Increased from 40
-      doc.setFont(undefined, "bold");
-      doc.setFontSize(14);
-      doc.text("Setup Photos", pageWidth / 2, yPos, { align: "center" });
-      yPos += 25; // Increased from 20
-      
-      const photosPerRow = 2;
-      const horizontalSpacing = 20;
-      const verticalSpacing = 55; // Increased from 45 to give more space for text
-      
-      const availableWidth = pageWidth - (2 * margin) - (horizontalSpacing * (photosPerRow - 1));
-      const imageWidth = availableWidth / photosPerRow;
-      const imageHeight = imageWidth * 0.7; // Reduced aspect ratio for more vertical space
-      
-      for (let i = 0; i < photos.length; i++) {
-        const photo = photos[i];
-        const imageFileName = photo.image_url || photo.filename || photo.preview || photo.url;
-        
-        if (!imageFileName) continue;
-        
-        const rowIndex = Math.floor(i / photosPerRow);
-        const colIndex = i % photosPerRow;
-        
-        const xPos = margin + (colIndex * (imageWidth + horizontalSpacing));
-        const yPosPhoto = yPos + (rowIndex * verticalSpacing);
-        
-        // Check if we need a new page
-        if (yPosPhoto + imageHeight + 20 > pageHeight - 40) { // Added 20 for text buffer
-          doc.addPage();
-          currentPage++;
-          totalPages = currentPage;
-          await addLogoToPage(currentPage);
-          
-          yPos = 50;
-          doc.setFont(undefined, "bold");
-          doc.setFontSize(14);
-          doc.text("Setup Photos (Continued)", pageWidth / 2, yPos, { align: "center" });
-          yPos += 25;
-          
-          // Recalculate rowIndex for new page
-          const newRowIndex = 0;
-          const newXPos = margin + (colIndex * (imageWidth + horizontalSpacing));
-          const newYPosPhoto = yPos + (newRowIndex * verticalSpacing);
-          
-          await processAndAddImage(doc, imageFileName, newXPos, newYPosPhoto, imageWidth, imageHeight, i + 1);
+      if (neemoilSupplied !== undefined && neemoilSupplied !== null) {
+        const strValue = String(neemoilSupplied).toLowerCase().trim();
+        if (strValue === "yes" || strValue === "Yes" || strValue === "y" || strValue === "true" || strValue === "1") {
+          neemOilAnswer = "Yes";
         } else {
-          await processAndAddImage(doc, imageFileName, xPos, yPosPhoto, imageWidth, imageHeight, i + 1);
+          neemOilAnswer = "No";
         }
       }
-      
-      // Calculate final yPos after all photos
-      const lastRowIndex = Math.floor((photos.length - 1) / photosPerRow);
-      yPos = yPos + ((lastRowIndex + 1) * verticalSpacing) + 20;
-    }
 
-    /* ----------------------------------
-       FINAL PAGE - UPDATED FORMAT
-    ---------------------------------- */
+      drawYesNo("Neem Oil:", neemOilAnswer);
 
-    doc.setPage(totalPages);
-    
-    if (yPos > pageHeight - 100) {
-      doc.addPage();
-      currentPage++;
-      totalPages = currentPage;
-      await addLogoToPage(currentPage);
-      yPos = 40;
-    }
+      // Supplied Plants - Filter with currentVisitId
+      const suppliedPlants = Array.isArray(fullApiData.suppliedPlants) ?
+        fullApiData.suppliedPlants.filter(p =>
+          String(p.visit_id) === String(currentVisitId)
+        ) : [];
 
-    /* ----------------------------------
-       CLARIFICATION SECTION
-    ---------------------------------- */
+      if (suppliedPlants.length > 0) {
+        ensureSpace(15);
+        doc.setFontSize(10);
+        doc.setFont(undefined, "bold");
+        doc.text("Plants Supplied:", margin, yPos);
+        yPos += 6;
+        doc.setFont(undefined, "normal");
 
-    yPos += 10;
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, "normal");
-    doc.text("Do let us know if you'd like clarity on any of our observations/suggestions.", 
-             pageWidth / 2, yPos, { align: "center" });
-    
-    yPos += 25;
+        drawTable(
+          suppliedPlants.map((p, index) => ({
+            no: index + 1,
+            plant_name: p.plant_name === "Others" ? (p.other_plant_name || "Others") : (p.plant_name || "-"),
+            quantity: p.quantity || "-",
+          })),
+          [
+            { key: "no", header: "#", width: 15 },
+            { key: "plant_name", header: "Plant Name", width: 100 },
+            { key: "quantity", header: "Quantity", width: 35 },
+          ]
+        );
+      }
 
-    /* ----------------------------------
-       HAPPY GROWING SECTION - LEFT ALIGNED
-    ---------------------------------- */
+      // Supplied Nutrients - Filter with currentVisitId
+      const suppliedNutrients = Array.isArray(fullApiData.suppliedNutrients) ?
+        fullApiData.suppliedNutrients.filter(n =>
+          String(n.visit_id) === String(currentVisitId)
+        ) : [];
 
-    doc.setFontSize(20);
-    doc.setFont(undefined, "bold");
-    doc.text("Happy Growing!", margin, yPos);
-    
-    yPos += 15;
-    doc.setFontSize(12);
-    doc.setFont(undefined, "normal");
-    doc.textWithLink("Email: sales@growpro.co.in", margin, yPos, {
+      if (suppliedNutrients.length > 0) {
+        ensureSpace(15);
+        doc.setFontSize(10);
+        doc.setFont(undefined, "bold");
+        doc.text("Nutrients Supplied:", margin, yPos);
+        yPos += 6;
+        doc.setFont(undefined, "normal");
+
+        drawTable(
+          suppliedNutrients.map((n, index) => {
+            const tankCap = parseFloat(n.tank_capacity) || 0;
+            const topups = parseFloat(n.topups) || 0;
+            const total = tankCap * topups;
+
+            return {
+              no: index + 1,
+              nutrient_type:
+                n.nutrient_type === "Others"
+                  ? (n.other_nutrient_name || "Others")
+                  : (n.nutrient_type || "-"),
+              tank_capacity: tankCap || "-",
+              topups: topups || "-",
+              total: total ? `${total} Ltr` : "-"
+            };
+          }),
+          [
+            { key: "no", header: "#", width: 15 },
+            { key: "nutrient_type", header: "Type", width: 55 },
+            { key: "tank_capacity", header: "Tank Cap.", width: 30 },
+            { key: "topups", header: "Topups", width: 25 },
+            { key: "total", header: "Total (Ltr)", width: 30 }
+          ]
+        );
+      }
+
+      // Supplied Chargeable Items - Filter with currentVisitId
+      const suppliedChargeable = Array.isArray(fullApiData.suppliedChargeableItem) ?
+        fullApiData.suppliedChargeableItem.filter(i =>
+          String(i.visit_id) === String(currentVisitId)
+        ) : [];
+
+      if (suppliedChargeable.length > 0) {
+        ensureSpace(15);
+        doc.setFontSize(10);
+        doc.setFont(undefined, "bold");
+        doc.text("Other Items Supplied:", margin, yPos);
+        yPos += 6;
+        doc.setFont(undefined, "normal");
+
+        drawTable(
+          suppliedChargeable.map((i, index) => ({
+            no: index + 1,
+            item_name: i.item_name === "Others" ? (i.other_item_name || "Others") : (i.item_name || "-"),
+            quantity: i.quantity || "-",
+            unit_price: i.unit_price || "-",
+            total: ((parseFloat(i.quantity) || 0) * (parseFloat(i.unit_price) || 0)).toFixed(2)
+          })),
+          [
+            { key: "no", header: "#", width: 15 },
+            { key: "item_name", header: "Item Name", width: 60 },
+            { key: "quantity", header: "Qty", width: 25 },
+          ]
+        );
+      }
+
+      /* ----------------------------------
+         V. MATERIAL NEED TO DELIVER
+      ---------------------------------- */
+
+      yPos += 10;
+      drawSection("V. Material Need To Deliver");
+
+      // Neem Oil Needed - Get data from siteVisit
+      const materialNeedsDelivery = siteVisit.material_needs_delivery;
+
+      let neemOilNeededAnswer = "No";
+      if (materialNeedsDelivery !== undefined && materialNeedsDelivery !== null) {
+        const strValue = String(materialNeedsDelivery).toLowerCase().trim();
+        if (strValue === "yes" || strValue === "y" || strValue === "true" || strValue === "1") {
+          neemOilNeededAnswer = "Yes";
+        }
+      }
+
+      // Also check material_delivered_neemoil as a fallback
+      if (neemOilNeededAnswer === "No" && neemoilDelivered !== undefined && neemoilDelivered !== null) {
+        const strValue = String(neemoilDelivered).toLowerCase().trim();
+        if (strValue === "yes" || strValue === "y" || strValue === "true" || strValue === "1") {
+          neemOilNeededAnswer = "Yes";
+        }
+      }
+
+      drawYesNo("Neem Oil:", neemOilNeededAnswer);
+
+      // Needed Plants - Filter with currentVisitId
+      const needPlants = Array.isArray(fullApiData.needPlants) ?
+        fullApiData.needPlants.filter(p =>
+          String(p.visit_id) === String(currentVisitId)
+        ) : [];
+
+      if (needPlants.length > 0) {
+        ensureSpace(15);
+        doc.setFontSize(10);
+        doc.setFont(undefined, "bold");
+        doc.text("Plants Needed:", margin, yPos);
+        yPos += 6;
+        doc.setFont(undefined, "normal");
+
+        drawTable(
+          needPlants.map((p, index) => ({
+            no: index + 1,
+            plant_name: p.plant_name === "Others" ? (p.other_plant_name || "Others") : (p.plant_name || "-"),
+            quantity: p.quantity || "-",
+            priority: p.priority || "-"
+          })),
+          [
+            { key: "no", header: "#", width: 15 },
+            { key: "plant_name", header: "Plant Name", width: 80 },
+            { key: "quantity", header: "Quantity", width: 30 },
+          ]
+        );
+      }
+
+      // Needed Nutrients - Filter with currentVisitId
+      const needNutrients = Array.isArray(fullApiData.needNutrients) ?
+        fullApiData.needNutrients.filter(n =>
+          String(n.visit_id) === String(currentVisitId)
+        ) : [];
+
+      if (needNutrients.length > 0) {
+        ensureSpace(15);
+        doc.setFontSize(10);
+        doc.setFont(undefined, "bold");
+        doc.text("Nutrients Needed:", margin, yPos);
+        yPos += 6;
+        doc.setFont(undefined, "normal");
+
+        drawTable(
+          needNutrients.map((n, index) => {
+            const tankCap = parseFloat(n.tank_capacity) || 0;
+            const topups = parseFloat(n.topups) || 0;
+            const total = tankCap * topups;
+
+            return {
+              no: index + 1,
+              nutrient_type:
+                n.nutrient_type === "Others"
+                  ? (n.other_nutrient_name || "Others")
+                  : (n.nutrient_type || "-"),
+              tank_capacity: tankCap || "-",
+              topups: topups || "-",
+              total: total ? `${total} Ltr` : "-"
+            };
+          }),
+          [
+            { key: "no", header: "#", width: 15 },
+            { key: "nutrient_type", header: "Type", width: 50 },
+            { key: "tank_capacity", header: "Tank Cap.", width: 30 },
+            { key: "topups", header: "Topup", width: 25 },
+            { key: "total", header: "Total (Ltr)", width: 30 }
+          ]
+        );
+      }
+
+      // Needed Chargeable Items - Filter with currentVisitId
+      const needChargeable = Array.isArray(fullApiData.needChargeableItem) ?
+        fullApiData.needChargeableItem.filter(i =>
+          String(i.visit_id) === String(currentVisitId)
+        ) : [];
+
+      if (needChargeable.length > 0) {
+        ensureSpace(15);
+        doc.setFontSize(10);
+        doc.setFont(undefined, "bold");
+        doc.text("Chargeable Items Needed:", margin, yPos);
+        yPos += 6;
+        doc.setFont(undefined, "normal");
+
+        drawTable(
+          needChargeable.map((i, index) => ({
+            no: index + 1,
+            item_name: i.item_name === "Others" ? (i.other_item_name || "Others") : (i.item_name || "-"),
+            quantity: i.quantity || "-",
+            estimated_price: i.estimated_price || "-"
+          })),
+          [
+            { key: "no", header: "#", width: 15 },
+            { key: "item_name", header: "Item Name", width: 80 },
+            { key: "quantity", header: "Qty", width: 25 },
+          ]
+        );
+      }
+
+      /* ----------------------------------
+         SETUP PHOTOS - MODIFIED SECTION
+      ---------------------------------- */
+
+      const photos = Array.isArray(fullApiData.suppliedPhotoSetup) ?
+        fullApiData.suppliedPhotoSetup.filter(p =>
+          String(p.visit_id) === String(currentVisitId)
+        ) : [];
+
+      if (photos.length > 0) {
+        doc.addPage();
+        currentPage++;
+        totalPages = currentPage;
+        await addLogoToPage(currentPage);
+
+        // Start photos lower on the page
+        yPos = 50; // Increased from 40
+        doc.setFont(undefined, "bold");
+        doc.setFontSize(14);
+        doc.text("Setup Photos", pageWidth / 2, yPos, { align: "center" });
+        yPos += 25; // Increased from 20
+
+        const photosPerRow = 2;
+        const horizontalSpacing = 20;
+        const verticalSpacing = 55; // Increased from 45 to give more space for text
+
+        const availableWidth = pageWidth - (2 * margin) - (horizontalSpacing * (photosPerRow - 1));
+        const imageWidth = availableWidth / photosPerRow;
+        const imageHeight = imageWidth * 0.7; // Reduced aspect ratio for more vertical space
+
+        for (let i = 0; i < photos.length; i++) {
+          const photo = photos[i];
+          const imageFileName = photo.image_url || photo.filename || photo.preview || photo.url;
+
+          if (!imageFileName) continue;
+
+          const rowIndex = Math.floor(i / photosPerRow);
+          const colIndex = i % photosPerRow;
+
+          const xPos = margin + (colIndex * (imageWidth + horizontalSpacing));
+          const yPosPhoto = yPos + (rowIndex * verticalSpacing);
+
+          // Check if we need a new page
+          if (yPosPhoto + imageHeight + 20 > pageHeight - 40) { // Added 20 for text buffer
+            doc.addPage();
+            currentPage++;
+            totalPages = currentPage;
+            await addLogoToPage(currentPage);
+
+            yPos = 50;
+            doc.setFont(undefined, "bold");
+            doc.setFontSize(14);
+            doc.text("Setup Photos (Continued)", pageWidth / 2, yPos, { align: "center" });
+            yPos += 25;
+
+            // Recalculate rowIndex for new page
+            const newRowIndex = 0;
+            const newXPos = margin + (colIndex * (imageWidth + horizontalSpacing));
+            const newYPosPhoto = yPos + (newRowIndex * verticalSpacing);
+
+            await processAndAddImage(doc, imageFileName, newXPos, newYPosPhoto, imageWidth, imageHeight, i + 1);
+          } else {
+            await processAndAddImage(doc, imageFileName, xPos, yPosPhoto, imageWidth, imageHeight, i + 1);
+          }
+        }
+
+        // Calculate final yPos after all photos
+        const lastRowIndex = Math.floor((photos.length - 1) / photosPerRow);
+        yPos = yPos + ((lastRowIndex + 1) * verticalSpacing) + 20;
+      }
+
+      /* ----------------------------------
+         FINAL PAGE - UPDATED FORMAT
+      ---------------------------------- */
+
+      doc.setPage(totalPages);
+
+      if (yPos > pageHeight - 100) {
+        doc.addPage();
+        currentPage++;
+        totalPages = currentPage;
+        await addLogoToPage(currentPage);
+        yPos = 40;
+      }
+
+      /* ----------------------------------
+         CLARIFICATION SECTION
+      ---------------------------------- */
+
+      yPos += 10;
+
+      doc.setFontSize(12);
+      doc.setFont(undefined, "normal");
+      doc.text("Do let us know if you'd like clarity on any of our observations/suggestions.",
+        pageWidth / 2, yPos, { align: "center" });
+
+      yPos += 25;
+
+      /* ----------------------------------
+         HAPPY GROWING SECTION - LEFT ALIGNED
+      ---------------------------------- */
+
+      doc.setFontSize(20);
+      doc.setFont(undefined, "bold");
+      doc.text("Happy Growing!", margin, yPos);
+
+      yPos += 15;
+      doc.setFontSize(12);
+      doc.setFont(undefined, "normal");
+      doc.textWithLink("Email: sales@growpro.co.in", margin, yPos, {
         url: "mailto:sales@growpro.co.in"
-     });
-    
-    yPos += 10;
-    doc.textWithLink("Phone: +91 859 175 3001", margin, yPos, {
-      url: "tel:+918591753001"
-    });
+      });
 
-    /* ----------------------------------
-       FOOTER
-    ---------------------------------- */
+      yPos += 10;
+      doc.textWithLink("Phone: +91 859 175 3001", margin, yPos, {
+        url: "tel:+918591753001"
+      });
 
-    const footerY = pageHeight - 10;
-    
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.3);
-    doc.line(margin, footerY - 8, pageWidth - margin, footerY - 8);
-    
-    doc.setFontSize(9);
-    doc.setFont(undefined, "normal");
-    
-    doc.text("Email: sales@growpro.co.in", margin, footerY);
-    
-    doc.setFont(undefined, "bold");
-    doc.text("GrowPro Solutions", pageWidth / 2, footerY, { align: "center" });
-    
-    doc.setFont(undefined, "normal");
-    doc.text("Phone: +91 859 175 3001", pageWidth - margin, footerY, { align: "right" });
+      /* ----------------------------------
+         FOOTER
+      ---------------------------------- */
 
-    /* ----------------------------------
-       ENSURE LOGO ON ALL PAGES
-    ---------------------------------- */
+      const footerY = pageHeight - 10;
 
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
-      if (i > 1) {
-        await addLogoToPage(i);
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.3);
+      doc.line(margin, footerY - 8, pageWidth - margin, footerY - 8);
+
+      doc.setFontSize(9);
+      doc.setFont(undefined, "normal");
+
+      doc.text("Email: sales@growpro.co.in", margin, footerY);
+
+      doc.setFont(undefined, "bold");
+      doc.text("GrowPro Solutions", pageWidth / 2, footerY, { align: "center" });
+
+      doc.setFont(undefined, "normal");
+      doc.text("Phone: +91 859 175 3001", pageWidth - margin, footerY, { align: "right" });
+
+      /* ----------------------------------
+         ENSURE LOGO ON ALL PAGES
+      ---------------------------------- */
+
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        if (i > 1) {
+          await addLogoToPage(i);
+        }
       }
+
+      doc.setPage(totalPages);
+
+      /* ----------------------------------
+         SAVE
+      ---------------------------------- */
+
+      const safeName = (visitData.customer_name || "site_visit")
+        .replace(/\s+/g, "_")
+        .replace(/[^\w-_]/g, "");
+
+      const formatDate = (dateString) => {
+        if (!dateString) return new Date().toISOString().split('T')[0];
+        try {
+          const date = new Date(dateString);
+          return date.toISOString().split('T')[0];
+        } catch (e) {
+          return new Date().toISOString().split('T')[0];
+        }
+      };
+
+      console.log("PDF generation complete, saving...");
+      doc.save(`${safeName}_Grower_Inspection_Report_${formatDate(visitData.created_date)}.pdf`);
+      console.log("PDF saved successfully!");
+
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert(`Failed to generate PDF: ${error.message}`);
     }
-
-    doc.setPage(totalPages);
-
-    /* ----------------------------------
-       SAVE
-    ---------------------------------- */
-
-    const safeName = (visitData.customer_name || "site_visit")
-      .replace(/\s+/g, "_")
-      .replace(/[^\w-_]/g, "");
-
-    const formatDate = (dateString) => {
-      if (!dateString) return new Date().toISOString().split('T')[0];
-      try {
-        const date = new Date(dateString);
-        return date.toISOString().split('T')[0];
-      } catch (e) {
-        return new Date().toISOString().split('T')[0];
-      }
-    };
-
-    console.log("PDF generation complete, saving...");
-    doc.save(`${safeName}_Grower_Inspection_Report_${formatDate(visitData.created_date)}.pdf`);
-    console.log("PDF saved successfully!");
-    
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-    alert(`Failed to generate PDF: ${error.message}`);
-  }
-};
+  };
   // Fetch data from backend API                                                                                       
   // Fetch data from backend API
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        // Mock data for demonstration - replace with actual API call
-        // const mockData = [
-        //   {
-        //     site_visit_id: "1",
-        //     created_date: "2025-12-04",
-        //     customer_id: "14",
-        //     customer_name: "Mayuresh Warke",
-        //     phone: "0976543667",
-        //     profile_pic: "",
-        //     technician_id: "1",
-        //     technician_name: "Dilip Gupta",
-        //     visited_by: "AD0001"
-        //   },
-        //   {
-        //     site_visit_id: "2",
-        //     created_date: "2025-12-03",
-        //     customer_id: "15",
-        //     customer_name: "Priya Sharma",
-        //     phone: "0987654321",
-        //     profile_pic: "",
-        //     technician_id: "2",
-        //     technician_name: "Rahul Kumar",
-        //     visited_by: "AD0002"
-        //   },
-        //   {
-        //     site_visit_id: "3",
-        //     created_date: "2025-12-02",
-        //     customer_id: "16",
-        //     customer_name: "Amit Patel",
-        //     phone: "0912345678",
-        //     profile_pic: "",
-        //     technician_id: "1",
-        //     technician_name: "Dilip Gupta",
-        //     visited_by: "AD0001"
-        //   }
-        // ];
-
-        // setAllUsers(mockData);
 
         /* Uncomment for actual API call*/
         const response = await fetch(
@@ -1191,6 +1154,11 @@ const processAndAddImage = async (doc, imageFileName, xPos, yPos, width, height,
     navigate(`/dashboard/sitevisits/editvisit/${userId}`);
   };
 
+  const handleDelete = (userId)=>{
+    console.log("Delete user:", userId);
+    navigate(`/dashboard/sitevisits/deletevisit/${userId}`);
+  }
+
   const goToPage = (page) => setCurrentPage(page);
   const goToPrevious = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const goToNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
@@ -1251,6 +1219,11 @@ const processAndAddImage = async (doc, imageFileName, xPos, yPos, width, height,
                       {userRole !== "technician" && (
                         <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">Action</th>
                       )}
+                          {userRole !== "technician,co-ordinator" && (
+                                <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-center">Delete</th>
+                      )}
+                      
+              
                     </tr>
                   </thead>
                   <tbody>
@@ -1301,8 +1274,8 @@ const processAndAddImage = async (doc, imageFileName, xPos, yPos, width, height,
                                 onClick={() => generatePDF(user, allFullData)}
                                 disabled={!pdfLoaded}
                                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition ${pdfLoaded
-                                    ? 'bg-red-600 text-white hover:bg-red-700'
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  ? 'bg-red-600 text-white hover:bg-red-700'
+                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                   }`}
                                 title={pdfLoaded ? "Download PDF Report" : "Loading PDF library..."}
                               >
@@ -1322,6 +1295,19 @@ const processAndAddImage = async (doc, imageFileName, xPos, yPos, width, height,
                               </button>
                             </td>
                           )}
+
+                          {userRole !== "technician,co-ordinator" && (
+                            <td className="py-4 px-4 text-left">
+                              <button
+                                onClick={() => handleDelete(user.site_visit_id)}
+                                className="px-3 py-2  items-start bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                                title="Delete"
+                              >
+                                <TrashIcon className="w-5 h-5" />
+                              </button>
+                            </td>
+                          )}
+
                         </tr>
                       );
                     })}
@@ -1381,8 +1367,8 @@ const processAndAddImage = async (doc, imageFileName, xPos, yPos, width, height,
                           onClick={() => generatePDF(user, allFullData)}
                           disabled={!pdfLoaded}
                           className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg transition ${pdfLoaded
-                              ? 'bg-red-600 text-white hover:bg-red-700'
-                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            ? 'bg-red-600 text-white hover:bg-red-700'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                             }`}
                         >
                           <FileText size={18} />
@@ -1420,8 +1406,8 @@ const processAndAddImage = async (doc, imageFileName, xPos, yPos, width, height,
                   onClick={goToPrevious}
                   disabled={currentPage === 1}
                   className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === 1
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                     }`}
                 >
                   Previous
@@ -1431,8 +1417,8 @@ const processAndAddImage = async (doc, imageFileName, xPos, yPos, width, height,
                     key={index + 1}
                     onClick={() => goToPage(index + 1)}
                     className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === index + 1
-                        ? "bg-blue-500 text-white"
-                        : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                      ? "bg-blue-500 text-white"
+                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                       }`}
                   >
                     {index + 1}
@@ -1442,8 +1428,8 @@ const processAndAddImage = async (doc, imageFileName, xPos, yPos, width, height,
                   onClick={goToNext}
                   disabled={currentPage === totalPages}
                   className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === totalPages
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                     }`}
                 >
                   Next

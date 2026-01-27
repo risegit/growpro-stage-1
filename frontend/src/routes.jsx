@@ -8,7 +8,7 @@ import {
   MapPinIcon,
   ServerStackIcon,
   ArrowRightOnRectangleIcon,
-  EyeIcon 
+  EyeIcon
 
 } from "@heroicons/react/24/solid";
 
@@ -40,6 +40,7 @@ import Viewvisits from "@/pages/dashboard/viewvisits";
 import Editvisit from "@/pages/dashboard/editvisit";
 import Schedulevisit from "@/pages/dashboard/schedulevisit";
 import ManageMaterialDeliver from "@/pages/dashboard/manage-material-deliver";
+import Managematerialorder from "@/pages/dashboard/managematerialorder";
 import EditMaterialDeliver from "@/pages/dashboard/editmaterialdeliver";
 import Reports from "@/pages/dashboard/reports";
 
@@ -47,7 +48,7 @@ import { SignIn } from "@/pages/auth";
 import LogoutButton from "./Components/LogoutButton";
 
 import RoleProtectedRoute from "@/components/RoleProtectedRoute";
-import { Eye, FileText  } from "lucide-react";
+import { Eye, FileText } from "lucide-react";
 
 
 const icon = { className: "w-5 h-5 text-inherit" };
@@ -229,7 +230,7 @@ const routes = [
         name: "Site Observation Visits",
         allowedRoles: ["admin", "co-ordinator", "technician"],
         collapse: [
-          
+
           {
             name: "Create Observation Visits",
             path: "/sitevisits/createvisits",
@@ -268,27 +269,45 @@ const routes = [
       },
       {
         icon: <FileText {...icon} />,
-        name: "Manage Material Deliver",
-        path: "/manage-material-deliver",
+        name: "Material Management",
         allowedRoles: ["admin", "co-ordinator", "technician"],
-        element: (
-          <RoleProtectedRoute
-            element={<ManageMaterialDeliver />}
-            allowedRoles={["admin", "co-ordinator", "technician"]}
-          />
-        ),
-      },
-      {
-            name: "Edit Material Deliver",
-            path: "/editmaterialdeliver/:id",
-            allowedRoles: ["admin", "co-ordinator"],
+        collapse: [
+          {
+            name: "Manage Material Deliver",
+            path: "/manage-material-deliver",
+            allowedRoles: ["admin", "co-ordinator", "technician"],
             element: (
               <RoleProtectedRoute
-                element={<EditMaterialDeliver />}
-                allowedRoles={["admin", "co-ordinator"]}
+                element={<ManageMaterialDeliver />}
+                allowedRoles={["admin", "co-ordinator", "technician"]}
               />
             ),
-            hidden: true,
+          },
+          {
+            name: "Manage Material Order",
+            path: "/manage-material-order",
+            allowedRoles: ["admin", "co-ordinator", "technician"],
+            element: (
+              <RoleProtectedRoute
+                element={<Managematerialorder />}
+                allowedRoles={["admin", "co-ordinator", "technician"]}
+              />
+            ),
+          },
+        ],
+      },
+
+      {
+        name: "Edit Material Deliver",
+        path: "/editmaterialdeliver/:id",
+        allowedRoles: ["admin", "co-ordinator"],
+        element: (
+          <RoleProtectedRoute
+            element={<EditMaterialDeliver />}
+            allowedRoles={["admin", "co-ordinator"]}
+          />
+        ),
+        hidden: true,
       },
       {
         icon: <FileText {...icon} />,
