@@ -5,7 +5,7 @@ import { TrashIcon } from "@heroicons/react/24/solid";
 
 export default function UserTable() {
   const [allUsers, setAllUsers] = useState([]);
-  const [allFullData, setAllFullData] = useState([]);
+  const [allFullData, setAllFullData] = useState({}); // Initialize as empty object
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -17,14 +17,30 @@ export default function UserTable() {
   const userRole = user?.role;
   const user_code = user?.user_code;
 
-  const formatDate = (dateString) => {
+  // Rename the outer formatDate to avoid conflict
+  const formatDateForDisplay = (dateString) => {
     if (!dateString) return "-";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    } catch (error) {
+      return "-";
+    }
+  };
+
+  // Helper function for PDF date formatting
+  const formatDateForPDF = (dateString) => {
+    if (!dateString) return new Date().toISOString().split('T')[0];
+    try {
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0];
+    } catch (e) {
+      return new Date().toISOString().split('T')[0];
+    }
   };
 
   // Load jsPDF library
@@ -46,7 +62,7 @@ export default function UserTable() {
     };
   }, []);
 
-  // Generate PDF Report
+  // Generate PDF Report (keep the function but remove inner formatDate)
   const generatePDF = async (visitData, fullApiData) => {
     try {
       console.log("Starting PDF generation...");
@@ -304,12 +320,6 @@ export default function UserTable() {
         return imageUrl;
       };
 
-      /* ----------------------------------
-         PROCESS AND ADD IMAGE HELPER - MODIFIED
-      ---------------------------------- */
-      /* ----------------------------------
-        PROCESS AND ADD IMAGE HELPER - MODIFIED
-     ---------------------------------- */
       const processAndAddImage = async (doc, imageFileName, xPos, yPos, width, height, photoNumber) => {
         try {
           const imageUrl = getImageUrl(imageFileName);
@@ -1068,18 +1078,8 @@ export default function UserTable() {
         .replace(/\s+/g, "_")
         .replace(/[^\w-_]/g, "");
 
-      const formatDate = (dateString) => {
-        if (!dateString) return new Date().toISOString().split('T')[0];
-        try {
-          const date = new Date(dateString);
-          return date.toISOString().split('T')[0];
-        } catch (e) {
-          return new Date().toISOString().split('T')[0];
-        }
-      };
-
       console.log("PDF generation complete, saving...");
-      doc.save(`${safeName}_Grower_Inspection_Report_${formatDate(visitData.created_date)}.pdf`);
+      doc.save(`${safeName}_Grower_Inspection_Report_${formatDateForPDF(visitData.created_date)}.pdf`);
       console.log("PDF saved successfully!");
 
     } catch (error) {
@@ -1087,35 +1087,45 @@ export default function UserTable() {
       alert(`Failed to generate PDF: ${error.message}`);
     }
   };
-  // Fetch data from backend API                                                                                       
+  
   // Fetch data from backend API
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-
+        setLoading(true);
         /* Uncomment for actual API call*/
         const response = await fetch(
           `${import.meta.env.VITE_API_URL}api/site-visit.php?view-visit='viewvisit'&user_code=${user_code}`,
           { method: "GET" }
         );
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         console.log("API Response:", data);
-        setAllUsers(data.data);
+        
+        // Ensure data.data is an array
+        const usersData = Array.isArray(data.data) ? data.data : [];
+        setAllUsers(usersData);
+        
         // FULL DATA FOR PDF, DETAILS PAGE ETC.
         setAllFullData({
-          site_visit: data.site_visit || [],
-          needPlants: data.needPlants || [],
-          suppliedPlants: data.suppliedPlants || [],
-          needNutrients: data.needNutrients || [],
-          suppliedNutrients: data.suppliedNutrients || [],
-          needChargeableItem: data.needChargeableItem || [],
-          suppliedChargeableItem: data.suppliedChargeableItem || [],
-          pestTypes: data.pestTypes || [],
-          plantProblems: data.plantProblems || [],
-          suppliedPhotoSetup: data.suppliedPhotoSetup || []
+          site_visit: Array.isArray(data.site_visit) ? data.site_visit : [],
+          needPlants: Array.isArray(data.needPlants) ? data.needPlants : [],
+          suppliedPlants: Array.isArray(data.suppliedPlants) ? data.suppliedPlants : [],
+          needNutrients: Array.isArray(data.needNutrients) ? data.needNutrients : [],
+          suppliedNutrients: Array.isArray(data.suppliedNutrients) ? data.suppliedNutrients : [],
+          needChargeableItem: Array.isArray(data.needChargeableItem) ? data.needChargeableItem : [],
+          suppliedChargeableItem: Array.isArray(data.suppliedChargeableItem) ? data.suppliedChargeableItem : [],
+          pestTypes: Array.isArray(data.pestTypes) ? data.pestTypes : [],
+          plantProblems: Array.isArray(data.plantProblems) ? data.plantProblems : [],
+          suppliedPhotoSetup: Array.isArray(data.suppliedPhotoSetup) ? data.suppliedPhotoSetup : []
         });
       } catch (error) {
         console.error("Error fetching users:", error);
+        setAllUsers([]); // Set empty array on error
       } finally {
         setLoading(false);
       }
@@ -1124,18 +1134,24 @@ export default function UserTable() {
     fetchUsers();
   }, []);
 
-  // Filter users based on search
+  // Filter users based on search - FIXED VERSION
   const filteredUsers = useMemo(() => {
     if (!searchQuery.trim()) return allUsers;
+    
     const query = searchQuery.toLowerCase();
-    return allUsers.filter(
-      (user) =>
-        user.customer_name.toLowerCase().includes(query) ||
-        user.phone.includes(query) ||
-        user.technician_name.toLowerCase().includes(query) ||
-        user.visited_by.toLowerCase().includes(query) ||
-        formatDate(user.created_date).toLowerCase().includes(query)
-    );
+    
+    return allUsers.filter((user) => {
+      // Check if user exists and has required properties
+      if (!user) return false;
+      
+      return (
+        (user.customer_name && user.customer_name.toLowerCase().includes(query)) ||
+        (user.phone && user.phone.includes(query)) ||
+        (user.technician_name && user.technician_name.toLowerCase().includes(query)) ||
+        (user.visited_by && user.visited_by.toLowerCase().includes(query)) ||
+        (user.created_date && formatDateForDisplay(user.created_date).toLowerCase().includes(query))
+      );
+    });
   }, [allUsers, searchQuery]);
 
   // Pagination logic
@@ -1154,10 +1170,10 @@ export default function UserTable() {
     navigate(`/dashboard/sitevisits/editvisit/${userId}`);
   };
 
-  const handleDelete = (userId)=>{
+  const handleDelete = (userId) => {
     console.log("Delete user:", userId);
     navigate(`/dashboard/sitevisits/deletevisit/${userId}`);
-  }
+  };
 
   const goToPage = (page) => setCurrentPage(page);
   const goToPrevious = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -1199,8 +1215,12 @@ export default function UserTable() {
         <div className="p-4 sm:p-6">
           {currentUsers.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">No users found</p>
-              <p className="text-gray-400 text-sm mt-2">Try adjusting your search</p>
+              <p className="text-gray-500 text-lg">
+                {searchQuery.trim() ? "No users found matching your search" : "No users found"}
+              </p>
+              <p className="text-gray-400 text-sm mt-2">
+                {searchQuery.trim() ? "Try adjusting your search query" : "No data available"}
+              </p>
             </div>
           ) : (
             <>
@@ -1219,11 +1239,9 @@ export default function UserTable() {
                       {userRole !== "technician" && (
                         <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">Action</th>
                       )}
-                          {userRole !== "technician,co-ordinator" && (
-                                <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-center">Delete</th>
-                      )}
-                      
-              
+                      {/* {userRole !== "technician,co-ordinator" && (
+                        <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-center">Delete</th>
+                      )} */}
                     </tr>
                   </thead>
                   <tbody>
@@ -1240,34 +1258,39 @@ export default function UserTable() {
                                   user.profile_pic
                                     ? `${import.meta.env.VITE_API_URL}uploads/customers/${user.profile_pic}`
                                     : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                      user.customer_name
+                                      user.customer_name || "User"
                                     )}&background=3b82f6&color=fff`
                                 }
-                                alt={user.customer_name}
+                                alt={user.customer_name || "User"}
                                 className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                               />
                               <span className="font-medium text-gray-800 truncate">
-                                {user.customer_name}
+                                {user.customer_name || "N/A"}
                               </span>
                             </div>
                           </td>
 
                           <td className="py-4 px-4 text-gray-700 truncate">
-                            <a
-                              href={`tel:${user.phone}`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              {user.phone}
-                            </a>
+                            {user.phone ? (
+                              <a
+                                href={`tel:${user.phone}`}
+                                className="text-blue-600 hover:underline"
+                              >
+                                {user.phone}
+                              </a>
+                            ) : (
+                              <span className="text-gray-400">N/A</span>
+                            )}
                           </td>
 
                           <td className="py-4 px-4 text-gray-700 truncate">
-                            {user.technician_name} ({user.visited_by})
+                            {user.technician_name || "N/A"} {user.visited_by ? `(${user.visited_by})` : ""}
                           </td>
 
                           <td className="py-4 px-4 text-gray-700 truncate">
-                            {formatDate(user.created_date)}
+                            {formatDateForDisplay(user.created_date)}
                           </td>
+                          
                           {userRole !== "technician" && (
                             <td className="py-4 px-4 text-center">
                               <button
@@ -1289,25 +1312,24 @@ export default function UserTable() {
                             <td className="py-4 px-4 text-right">
                               <button
                                 onClick={() => handleEdit(user.site_visit_id)}
-                                className="px-4 py-2 btn-primary"
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                               >
                                 Edit
                               </button>
                             </td>
                           )}
 
-                          {userRole !== "technician,co-ordinator" && (
+                          {/* {userRole !== "technician,co-ordinator" && (
                             <td className="py-4 px-4 text-left">
                               <button
                                 onClick={() => handleDelete(user.site_visit_id)}
-                                className="px-3 py-2  items-start bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                                className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
                                 title="Delete"
                               >
                                 <TrashIcon className="w-5 h-5" />
                               </button>
                             </td>
-                          )}
-
+                          )} */}
                         </tr>
                       );
                     })}
@@ -1329,15 +1351,15 @@ export default function UserTable() {
                             user.profile_pic
                               ? `${import.meta.env.VITE_API_URL}uploads/customers/${user.profile_pic}`
                               : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                user.customer_name
+                                user.customer_name || "User"
                               )}&background=3b82f6&color=fff`
                           }
-                          alt={user.customer_name}
+                          alt={user.customer_name || "User"}
                           className="w-14 h-14 rounded-full object-cover"
                         />
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-gray-800 text-lg mb-2">
-                            {user.customer_name} <br /><small>({user.phone})</small>
+                            {user.customer_name || "N/A"} <br /><small>{user.phone ? `(${user.phone})` : ""}</small>
                           </h3>
                         </div>
                       </div>
@@ -1348,7 +1370,7 @@ export default function UserTable() {
                             Visited By
                           </span>
                           <span className="text-sm text-gray-700">
-                            {user.technician_name} ({user.visited_by})
+                            {user.technician_name || "N/A"} {user.visited_by ? `(${user.visited_by})` : ""}
                           </span>
                         </div>
 
@@ -1357,7 +1379,7 @@ export default function UserTable() {
                             Visit Date
                           </span>
                           <span className="text-sm text-gray-700">
-                            {formatDate(user.created_date)}
+                            {formatDateForDisplay(user.created_date)}
                           </span>
                         </div>
                       </div>

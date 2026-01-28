@@ -98,13 +98,57 @@ switch ($method) {
                     $chargeableItems[]=$row;
                 }
 
+                // offsite Material Data
+                $offsiteSql1 = "SELECT omd.id, omd.customer_id, omd.delivery_status, omd.created_date, omd.created_time, omd.created_by, u.name, cd.locality, u.phone,u.profile_pic,omd.updated_date FROM offsite_material_deliver omd INNER JOIN users u ON omd.customer_id=u.id INNER JOIN customers_details cd ON omd.customer_id=cd.user_id";
+                $offsiteResult1 = $conn->query($offsiteSql1);
+                $offsiteData = [];
+                while ($row = $offsiteResult1->fetch_assoc()) {
+                    $offsiteData[]=$row;
+                }
+
+                $offsiteSql2 = "SELECT omd.id, omd.customer_id, omnp.plant_name, omnp.other_plant_name, omnp.quantity FROM offsite_material_need_plants omnp INNER JOIN offsite_material_deliver omd ON omd.id=omnp.offsite_id";
+                $offsiteResult2 = $conn->query($offsiteSql2);
+                $offsitePlants = [];
+                while ($row = $offsiteResult2->fetch_assoc()) {
+                    $offsitePlants[]=$row;
+                }
+
+                $offsiteSql3 = "SELECT omnn.id, omd.customer_id, omnn.nutrient_type, omnn.tank_capacity, omnn.topups, omnn.other_nutrient_name, omnn.other_tank_capacity FROM offsite_material_need_nutrients omnn INNER JOIN offsite_material_deliver omd ON omd.id=omnn.offsite_id";
+                $offsiteResult3 = $conn->query($offsiteSql3);
+                $offsiteNutrients = [];
+                while ($row = $offsiteResult3->fetch_assoc()) {
+                    $offsiteNutrients[]=$row;
+                }
+
+                $offsiteSql4 = "SELECT omnc.id, omd.customer_id, omnc.item_name, omnc.quantity FROM offsite_material_need_chargeable_items omnc INNER JOIN offsite_material_deliver omd ON omd.id=omnc.offsite_id";
+                $offsiteResult4 = $conn->query($offsiteSql4);
+                $offsiteChargeableItems = [];
+                while ($row = $offsiteResult4->fetch_assoc()) {
+                    $offsiteChargeableItems[]=$row;
+                }
+
+                $mergedData = array_merge($data, $offsiteData);
+                $mergedPlants = array_merge($plants, $offsitePlants);
+                $mergedNutrients = array_merge($nutrients, $offsiteNutrients);
+                $mergedChargeableItems = array_merge($chargeableItems, $offsiteChargeableItems);
+
+                // echo json_encode([
+                //     "status" => "success",
+                //     "data" => $data,
+                //     "plants" => $plants,
+                //     "nutrients" => $nutrients,
+                //     "chargeableItems" => $chargeableItems,
+                //     "offsiteData" => $offsiteData,
+                //     "offsitePlants" => $offsitePlants,
+                //     "offsiteNutrients" => $offsiteNutrients,
+                //     "offsiteChargeableItems" => $offsiteChargeableItems
+                // ]);
                 echo json_encode([
                     "status" => "success",
-                    "data" => $data,
-                    "plants" => $plants,
-                    "nutrients" => $nutrients,
-                    "chargeableItems" => $chargeableItems
-
+                    "data" => $mergedData,
+                    "plants" => $mergedPlants,
+                    "nutrients" => $mergedNutrients,
+                    "chargeableItems" => $mergedChargeableItems
                 ]);
             }
         

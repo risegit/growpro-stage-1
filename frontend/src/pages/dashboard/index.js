@@ -17,4 +17,5 @@ export * from "@/pages/dashboard/revisit";
 export * from "@/pages/dashboard/editmanagevisit";
 export * from "@/pages/dashboard/schedulevisit";
 export * from "@/pages/dashboard/reports";
-export * from "@/pages/dashboard/managematerialorder";
+export * from "@/pages/dashboard/add-offsite-material-order";
+export * from "@/pages/dashboard/edit-offsite-material-order";

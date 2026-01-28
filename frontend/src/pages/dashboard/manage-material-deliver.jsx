@@ -22,12 +22,12 @@ export default function UserTable() {
   // Helper function to calculate supplies
   const calculateSupplies = (tankCapacity, topups) => {
     if (!tankCapacity || !topups) return "-";
-    
+
     const capacity = parseFloat(tankCapacity);
     const topupCount = parseFloat(topups);
-    
+
     if (isNaN(capacity) || isNaN(topupCount)) return "-";
-    
+
     const result = capacity * topupCount;
     // Format to 2 decimal places if it's a decimal, otherwise show as integer
     return result % 1 === 0 ? result.toString() : result.toFixed(2);
@@ -56,20 +56,20 @@ export default function UserTable() {
         });
         const data = await response.json();
         console.log("API Response:", data);
-        
+
         // Match plants with users based on customer_id
         const usersWithPlants = data.data.map(user => {
           // Find plants for this specific user based on customer_id
-          const userPlants = data.plants.filter(plant => 
+          const userPlants = data.plants.filter(plant =>
             plant.customer_id === user.customer_id
           );
-          const userNutrients = data.nutrients.filter(nutrient => 
+          const userNutrients = data.nutrients.filter(nutrient =>
             nutrient.customer_id === user.customer_id
           );
-          const userchargeableItem = data.chargeableItems.filter(chargeableItem => 
+          const userchargeableItem = data.chargeableItems.filter(chargeableItem =>
             chargeableItem.customer_id === user.customer_id
           );
-          
+
           return {
             ...user,
             plants: userPlants,
@@ -77,7 +77,7 @@ export default function UserTable() {
             chargeableItems: userchargeableItem
           };
         });
-        
+
         console.log("Users with plants:", usersWithPlants);
         setAllUsers(usersWithPlants);
         setPlantsList(data.plants || []);
@@ -124,10 +124,10 @@ export default function UserTable() {
     // Helper function to format dates
     const formatDateForPDF = (dateString) => {
       if (!dateString) return "-";
-      
+
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return dateString;
-      
+
       return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -149,10 +149,10 @@ export default function UserTable() {
     --------------------------------------------------------*/
     // Determine delivery date based on status
     let deliveryDateText;
-    
-    if (user.delivery_status && 
-        (user.delivery_status.toLowerCase() === 'partial' || 
-         user.delivery_status.toLowerCase() === 'yes')) {
+
+    if (user.delivery_status &&
+      (user.delivery_status.toLowerCase() === 'partial' ||
+        user.delivery_status.toLowerCase() === 'yes')) {
       // Check if updated_date exists and is not null
       if (user.updated_date && user.updated_date !== null && user.updated_date !== 'null') {
         deliveryDateText = formatDateForPDF(user.updated_date);
@@ -171,8 +171,8 @@ export default function UserTable() {
     const deliveryStatus = user.delivery_status || "Not specified";
     let statusText = deliveryStatus;
     let statusColor = [0, 0, 0]; // Default black
-    
-    switch(deliveryStatus.toLowerCase()) {
+
+    switch (deliveryStatus.toLowerCase()) {
       case 'delivered':
       case 'yes':
         statusColor = [34, 197, 94]; // Green
@@ -192,7 +192,7 @@ export default function UserTable() {
     /* -------------------------------------------------------
        🔹 HEADER DESIGN (Matching your design)
     --------------------------------------------------------*/
-    const logoPath = `${import.meta.env.BASE_URL}img/growprologo.jpeg`; 
+    const logoPath = `${import.meta.env.BASE_URL}img/growprologo.jpeg`;
     doc.addImage(logoPath, 'JPEG', 15, 10, 30, 30);
 
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -280,7 +280,7 @@ export default function UserTable() {
       doc.setFont(undefined, "bold");
       doc.setTextColor(59, 130, 246);
       doc.text("Plant Delivery:", 20, yPos);
-      
+
 
       yPos += 6;
       doc.setLineWidth(0.3);
@@ -295,36 +295,36 @@ export default function UserTable() {
       doc.text("#", 25, yPos);
       doc.text("Plant Name", 35, yPos);
       doc.text("Quantity", 120, yPos);
-      
+
       yPos += 8;
       doc.setLineWidth(0.2);
       doc.line(20, yPos, 190, yPos);
       yPos += 5;
-      
+
       // Plants data rows
       doc.setFontSize(9);
       doc.setFont(undefined, "normal");
       doc.setTextColor(0, 0, 0);
-      
+
       user.plants.forEach((plant, index) => {
         // Check if we need a new page
         if (yPos > 250) {
           doc.addPage();
           yPos = 20;
         }
-        
+
         const serialNo = index + 1;
         const plantName = plant.plant_name === "Others" || plant.plant_name === "others"
           ? (plant.other_plant_name || "Custom Plant")
           : plant.plant_name || "-";
         const quantity = plant.quantity || "-";
-        
+
         doc.text(serialNo.toString(), 25, yPos);
         doc.text(plantName, 35, yPos);
         doc.text(quantity.toString(), 120, yPos);
-        
+
         yPos += 8;
-        
+
         // Add small space between rows
         if (index < user.plants.length - 1) {
           doc.setLineWidth(0.1);
@@ -332,37 +332,37 @@ export default function UserTable() {
           yPos += 5;
         }
       });
-      
+
       // Add total summary for plants
       yPos += 10;
       doc.setFontSize(10);
-      
+
       // Total Plants label (orange)
       doc.setFont(undefined, "bold");
       doc.setTextColor(244, 166, 76);
       doc.text("Total Plants: ", 25, yPos);
-      
+
       // Total Plants value (black)
       doc.setFont(undefined, "bold");
       doc.setTextColor(0, 0, 0);
       doc.text(`${user.plants.length}`, 60, yPos);
-      
+
       const totalPlantQuantity = user.plants.reduce((sum, plant) => {
         return sum + (parseInt(plant.quantity) || 0);
       }, 0);
-      
+
       // Total Plant Quantity label (orange)
       doc.setFont(undefined, "bold");
       doc.setTextColor(244, 166, 76);
       doc.text("Total Plant Quantity: ", 100, yPos);
-      
+
       // Total Plant Quantity value (black)
       doc.setFont(undefined, "bold");
       doc.setTextColor(0, 0, 0);
       doc.text(`${totalPlantQuantity} units`, 145, yPos);
-      
+
       yPos += 15;
-      
+
     } else {
       doc.setFontSize(10);
       doc.setFont(undefined, "normal");
@@ -384,13 +384,13 @@ export default function UserTable() {
       doc.setFont(undefined, "bold");
       doc.setTextColor(59, 130, 246);
       doc.text("Nutrients Delivery:", 20, yPos);
-      
+
       yPos += 6;
       doc.setLineWidth(0.3);
       doc.line(20, yPos, 190, yPos);
-      
+
       yPos += 10;
-      
+
       // Table headers for nutrients
       doc.setFontSize(10);
       doc.setFont(undefined, "bold");
@@ -400,38 +400,38 @@ export default function UserTable() {
       doc.text("Tank Capacity", 90, yPos);
       doc.text("Topups", 130, yPos);
       doc.text("Total Nutrients", 160, yPos);
-      
+
       yPos += 8;
       doc.setLineWidth(0.2);
       doc.line(20, yPos, 190, yPos);
       yPos += 5;
-      
+
       // Nutrients data rows
       doc.setFontSize(9);
       doc.setFont(undefined, "normal");
       doc.setTextColor(0, 0, 0);
-      
+
       user.nutrients.forEach((nutrient, index) => {
         // Check if we need a new page
         if (yPos > 250) {
           doc.addPage();
           yPos = 20;
         }
-        
+
         const serialNo = index + 1;
         const nutrientType = nutrient.nutrient_type || "-";
         const tankCapacity = nutrient.tank_capacity || "-";
         const topups = nutrient.topups || "-";
         const supplies = calculateSuppliesForPDF(nutrient.tank_capacity, nutrient.topups) + " L";
-        
+
         doc.text(serialNo.toString(), 25, yPos);
         doc.text(nutrientType, 35, yPos);
         doc.text(`${tankCapacity} L`, 90, yPos);
         doc.text(topups, 130, yPos);
         doc.text(supplies, 160, yPos);
-        
+
         yPos += 8;
-        
+
         // Add small space between rows
         if (index < user.nutrients.length - 1) {
           doc.setLineWidth(0.1);
@@ -439,11 +439,11 @@ export default function UserTable() {
           yPos += 5;
         }
       });
-      
+
       // Add total summary for nutrients
       yPos += 10;
       doc.setFontSize(10);
-      
+
       const totalSupplies = user.nutrients.reduce((sum, nutrient) => {
         if (!nutrient.tank_capacity || !nutrient.topups) return sum;
         const capacity = parseFloat(nutrient.tank_capacity);
@@ -451,17 +451,17 @@ export default function UserTable() {
         if (isNaN(capacity) || isNaN(topups)) return sum;
         return sum + (capacity * topups);
       }, 0);
-      
+
       // Total Nutrient Supplies label (orange)
       doc.setFont(undefined, "bold");
       doc.setTextColor(244, 166, 76);
       doc.text("Total Nutrient Supplies: ", 25, yPos);
-      
+
       // Total Nutrient Supplies value (black)
       doc.setFont(undefined, "bold");
       doc.setTextColor(0, 0, 0);
       doc.text(`${totalSupplies.toFixed(2)} L`, 70, yPos);
-      
+
       yPos += 15;
     }
 
@@ -479,13 +479,13 @@ export default function UserTable() {
       doc.setFont(undefined, "bold");
       doc.setTextColor(59, 130, 246);
       doc.text("Chargeable Items:", 20, yPos);
-      
+
       yPos += 6;
       doc.setLineWidth(0.3);
       doc.line(20, yPos, 190, yPos);
-      
+
       yPos += 10;
-      
+
       // Table headers for chargeable items
       doc.setFontSize(10);
       doc.setFont(undefined, "bold");
@@ -493,36 +493,36 @@ export default function UserTable() {
       doc.text("#", 25, yPos);
       doc.text("Item Name", 40, yPos);
       doc.text("Quantity", 150, yPos);
-      
+
       yPos += 8;
       doc.setLineWidth(0.2);
       doc.line(20, yPos, 190, yPos);
       yPos += 5;
-      
+
       // Chargeable items data rows
       doc.setFontSize(9);
       doc.setFont(undefined, "normal");
       doc.setTextColor(0, 0, 0);
-      
+
       user.chargeableItems.forEach((item, index) => {
         // Check if we need a new page
         if (yPos > 250) {
           doc.addPage();
           yPos = 20;
         }
-        
+
         const serialNo = index + 1;
         const itemName = item.item_name === "Others" || item.item_name === "others"
           ? (item.other_item_name || "Custom Item")
           : item.item_name || "-";
         const quantity = item.quantity || "-";
-        
+
         doc.text(serialNo.toString(), 25, yPos);
         doc.text(itemName, 40, yPos);
         doc.text(quantity.toString(), 150, yPos);
-        
+
         yPos += 8;
-        
+
         // Add small space between rows
         if (index < user.chargeableItems.length - 1) {
           doc.setLineWidth(0.1);
@@ -530,36 +530,36 @@ export default function UserTable() {
           yPos += 5;
         }
       });
-      
+
       // Add total summary for chargeable items
       yPos += 10;
       doc.setFontSize(10);
-      
+
       const totalChargeableItems = user.chargeableItems.length;
       const totalChargeableQuantity = user.chargeableItems.reduce((sum, item) => {
         return sum + (parseInt(item.quantity) || 0);
       }, 0);
-      
+
       // Total Chargeable Items label (orange)
       doc.setFont(undefined, "bold");
       doc.setTextColor(244, 166, 76);
       doc.text("Total Chargeable Items: ", 25, yPos);
-      
+
       // Total Chargeable Items value (black)
       doc.setFont(undefined, "bold");
       doc.setTextColor(0, 0, 0);
       doc.text(`${totalChargeableItems}`, 75, yPos);
-      
+
       // Total Quantity label (orange)
       doc.setFont(undefined, "bold");
       doc.setTextColor(244, 166, 76);
       doc.text("Total Quantity: ", 100, yPos);
-      
+
       // Total Quantity value (black)
       doc.setFont(undefined, "bold");
       doc.setTextColor(0, 0, 0);
       doc.text(`${totalChargeableQuantity} units`, 130, yPos);
-      
+
       yPos += 15;
     }
 
@@ -577,30 +577,30 @@ export default function UserTable() {
     doc.setFont(undefined, "bold");
     doc.setTextColor(59, 130, 246);
     doc.text("Overall Summary", 20, yPos);
-    
+
     yPos += 6;
     doc.setLineWidth(0.3);
     doc.line(20, yPos, 190, yPos);
-    
+
     yPos += 10;
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
-    
+
     // Calculate totals
     const totalPlants = user.plants?.length || 0;
     const totalNutrientsCount = user.nutrients?.length || 0;
     const totalChargeableItemsCount = user.chargeableItems?.length || 0;
     const totalItems = totalPlants + totalNutrientsCount + totalChargeableItemsCount;
-    
+
     doc.text(`Total Items Delivered: ${totalItems}`, 25, yPos);
     yPos += 8;
-    
+
     if (totalPlants > 0) {
       const totalPlantQty = user.plants.reduce((sum, plant) => sum + (parseInt(plant.quantity) || 0), 0);
       doc.text(`Total Plants: ${totalPlantQty} units`, 25, yPos);
       yPos += 8;
     }
-    
+
     if (totalNutrientsCount > 0) {
       const totalSupplies = user.nutrients.reduce((sum, nutrient) => {
         if (!nutrient.tank_capacity || !nutrient.topups) return sum;
@@ -612,9 +612,9 @@ export default function UserTable() {
       doc.text(`Total Nutrients: ${totalSupplies.toFixed(2)} L`, 25, yPos);
       yPos += 8;
     }
-    
+
     if (totalChargeableItemsCount > 0) {
-      const totalChargeableQty = user.chargeableItems.reduce((sum, item) => 
+      const totalChargeableQty = user.chargeableItems.reduce((sum, item) =>
         sum + (parseInt(item.quantity) || 0), 0);
       doc.text(`Total Chargeable Items: ${totalChargeableQty} units`, 25, yPos);
       yPos += 8;
@@ -631,7 +631,7 @@ export default function UserTable() {
     doc.setFont(undefined, "bold");
     doc.setTextColor(0, 0, 0);
     doc.text("Do let us know if you'd like any further clarity on the material supplied. ", 20, yPos);
-    
+
     yPos += 15;
     doc.text("Happy Growing!", 20, yPos);
     yPos += 8;
@@ -688,7 +688,7 @@ export default function UserTable() {
       const emailText = "sales@growpro.co.in";
       const emailX = 40;
       doc.setTextColor(0, 102, 204); // Blue color for link
-      
+
       if (typeof doc.textWithLink === 'function') {
         doc.textWithLink(emailText, emailX, row1Y, {
           url: "mailto:sales@growpro.co.in",
@@ -713,9 +713,9 @@ export default function UserTable() {
       const phoneText = "+91 859 175 3001";
       const phoneX = 40;
       const cleanPhoneNumber = "+918591753001"; // Remove spaces for tel: link
-      
+
       doc.setTextColor(0, 102, 204); // Blue color for link
-      
+
       if (typeof doc.textWithLink === 'function') {
         doc.textWithLink(phoneText, phoneX, row2Y, {
           url: `tel:${cleanPhoneNumber}`,
@@ -745,7 +745,7 @@ export default function UserTable() {
       doc.setFont(undefined, "normal");
       doc.text(`Page ${i} of ${pageCount}`, rightX, row2Y, { align: "right" });
     }
-    
+
     /* -------------------------------------------------------
        🔥 FINAL PDF DOWNLOAD
     --------------------------------------------------------*/
@@ -806,11 +806,23 @@ export default function UserTable() {
     const query = searchQuery.toLowerCase();
 
     return sortedUsers.filter((user) => {
+      // Convert query to check for onsite/offsite
+      const isOnsiteQuery = query.includes('onsite');
+      const isOffsiteQuery = query.includes('offsite');
+
       return (
         user.name?.toLowerCase().includes(query) ||
         user.tech_name?.toLowerCase().includes(query) ||
         user.locality?.toLowerCase().includes(query) ||
-        user.delivery_status?.toLowerCase().includes(query)
+        user.delivery_status?.toLowerCase().includes(query) ||
+        user.order_type?.toLowerCase().includes(query) ||
+
+        // Search for onsite/offsite status
+        (isOnsiteQuery && user.tech_name) || // If query has "onsite" and user has tech_name
+        (isOffsiteQuery && !user.tech_name) || // If query has "offsite" and user has no tech_name
+
+        // Also search the derived string value
+        (user.tech_name ? 'onsite' : 'offsite').includes(query)
       );
     });
   }, [sortedUsers, searchQuery]);
@@ -838,8 +850,8 @@ export default function UserTable() {
     setCurrentPage(1);
   };
 
-  const handleEdit = (userId) => {
-    navigate(`/dashboard/editmaterialdeliver/${userId}`);
+  const handleEdit = (userId, orderType) => {
+    { orderType == 'onsite' ? navigate(`/dashboard/editmaterialdeliver/${userId}`) : navigate(`/dashboard/edit-offsite-material-order/${userId}`); }
   };
 
   const goToPage = (page) => setCurrentPage(page);
@@ -959,15 +971,24 @@ export default function UserTable() {
                           <SortIndicator columnKey="delivery_status" />
                         </div>
                       </th>
+                      <th
+                        className="w-[15%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                        onClick={() => handleSort('delivery_status')}
+                      >
+                        <div className="flex items-center">
+                          Order Type
+                          <SortIndicator columnKey="delivery_status" />
+                        </div>
+                      </th>
                       {userRole !== "technician" && (
-                      <>
-                        <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-center">
-                          PDF Report
-                        </th>
-                        <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">
-                          Action
-                        </th>
-                      </>
+                        <>
+                          <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-center">
+                            PDF Report
+                          </th>
+                          <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">
+                            Action
+                          </th>
+                        </>
                       )}
                     </tr>
                   </thead>
@@ -1021,7 +1042,12 @@ export default function UserTable() {
                           <td className="py-4 px-4 text-gray-700 truncate">
                             {user.delivery_status?.toUpperCase()}
                           </td>
-                          
+                          <td className="py-4 px-4 text-gray-700 truncate">
+                            <span className={`font-medium px-2 py-1 rounded ${user.tech_name ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {user.tech_name ? 'onsite' : 'offsite'}
+                            </span>
+                          </td>
+
                           {userRole !== "technician" && (
                             <>
                               {/* PDF Report */}
@@ -1029,11 +1055,10 @@ export default function UserTable() {
                                 <button
                                   onClick={() => generatePDF(user)}
                                   disabled={!pdfLoaded}
-                                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-                                    pdfLoaded 
-                                      ? 'bg-red-600 text-white hover:bg-red-700' 
-                                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                  }`}
+                                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition ${pdfLoaded
+                                    ? 'bg-red-600 text-white hover:bg-red-700'
+                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    }`}
                                   title={pdfLoaded ? "Download PDF Report" : "Loading PDF library..."}
                                 >
                                   <FileText size={16} />
@@ -1044,7 +1069,7 @@ export default function UserTable() {
                               {/* Action */}
                               <td className="py-4 px-4 text-right">
                                 <button
-                                  onClick={() => handleEdit(user.id)}
+                                  onClick={() => handleEdit(user.id, user.tech_name ? 'onsite' : 'offsite')}
                                   className="px-4 py-2 btn-primary"
                                 >
                                   Edit
@@ -1112,7 +1137,7 @@ export default function UserTable() {
                               ((user.plants?.length > 0 || user.nutrients?.length > 0)
                                 ? ", Chargeable Items"
                                 : "Chargeable Items")}
-                            {!user.plants?.length && !user.nutrients?.length && !user.chargeableItems?.length && 
+                            {!user.plants?.length && !user.nutrients?.length && !user.chargeableItems?.length &&
                               "No materials specified"}
                           </span>
                         </div>
@@ -1122,13 +1147,12 @@ export default function UserTable() {
                           <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
                             Delivery Status
                           </span>
-                          <span className={`text-sm font-medium ${
-                            user.delivery_status?.toLowerCase() === 'yes' || user.delivery_status?.toLowerCase() === 'delivered'
-                              ? 'text-green-600'
-                              : user.delivery_status?.toLowerCase() === 'partial'
+                          <span className={`text-sm font-medium ${user.delivery_status?.toLowerCase() === 'yes' || user.delivery_status?.toLowerCase() === 'delivered'
+                            ? 'text-green-600'
+                            : user.delivery_status?.toLowerCase() === 'partial'
                               ? 'text-amber-600'
                               : 'text-red-600'
-                          }`}>
+                            }`}>
                             {user.delivery_status?.toUpperCase() || "PENDING"}
                           </span>
                         </div>
@@ -1140,11 +1164,10 @@ export default function UserTable() {
                           <button
                             onClick={() => generatePDF(user)}
                             disabled={!pdfLoaded}
-                            className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition ${
-                              pdfLoaded 
-                                ? 'bg-red-600 text-white hover:bg-red-700' 
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            }`}
+                            className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition ${pdfLoaded
+                              ? 'bg-red-600 text-white hover:bg-red-700'
+                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              }`}
                             title={pdfLoaded ? "Download PDF Report" : "Loading PDF library..."}
                           >
                             <FileText size={18} />
