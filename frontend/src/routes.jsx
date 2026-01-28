@@ -40,8 +40,11 @@ import Viewvisits from "@/pages/dashboard/viewvisits";
 import Editvisit from "@/pages/dashboard/editvisit";
 import Schedulevisit from "@/pages/dashboard/schedulevisit";
 import ManageMaterialDeliver from "@/pages/dashboard/manage-material-deliver";
-import Managematerialorder from "@/pages/dashboard/managematerialorder";
 import EditMaterialDeliver from "@/pages/dashboard/editmaterialdeliver";
+
+import AddOffsiteMaterialOrder from "@/pages/dashboard/add-offsite-material-order";
+import EditOffsiteMaterialOrder from "@/pages/dashboard/edit-offsite-material-order";
+
 import Reports from "@/pages/dashboard/reports";
 
 import { SignIn } from "@/pages/auth";
@@ -284,15 +287,27 @@ const routes = [
             ),
           },
           {
-            name: "Manage Material Order",
-            path: "/manage-material-order",
+            name: "Add Offsite Material Order",
+            path: "/add-offsite-material-order",
             allowedRoles: ["admin", "co-ordinator", "technician"],
             element: (
               <RoleProtectedRoute
-                element={<Managematerialorder />}
+                element={<AddOffsiteMaterialOrder />}
                 allowedRoles={["admin", "co-ordinator", "technician"]}
               />
             ),
+          },
+          {
+            name: "Edit Offsite Material Order",
+            path: "/edit-offsite-material-order/:id",
+            allowedRoles: ["admin", "co-ordinator", "technician"],
+            element: (
+              <RoleProtectedRoute
+                element={<EditOffsiteMaterialOrder />}
+                allowedRoles={["admin", "co-ordinator", "technician"]}
+              />
+            ),
+            // hidden:true,
           },
         ],
       },

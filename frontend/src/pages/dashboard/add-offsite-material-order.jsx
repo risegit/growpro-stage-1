@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from "react-toastify";
+
 
 
 export default function AMCForm() {
@@ -247,78 +249,42 @@ export default function AMCForm() {
 
 const handleSubmit = async () => {
     if (!validateForm()) {
-        console.log("Form validation failed");
+        toast.error("Please fill all required fields");
         return;
     }
 
     setSubmitting(true);
+    const toastId = toast.loading("Submitting offsite material order...");
 
     try {
         const formPayload = new FormData();
 
-        /* -------------------- Basic fields -------------------- */
         formPayload.append("customer_id", formData.customer?.value || "");
 
-        /* -------------------- Plants / Materials -------------------- */
         const materials = formData.step5Plants.map(plant => {
             const isOther = plant.value === "Others";
             return {
                 material_name: isOther
-                    ? formData.materialsDeliveredPlantData
+                    ? formData.materialsDeliveredPlantData || "Others"
                     : plant.label,
-                material_type: plant.value,
+                material_type: isOther ? "Others" : plant.value,
                 quantity: formData.plantsNeeded?.[plant.value] || 0
             };
         });
-
         formPayload.append("materials", JSON.stringify(materials));
 
-        /* -------------------- Nutrients -------------------- */
         const nutrients = formData.nutrientsNeeded
             .filter(n => n.nutrientType)
-            .map(nutrient => ({
-                type: nutrient.nutrientType,
-                tank_capacity: nutrient.tankCapacity,
-                topups: nutrient.topups
+            .map(n => ({
+                type: n.nutrientType,
+                tank_capacity: n.tankCapacity,
+                topups: n.topups
             }));
-
         formPayload.append("nutrients", JSON.stringify(nutrients));
 
-        /* -------------------- Neem Oil -------------------- */
-        formPayload.append(
-            "needs_neem_oil",
-            formData.material_need_neemoil === "Yes" ? "1" : "0"
-        );
-
-        /* -------------------- Chargeable Items -------------------- */
-        const chargeableItems = formData.material_need_chargeable_items.map(item => {
-            const isOther = item.value === "Others";
-            return {
-                item_name: isOther
-                    ? formData.materialsNeedChargeableItemsOptionsother
-                    : item.label,
-                item_type: item.value,
-                quantity: formData.chargeableItemsNeeded?.[item.value] || 0
-            };
-        });
-        
-        formPayload.append("chargeable_items", JSON.stringify(chargeableItems));
-
-        /* -------------------- Timestamp -------------------- */
         formPayload.append("submitted_at", new Date().toISOString());
-        formPayload.append("id", JSON.stringify(user?.id));
+        formPayload.append("user_id", user?.id || "");
 
-        /* -------------------- Debug -------------------- */
-        console.log("=== FORM DATA DEBUG ===");
-        for (let pair of formPayload.entries()) {
-            try {
-                console.log(pair[0], JSON.parse(pair[1]));
-            } catch {
-                console.log(pair[0], pair[1]);
-            }
-        }
-
-        /* -------------------- API Call -------------------- */
         const response = await fetch(
             `${import.meta.env.VITE_API_URL}api/offsite-material-order.php`,
             {
@@ -328,21 +294,27 @@ const handleSubmit = async () => {
         );
 
         const result = await response.json();
-        console.log("Server response:", result);
 
-        if (result.success) {
-            alert("Form submitted successfully!");
+        // 🔥 THIS IS THE KEY
+        toast.dismiss(toastId);
+
+        if (result.status === "success" || result.success) {
+            toast.success("Offsite Material Order recorded successfully ✔️");
         } else {
-            alert("Submission failed: " + (result.message || "Unknown error"));
+            toast.error(result.message || "Submission failed");
         }
 
     } catch (error) {
-        console.error("Submission error:", error);
-        alert("Error submitting form");
+        console.error(error);
+        toast.dismiss(toastId);
+        toast.error("Something went wrong. Please try again.");
     } finally {
         setSubmitting(false);
     }
 };
+
+
+
 const preparePayload = () => {
     // Extract plant data
     const plantsData = formData.step5Plants

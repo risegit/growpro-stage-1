@@ -37,26 +37,7 @@ switch ($method) {
             ]);
             exit;
         }
-
-        // ===============================
-        // MAIN OFFSITE DATA
-        // ===============================
-        $sqlMain = "
-            SELECT 
-                id,
-                customer_id,
-                technician_id,
-                material_delivered_neemoil,
-                delivery_status,
-                created_date,
-                created_time,
-                updated_date,
-                updated_time,
-                created_by
-            FROM offsite_material_deliver
-            WHERE id = '$offsite_id'
-            LIMIT 1
-        ";
+        $sqlMain = "SELECT omd.id, omd.customer_id, omd.material_delivered_neemoil, omd.delivery_status, omd.created_date, omd.created_time, omd.created_by, u.name FROM offsite_material_deliver omd INNER JOIN users u ON omd.customer_id=u.id WHERE omd.id = '$offsite_id' LIMIT 1";
 
         $resMain = $conn->query($sqlMain);
 
@@ -74,15 +55,7 @@ switch ($method) {
         // MATERIALS (PLANTS)
         // ===============================
         $materials = [];
-        $sqlPlants = "
-            SELECT 
-                id,
-                plant_name AS material_name,
-                other_plant_name AS material_type,
-                quantity
-            FROM offsite_material_need_plants
-            WHERE offsite_id = '$offsite_id'
-        ";
+        $sqlPlants = "SELECT id, plant_name AS material_name, other_plant_name AS material_type, quantity FROM offsite_material_need_plants WHERE offsite_id = '$offsite_id'";
 
         $resPlants = $conn->query($sqlPlants);
         while ($row = $resPlants->fetch_assoc()) {
@@ -93,17 +66,7 @@ switch ($method) {
         // NUTRIENTS
         // ===============================
         $nutrients = [];
-        $sqlNutrients = "
-            SELECT
-                id,
-                nutrient_type AS type,
-                tank_capacity,
-                topups,
-                other_nutrient_name,
-                other_tank_capacity
-            FROM offsite_material_need_nutrients
-            WHERE offsite_id = '$offsite_id'
-        ";
+        $sqlNutrients = "SELECT id, nutrient_type AS type, tank_capacity, topups, other_nutrient_name, other_tank_capacity FROM offsite_material_need_nutrients WHERE offsite_id = '$offsite_id'";
 
         $resNutrients = $conn->query($sqlNutrients);
         while ($row = $resNutrients->fetch_assoc()) {
@@ -114,18 +77,18 @@ switch ($method) {
         // CHARGEABLE ITEMS
         // ===============================
         $chargeableItems = [];
-        $sqlItems = "
-            SELECT
-                id,
-                item_name,
-                quantity
-            FROM offsite_material_need_chargeable_items
-            WHERE offsite_id = '$offsite_id'
-        ";
+        $sqlItems = "SELECT id, item_name, quantity FROM offsite_material_need_chargeable_items WHERE offsite_id = '$offsite_id'";
 
         $resItems = $conn->query($sqlItems);
         while ($row = $resItems->fetch_assoc()) {
             $chargeableItems[] = $row;
+        }
+
+        $sqlOffsiteMaterialDeliver = "SELECT * FROM offsite_material_deliver WHERE id='$offsite_id'";
+        $resOffsiteMaterialDeliver = $conn->query($sqlOffsiteMaterialDeliver);
+        $offsiteMaterialDeliver = [];
+        while ($row = $resOffsiteMaterialDeliver->fetch_assoc()) {
+            $offsiteMaterialDeliver[]=$row;
         }
 
         // ===============================
@@ -137,7 +100,8 @@ switch ($method) {
                 "offsite"          => $offsite,
                 "materials"        => $materials,
                 "nutrients"        => $nutrients,
-                "chargeable_items" => $chargeableItems
+                "chargeable_items" => $chargeableItems,
+                "offsiteMaterialDeliver" => $offsiteMaterialDeliver
             ]
         ]);
         exit;
@@ -272,9 +236,7 @@ switch ($method) {
 
         echo json_encode([
             "status"   => "success",
-            "message"  => "Offsite Material Order recorded successfully",
-            "offsite_id" => $offsite_id,
-            "sql_visit" => $sqlVisit
+            "message"  => "Offsite Material Order recorded successfully"
         ]);
         exit;
 
@@ -287,9 +249,11 @@ switch ($method) {
         // BASIC DATA
         // ===============================
         $offsite_id = $_POST['offsite_id'] ?? 0;
-        $userId     = $_POST['id'] ?? '';
+        $userId     = $_POST['user_id'] ?? '';
         $customerId = $_POST['customer_id'] ?? '';
-        $needsNeemOil = $_POST['needs_neem_oil'] ?? false;
+        $needsNeemOil = $_POST['material_delivered_neemoil'] ?? false;
+        $delivery_note = $_POST["delivery_note"] ?? '';
+        $delivery_status = $_POST["delivery_status"] ?? '';
 
         // Decode JSON arrays
         $materials = isset($_POST['materials'])
@@ -304,11 +268,6 @@ switch ($method) {
             ? json_decode($_POST['chargeable_items'], true)
             : [];
 
-        // Normalize neem oil value
-        $needsNeemOil = ($needsNeemOil === true || $needsNeemOil === "true" || $needsNeemOil == 1)
-            ? 'yes'
-            : 'no';
-
         if (empty($offsite_id)) {
             echo json_encode([
                 "status" => "error",
@@ -317,20 +276,8 @@ switch ($method) {
             exit;
         }
 
-        // ===============================
-        // UPDATE MAIN OFFSITE RECORD
-        // ===============================
-        $sqlUpdate = "
-            UPDATE offsite_material_deliver
-            SET
-                customer_id = '$customerId',
-                material_delivered_neemoil = '$needsNeemOil',
-                updated_date = '$date',
-                updated_time = '$time',
-                updated_by = '$userId'
-            WHERE id = '$offsite_id'
-        ";
-
+        $sqlUpdate = "UPDATE offsite_material_deliver SET customer_id = '$customerId', material_delivered_neemoil = '$needsNeemOil',`delivery_status`='$delivery_status',`delivery_note`='$delivery_note', updated_date = '$date', updated_time = '$time', created_by = '$userId' WHERE id = '$offsite_id' ";
+        
         if (!$conn->query($sqlUpdate)) {
             echo json_encode([
                 "status" => "error",
@@ -418,10 +365,10 @@ switch ($method) {
             }
         }
 
+        
         echo json_encode([
             "status"     => "success",
-            "message"    => "Offsite Material Order updated successfully",
-            "offsite_id" => $offsite_id
+            "message"    => "Offsite Material Order updated successfully"
         ]);
         exit;
 
