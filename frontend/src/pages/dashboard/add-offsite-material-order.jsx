@@ -492,7 +492,7 @@ const preparePayload = () => {
                 {/* Header */}
                 <div className="px-6 py-4 border-b-2 border-gray-300">
                     <h1 className="text-2xl font-bold mb-1 text-gray-800">Place Offsite Material Order</h1>
-                    <p className="text-gray-600 text-sm">Demo Forms</p>
+                    
                 </div>
 
                 {/* Form */}

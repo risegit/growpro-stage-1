@@ -26,7 +26,6 @@ export default function AMCForm() {
     const [originalData, setOriginalData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [materialDeliverData, setMaterialDeliverData] = useState(null);
-    const [deliveryStatus, setDeliveryStatus] = useState('no');
     const [deliveryNote, setDeliveryNote] = useState('');
 
     const user = JSON.parse(localStorage.getItem("user"));
@@ -119,7 +118,7 @@ export default function AMCForm() {
                         }));
                     }
 
-                    // Map neem oil - IMPORTANT: Keep it as "yes"/"no" for YesNoSimple component
+                    // Map neem oil
                     const neemOilValue = fetchedData.offsite?.material_delivered_neemoil || "";
                     console.log("Neem Oil from API:", neemOilValue);
 
@@ -137,9 +136,8 @@ export default function AMCForm() {
                         nutrientsNeeded: selectedNutrientsData.length > 0
                             ? selectedNutrientsData
                             : [{ nutrientType: "", tankCapacity: "", topups: "" }],
-                        // Keep as "yes"/"no" for YesNoSimple component
                         material_need_neemoil: neemOilValue.toLowerCase(),
-                        delivery_status: fetchedData.offsite.delivery_status
+                        delivery_status: fetchedData.offsite.delivery_status || "no"
                     };
 
                     const fetchedOffsiteMaterialData = res.data.data;
@@ -147,20 +145,13 @@ export default function AMCForm() {
                         const deliverData = fetchedOffsiteMaterialData.offsiteMaterialDeliver[0];
                         setMaterialDeliverData(deliverData);
                         
-                        // Auto-fill delivery status and note from API
-                        if (deliverData.delivery_status) {
-                        setDeliveryStatus(deliverData.delivery_status);
-                        }
+                        // Auto-fill delivery note from API
                         if (deliverData.delivery_note) {
-                        setDeliveryNote(deliverData.delivery_note);
+                            setDeliveryNote(deliverData.delivery_note);
                         }
                     }
 
-                    // console.log("Final Form Data:", finalFormData);
-
-
                     setFormData(finalFormData);
-                    
                     setOriginalData(JSON.parse(JSON.stringify(fetchedData)));
 
                     // Set customer info for display
@@ -312,7 +303,6 @@ export default function AMCForm() {
         if (!hasOthers && newQuantities["Others"] !== undefined) {
             delete newQuantities["Others"];
 
-            // Also clear the "Other" plant name
             if (formData.materialsDeliveredPlantData) {
                 setFormData(prev => ({
                     ...prev,
@@ -409,143 +399,130 @@ export default function AMCForm() {
             }
         }
 
+        // Validate delivery note for partial delivery
+        if (formData.delivery_status === 'partial' && !deliveryNote.trim()) {
+            newErrors.deliveryNote = "Delivery note is required for partial delivery";
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-
-const handleSubmit = async () => {
-    if (!validateForm()) {
-        console.log("Form validation failed");
-        toast.error("Please fill in all required fields correctly");
-        return;
-    }
-
-    setSubmitting(true);
-    const toastId = toast.loading("Submitting form...");
-
-    try {
-        const formPayload = new FormData();
-
-        // Customer ID
-        formPayload.append("customer_id", formData.customer?.value || "");
-
-        // Materials
-        const materials = formData.step5Plants.map(plant => {
-            const isOther = plant.value === "Others";
-            return {
-                material_name: isOther
-                    ? formData.materialsDeliveredPlantData || "Others"
-                    : plant.label,
-                material_type: isOther ? "Others" : plant.value,
-                quantity: formData.plantsNeeded?.[plant.value] || 0
-            };
-        });
-
-        formPayload.append("materials", JSON.stringify(materials));
-
-        // Nutrients
-        const nutrients = formData.nutrientsNeeded
-            .filter(n => n.nutrientType)
-            .map(nutrient => ({
-                type: nutrient.nutrientType,
-                tank_capacity: nutrient.tankCapacity,
-                topups: nutrient.topups,
-                other_nutrient_name: nutrient.otherNutrient || null
-            }));
-
-        formPayload.append("nutrients", JSON.stringify(nutrients));
-
-        // Neem Oil
-        formPayload.append("material_delivered_neemoil", formData.material_need_neemoil || "");
-
-        // Chargeable Items
-        const chargeableItems = formData.material_need_chargeable_items.map(item => {
-            const isOther = item.value === "Others";
-            return {
-                item_name: isOther
-                    ? formData.materialsNeedChargeableItemsOptionsother || "Others"
-                    : item.label,
-                item_type: isOther ? "Others" : item.value,
-                quantity: formData.chargeableItemsNeeded?.[item.value] || 0
-            };
-        });
-
-        formPayload.append("chargeable_items", JSON.stringify(chargeableItems));
-
-        // ✅ ADD DELIVERY STATUS DATA
-        formPayload.append("delivery_status", deliveryStatus || "no");
-        formPayload.append("delivery_note", deliveryNote || "");
-        
-        // Timestamp and user
-        formPayload.append("submitted_at", new Date().toISOString());
-        formPayload.append("user_id", user?.id || "");
-        formPayload.append("user_code", user_code || "");
-        formPayload.append("offsite_id", id || "");
-
-        // Add update method if editing existing record
-        if (id) {
-            formPayload.append("_method", "PUT");
+    const handleSubmit = async () => {
+        if (!validateForm()) {
+            console.log("Form validation failed");
+            toast.error("Please fill in all required fields correctly");
+            return;
         }
 
-        // ✅ Log all data being sent
-        console.log("Submitting with delivery status:", deliveryStatus);
-        console.log("Submitting with delivery note:", deliveryNote);
-        console.log("Submitting with neem oil value:", formData.material_need_neemoil);
+        setSubmitting(true);
+        const toastId = toast.loading("Submitting form...");
 
-        // ✅ Create an object to see all data (for debugging)
-        const payloadObject = {
-            customer_id: formData.customer?.value || "",
-            materials,
-            nutrients,
-            material_delivered_neemoil: formData.material_need_neemoil,
-            chargeable_items: chargeableItems,
-            delivery_status: deliveryStatus,
-            delivery_note: deliveryNote,
-            submitted_at: new Date().toISOString(),
-            user_id: user?.id,
-            user_code: user_code,
-            offsite_id: id,
-            _method: id ? "PUT" : undefined
-        };
-        console.log("Full payload object:", payloadObject);
+        try {
+            const formPayload = new FormData();
 
-        const response = await fetch(
-            `${import.meta.env.VITE_API_URL}api/offsite-material-order.php`,
-            {
-                method: "POST",
-                body: formPayload
-            }
-        );
+            // Customer ID
+            formPayload.append("customer_id", formData.customer?.value || "");
 
-        const result = await response.json();
+            // Materials
+            const materials = formData.step5Plants.map(plant => {
+                const isOther = plant.value === "Others";
+                return {
+                    material_name: isOther
+                        ? formData.materialsDeliveredPlantData || "Others"
+                        : plant.label,
+                    material_type: isOther ? "Others" : plant.value,
+                    quantity: formData.plantsNeeded?.[plant.value] || 0
+                };
+            });
 
-        if (result.status === "success") {
-            toast.dismiss(toastId);
-            toast.success("Form submitted successfully!");
+            formPayload.append("materials", JSON.stringify(materials));
+
+            // Nutrients
+            const nutrients = formData.nutrientsNeeded
+                .filter(n => n.nutrientType)
+                .map(nutrient => ({
+                    type: nutrient.nutrientType,
+                    tank_capacity: nutrient.tankCapacity,
+                    topups: nutrient.topups,
+                    other_nutrient_name: nutrient.otherNutrient || null
+                }));
+
+            formPayload.append("nutrients", JSON.stringify(nutrients));
+
+            // Neem Oil
+            formPayload.append("material_delivered_neemoil", formData.material_need_neemoil || "");
+
+            // Chargeable Items
+            const chargeableItems = formData.material_need_chargeable_items.map(item => {
+                const isOther = item.value === "Others";
+                return {
+                    item_name: isOther
+                        ? formData.materialsNeedChargeableItemsOptionsother || "Others"
+                        : item.label,
+                    item_type: isOther ? "Others" : item.value,
+                    quantity: formData.chargeableItemsNeeded?.[item.value] || 0
+                };
+            });
+
+            formPayload.append("chargeable_items", JSON.stringify(chargeableItems));
+
+            // ✅ ADD DELIVERY STATUS DATA
+            formPayload.append("delivery_status", formData.delivery_status || "no");
+            formPayload.append("delivery_note", deliveryNote || "");
             
-            // ✅ Update local state to reflect new delivery status
-            if (result.data) {
-                setMaterialDeliverData({
-                    ...materialDeliverData,
-                    delivery_status: deliveryStatus,
-                    delivery_note: deliveryNote,
-                    updated_at: new Date().toISOString()
-                });
-            }
-        } else {
-            toast.dismiss(toastId);
-            toast.error(result.message || result.error || "Submission failed");
-        }
+            // Timestamp and user
+            formPayload.append("submitted_at", new Date().toISOString());
+            formPayload.append("user_id", user?.id || "");
+            formPayload.append("user_code", user_code || "");
+            formPayload.append("offsite_id", id || "");
 
-    } catch (error) {
-        console.error("Submission error:", error);
-        toast.dismiss(toastId);
-        toast.error("Error submitting form. Please try again.");
-    } finally {
-        setSubmitting(false);
-    }
-};
+            // Add update method if editing existing record
+            if (id) {
+                formPayload.append("_method", "PUT");
+            }
+
+            // Log all data being sent
+            console.log("Submitting with delivery status:", formData.delivery_status);
+            console.log("Submitting with delivery note:", deliveryNote);
+
+            const response = await fetch(
+                `${import.meta.env.VITE_API_URL}api/offsite-material-order.php`,
+                {
+                    method: "POST",
+                    body: formPayload
+                }
+            );
+
+            const result = await response.json();
+
+            if (result.status === "success") {
+                toast.dismiss(toastId);
+                toast.success("Form submitted successfully!");
+                
+                // Update local state to reflect new delivery status
+                if (result.data) {
+                    setMaterialDeliverData({
+                        ...materialDeliverData,
+                        delivery_status: formData.delivery_status,
+                        delivery_note: deliveryNote,
+                        updated_at: new Date().toISOString()
+                    });
+                }
+            } else {
+                toast.dismiss(toastId);
+                toast.error(result.message || result.error || "Submission failed");
+            }
+
+        } catch (error) {
+            console.error("Submission error:", error);
+            toast.dismiss(toastId);
+            toast.error("Error submitting form. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const addStep5DynamicRow = () => {
         setFormData((prevFormData) => ({
             ...prevFormData,
@@ -606,12 +583,13 @@ const handleSubmit = async () => {
 
     const handleStatusChange = (e) => {
         const value = e.target.value;
-        setDeliveryStatus(value);
+        setFormData(prev => ({ ...prev, delivery_status: value }));
+        
+        // Clear delivery note when status changes from partial
         if (value !== 'partial') {
             setDeliveryNote('');
         }
     };
-
 
     const handleStep5DynamicFieldChange = (index, field, value) => {
         setFormData((prevFormData) => {
@@ -686,42 +664,42 @@ const handleSubmit = async () => {
     }
 
     const renderDeliveryStatusInfo = () => {
-    if (!materialDeliverData) return null;
-    
-    const getStatusColor = (status) => {
-      switch(status) {
-        case 'yes': return 'bg-green-100 text-green-800';
-        case 'partial': return 'bg-yellow-100 text-yellow-800';
-        case 'no': return 'bg-red-100 text-red-800';
-        default: return 'bg-gray-100 text-gray-800';
-      }
-    };
+        if (!materialDeliverData) return null;
+        
+        const getStatusColor = (status) => {
+            switch(status) {
+                case 'yes': return 'bg-green-100 text-green-800';
+                case 'partial': return 'bg-yellow-100 text-yellow-800';
+                case 'no': return 'bg-red-100 text-red-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        };
 
-    const getStatusText = (status) => {
-      switch(status) {
-        case 'yes': return 'Delivered Successfully';
-        case 'partial': return 'Partially Delivered';
-        case 'no': return 'Not Delivered';
-        default: return 'Unknown Status';
-      }
-    };
+        const getStatusText = (status) => {
+            switch(status) {
+                case 'yes': return 'Delivered Successfully';
+                case 'partial': return 'Partially Delivered';
+                case 'no': return 'Not Delivered';
+                default: return 'Unknown Status';
+            }
+        };
 
-    return (
-      <div className="flex flex-col md:col-span-2 bg-gray-50 p-4 rounded-lg border">
-        <div className="flex items-center justify-between mb-2">
-          <span className="font-medium text-gray-700">Current Delivery Status:</span>
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(materialDeliverData.delivery_status)}`}>
-            {getStatusText(materialDeliverData.delivery_status)}
-          </span>
-        </div>
-        {materialDeliverData.updated_at && (
-          <p className="text-sm text-gray-500">
-            Last updated: {new Date(materialDeliverData.updated_at).toLocaleString()}
-          </p>
-        )}
-      </div>
-    );
-  };
+        return (
+            <div className="flex flex-col md:col-span-2 bg-gray-50 p-4 rounded-lg border">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-gray-700">Current Delivery Status:</span>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(materialDeliverData.delivery_status)}`}>
+                        {getStatusText(materialDeliverData.delivery_status)}
+                    </span>
+                </div>
+                {materialDeliverData.updated_at && (
+                    <p className="text-sm text-gray-500">
+                        Last updated: {new Date(materialDeliverData.updated_at).toLocaleString()}
+                    </p>
+                )}
+            </div>
+        );
+    };
 
     return (
         <div className="w-full min-h-screen bg-[#fcfdfa] rounded-2xl mt-10">
@@ -752,6 +730,7 @@ const handleSubmit = async () => {
                     </div>
 
                     {/* Empty div for layout balance */}
+                    <div></div>
 
                 </div>
 
@@ -924,7 +903,6 @@ const handleSubmit = async () => {
                             </div>
                         </div>
                     ))}
-                    <div><label htmlFor="Delivery">{formData.delivery_status}</label></div>
 
                     {/* Add More and Remove Row Buttons */}
                     <div className="flex flex-col sm:flex-row items-center justify-end gap-3 mt-4">
@@ -953,7 +931,6 @@ const handleSubmit = async () => {
                         required={true}
                     />
 
-
                     {/* Chargeable Items */}
                     <div className="flex flex-col">
                         <label className="mb-1 font-medium text-gray-700">
@@ -980,7 +957,6 @@ const handleSubmit = async () => {
                                     }
                                 });
 
-                                // Clear other item name if "Others" is not selected
                                 let newOtherValue = formData.materialsNeedChargeableItemsOptionsother;
                                 if (!newItems.some(item => item.value === "Others")) {
                                     newOtherValue = "";
@@ -1065,7 +1041,9 @@ const handleSubmit = async () => {
                             </div>
                         )}
                     </div>
+                    
                     {materialDeliverData && renderDeliveryStatusInfo()}
+                    
                     {/* Delivery Status Dropdown */}
                     <div className="flex flex-col md:col-span-2">
                         <label className="mb-1 font-medium text-gray-700">
@@ -1079,31 +1057,37 @@ const handleSubmit = async () => {
                             <option value="no">Not Delivered</option>
                             <option value="yes">Yes - Delivered Successfully</option>
                             <option value="partial">Partial Delivery</option>
-
                         </select>
                     </div>
+                    
                     {/* Delivery Note (shown when status is "partial" or if there's existing note) */}
-                    {(deliveryStatus === 'partial' || deliveryNote) && (
+                    {(formData.delivery_status === 'partial' || deliveryNote) && (
                         <div className="flex flex-col md:col-span-2">
-                        <label className="mb-1 font-medium text-gray-700">
-                            Delivery Note {deliveryStatus === 'partial' && <span className="text-red-500">*</span>}
-                        </label>
-                        <textarea
-                            value={deliveryNote}
-                            onChange={(e) => setDeliveryNote(e.target.value)}
-                            placeholder="Please specify what was delivered and what is pending..."
-                            rows={4}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
-                        />
-                        {materialDeliverData?.delivery_note && (
-                            <p className="text-sm text-gray-500 mt-1">
-                            Previously entered note will be updated
-                            </p>
-                        )}
+                            <label className="mb-1 font-medium text-gray-700">
+                                Delivery Note {formData.delivery_status === 'partial' && <span className="text-red-500">*</span>}
+                            </label>
+                            <textarea
+                                value={deliveryNote}
+                                onChange={(e) => setDeliveryNote(e.target.value)}
+                                placeholder="Please specify what was delivered and what is pending..."
+                                rows={4}
+                                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition ${
+                                    errors.deliveryNote ? 'border-red-500' : 'border-gray-300'
+                                }`}
+                            />
+                            {errors.deliveryNote && (
+                                <span className="text-red-500 text-sm mt-1">{errors.deliveryNote}</span>
+                            )}
+                            {materialDeliverData?.delivery_note && (
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Previously entered note will be updated
+                                </p>
+                            )}
                         </div>
                     )}
                     
                 </div>
+                
                 {/* Submit */}
                 <div className="flex items-center justify-end px-4 py-4 border-t">
                     <button
