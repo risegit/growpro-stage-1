@@ -307,7 +307,7 @@ const routes = [
                 allowedRoles={["admin", "co-ordinator", "technician"]}
               />
             ),
-            // hidden:true,
+            hidden:true,
           },
         ],
       },
