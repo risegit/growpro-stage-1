@@ -128,7 +128,8 @@ export default function ReportTable() {
 
       if (Array.isArray(dataArray)) {
         dataArray.forEach(item => {
-          const customerId = item.id || item.customer_id || "unknown";
+          // Use customer_id for grouping instead of id for offsite data
+          const customerId = item.customer_id || item.id || "unknown";
           const customerName = item.name || "Unknown Customer";
 
           if (!grouped[customerId]) {
@@ -144,6 +145,73 @@ export default function ReportTable() {
       }
 
       return Object.values(grouped);
+    };
+
+    // NEW: Helper function to group ALL offsite data by offsite_id
+    const groupAllOffsiteDataByOffsiteId = () => {
+      const allOffsiteData = [];
+      
+      // Combine all offsite data from different sources
+      if (Array.isArray(data.offsiteNutrients)) {
+        data.offsiteNutrients.forEach(item => {
+          allOffsiteData.push({
+            ...item,
+            type: 'nutrient',
+            key: `nutrient_${item.offsite_id}_${item.id}`
+          });
+        });
+      }
+      
+      if (Array.isArray(data.offsiteSupplientPlantData)) {
+        data.offsiteSupplientPlantData.forEach(item => {
+          allOffsiteData.push({
+            ...item,
+            type: 'plant',
+            key: `plant_${item.offsite_id}_${item.id}`
+          });
+        });
+      }
+      
+      if (Array.isArray(data.offsiteChargeableItems)) {
+        data.offsiteChargeableItems.forEach(item => {
+          allOffsiteData.push({
+            ...item,
+            type: 'chargeable',
+            key: `chargeable_${item.offsite_id}_${item.id}`
+          });
+        });
+      }
+      
+      // Group by offsite_id
+      const groupedByOffsiteId = {};
+      
+      allOffsiteData.forEach(item => {
+        const offsiteId = item.offsite_id || "unknown";
+        const customerId = item.customer_id || "unknown";
+        const customerName = item.name || "Unknown Customer";
+        
+        if (!groupedByOffsiteId[offsiteId]) {
+          groupedByOffsiteId[offsiteId] = {
+            offsite_id: offsiteId,
+            customer_id: customerId,
+            customer_name: customerName,
+            nutrients: [],
+            plants: [],
+            chargeable_items: []
+          };
+        }
+        
+        // Add to appropriate array
+        if (item.type === 'nutrient') {
+          groupedByOffsiteId[offsiteId].nutrients.push(item);
+        } else if (item.type === 'plant') {
+          groupedByOffsiteId[offsiteId].plants.push(item);
+        } else if (item.type === 'chargeable') {
+          groupedByOffsiteId[offsiteId].chargeable_items.push(item);
+        }
+      });
+      
+      return Object.values(groupedByOffsiteId);
     };
 
     // Helper function to check if we need a new page
@@ -350,10 +418,7 @@ export default function ReportTable() {
     }
 
     /* =====================
-       NUTRIENT REPORTS
-       ===================== */
-    /* =====================
-       NUTRIENT REPORTS
+       NUTRIENT REPORTS (RAW Material)
        ===================== */
     else if (selectedReport === "RAW Material") {
       if (
@@ -365,11 +430,15 @@ export default function ReportTable() {
         doc.text("No nutrient data available.", margin, yPos);
         yPos += 20;
       } else {
+        // Group all data by customer
         const groupedNeed = groupByCustomer(data.need_nutrients);
         const groupedSupplied = groupByCustomer(data.supplied_nutrients);
         const groupedPlants = groupByCustomer(data.supplied_plants);
         const groupedChargeableItem = groupByCustomer(data.supplied_chargeable_item);
         const groupedNeedChargeableItem = groupByCustomer(data.need_chargeable_item);
+        
+        // Get all offsite data grouped by offsite_id
+        const allOffsiteGroups = groupAllOffsiteDataByOffsiteId();
 
         // Initialize grand totals
         let grandTotalSuppliedNutrients = 0;
@@ -378,387 +447,669 @@ export default function ReportTable() {
         let grandTotalNeedPlants = 0;
         let grandTotalSuppliedChargeableItems = 0;
         let grandTotalNeedChargeableItems = 0;
+        let grandTotalOffsiteNutrients = 0;
+        let grandTotalOffsiteChargeableItems = 0;
+        let grandTotalOffsitePlants = 0;
 
-        // Process each customer
-        groupedNeed.forEach((customer, customerIndex) => {
-          // Check if we need a new page
-          checkPageBreak(60);
-
-          // Customer name with orange section heading
-          doc.setFontSize(13);
+        // ===========================================
+        // FIRST: PROCESS ALL OFFSITE DATA
+        // ===========================================
+        if (allOffsiteGroups.length > 0) {
+          // Offsite section header
+          doc.setFontSize(14);
           doc.setFont(undefined, "bold");
-          doc.setTextColor(255, 102, 0); // Orange
-          doc.text(`Customer: ${customer.name}`, margin, yPos);
+          doc.setTextColor(0, 100, 0); // Dark green for offsite
+          doc.text("OFFSITE DATA SECTION", pageWidth / 2 + 10, yPos, { align: "center" });
           doc.setTextColor(0, 0, 0); // Reset to black
+          yPos += 15;
+          
+          // Add note about offsite data
+          doc.setFontSize(9);
+          doc.setFont(undefined, "italic");
+          doc.text("(Items supplied for offsite/non-hydroponic use)", pageWidth / 2 + 10, yPos, { align: "center" });
           yPos += 10;
 
-          /* NEED CHARGEABLE ITEMS TABLE - NEW SECTION */
-          const needChargeableItem = groupedNeedChargeableItem.find((s) => s.id === customer.id);
+          // Process each offsite group
+          allOffsiteGroups.forEach((offsiteGroup, offsiteIndex) => {
+            // Check if we need a new page
+            checkPageBreak(60);
 
-          if (needChargeableItem && needChargeableItem.items.length > 0) {
-            doc.setFontSize(11);
+            // Customer name for this offsite group (show for each group)
+            doc.setFontSize(13);
             doc.setFont(undefined, "bold");
             doc.setTextColor(255, 102, 0); // Orange
-            doc.text("Need Chargeable Items", margin, yPos);
+            doc.text(`Customer: ${offsiteGroup.customer_name}`, margin, yPos);
             doc.setTextColor(0, 0, 0); // Reset to black
-            yPos += 6;
-
-            // Calculate totals for this customer
-            let customerNeedChargeableTotal = 0;
-
-            // Prepare table data for need chargeable items
-            const needChargeableItemTableBody = needChargeableItem.items.map((i) => {
-              const item_name = i.item_name || "";
-              const other_item_name = i.other_item_name || "";
-              const quantity = parseFloat(i.quantity) || 0;
-
-              // Add to customer total
-              customerNeedChargeableTotal += quantity;
-
-              // Use other_item_name if item_name is "Others", otherwise use item_name
-              const displayName = item_name === 'Others' && other_item_name
-                ? other_item_name
-                : item_name || "Unknown Item";
-
-              return [
-                displayName,
-                quantity ? `${quantity}` : "-",
-              ];
-            });
-
-            // Add customer total row
-            needChargeableItemTableBody.push([
-              { content: "Customer Total:", styles: { fontStyle: 'bold' } },
-              { content: `${customerNeedChargeableTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
-            ]);
-
-            // Add to grand total
-            grandTotalNeedChargeableItems += customerNeedChargeableTotal;
-
-            autoTable(doc, {
-              startY: yPos,
-              head: [["Item Name", "Quantity"]],
-              body: needChargeableItemTableBody,
-              theme: "grid",
-              styles: {
-                fontSize: 9,
-                cellPadding: 3,
-                lineColor: [100, 100, 100],
-                lineWidth: 0.2
-              },
-              headStyles: {
-                fillColor: [255, 255, 255],
-                textColor: [0, 0, 0],
-                fontStyle: 'bold',
-                lineWidth: 0.2,
-                lineColor: [100, 100, 100]
-              },
-              margin: { left: margin, right: margin },
-              didDrawPage: function (data) {
-                yPos = data.cursor.y + 15;
-              }
-            });
-
-            yPos = doc.lastAutoTable.finalY + 15;
-          }
-
-          /* SUPPLIED PLANTS */
-          const suppliedPlant = groupedPlants.find((s) => s.id === customer.id);
-
-          doc.setFontSize(11);
-          doc.setFont(undefined, "bold");
-          doc.setTextColor(255, 102, 0); // Orange
-          doc.text("Supplied Plants", margin, yPos);
-          doc.setTextColor(0, 0, 0); // Reset to black
-          yPos += 6;
-
-          if (suppliedPlant && suppliedPlant.items.length > 0) {
-            // Calculate total for this customer
-            let customerSuppliedPlantTotal = 0;
-
-            // Prepare table data for supplied plants
-            const suppliedPlantTableBody = suppliedPlant.items.map((i) => {
-              const plant_name = i.plant_name;
-              const quantity = parseFloat(i.quantity) || 0;
-
-              // Add to customer total
-              customerSuppliedPlantTotal += quantity;
-
-              return [
-                plant_name ? `${plant_name}` : "-",
-                quantity ? `${quantity}` : "-",
-              ];
-            });
-
-            // Add customer total row
-            suppliedPlantTableBody.push([
-              { content: "Customer Total:", styles: { fontStyle: 'bold' } },
-              { content: `${customerSuppliedPlantTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
-            ]);
-
-            // Add to grand total
-            grandTotalSuppliedPlants += customerSuppliedPlantTotal;
-
-            autoTable(doc, {
-              startY: yPos,
-              head: [["Plant Name", "Quantity"]],
-              body: suppliedPlantTableBody,
-              theme: "grid",
-              styles: {
-                fontSize: 9,
-                cellPadding: 3,
-                lineColor: [100, 100, 100],
-                lineWidth: 0.2
-              },
-              headStyles: {
-                fillColor: [255, 255, 255],
-                textColor: [0, 0, 0],
-                fontStyle: 'bold',
-                lineWidth: 0.2,
-                lineColor: [100, 100, 100]
-              },
-              margin: { left: margin, right: margin },
-              didDrawPage: function (data) {
-                yPos = data.cursor.y + 15;
-              }
-            });
-
-            yPos = doc.lastAutoTable.finalY + 15;
-          } else {
+            
+            // Add offsite ID reference
             doc.setFontSize(10);
-            doc.setFont(undefined, "normal");
-            doc.text("No supplied plants found.", margin, yPos);
-            yPos += 15;
-          }
+            doc.setFont(undefined, "italic");
+            doc.text(`(Offsite Request ID: ${offsiteGroup.offsite_id})`, margin + 100, yPos);
+            yPos += 10;
 
-          /* SUPPLIED NUTRIENTS */
-          const supplied = groupedSupplied.find((s) => s.id === customer.id);
+            /* OFFSITE NUTRIENTS for this group */
+            if (offsiteGroup.nutrients.length > 0) {
+              doc.setFontSize(11);
+              doc.setFont(undefined, "bold");
+              doc.setTextColor(0, 100, 0); // Dark green for offsite
+              doc.text("Offsite Nutrients", margin, yPos);
+              doc.setTextColor(0, 0, 0); // Reset to black
+              yPos += 6;
 
-          doc.setFontSize(11);
-          doc.setFont(undefined, "bold");
-          doc.setTextColor(255, 102, 0); // Orange
-          doc.text("Supplied Nutrients", margin, yPos);
-          doc.setTextColor(0, 0, 0); // Reset to black
-          yPos += 6;
+              // Calculate total for this offsite group's nutrients
+              let offsiteNutrientGroupTotal = 0;
 
-          if (supplied && supplied.items.length > 0) {
-            // Calculate total for this customer
-            let customerSuppliedNutrientTotal = 0;
+              // Prepare table data for offsite nutrients
+              const offsiteNutrientTableBody = offsiteGroup.nutrients.map((i) => {
+                const tankCap = parseFloat(i.tank_capacity) || 0;
+                const topups = parseFloat(i.topups) || 0;
+                const total = tankCap * topups;
 
-            // Prepare table data for supplied nutrients
-            const suppliedTableBody = supplied.items.map((i) => {
-              const tankCap = parseFloat(i.tank_capacity) || 0;
-              const topups = parseFloat(i.topups) || 0;
-              const total = tankCap * topups;
+                // Add to group total
+                offsiteNutrientGroupTotal += total;
 
-              // Add to customer total
-              customerSuppliedNutrientTotal += total;
+                return [
+                  i.nutrient_type || "-",
+                  tankCap ? `${tankCap} Ltr` : "-",
+                  topups || "-",
+                  total ? `${total.toFixed(2)} Ltr` : "-"
+                ];
+              });
 
-              return [
-                i.nutrient_type || "-",
-                tankCap ? `${tankCap} Ltr` : "-",
-                topups || "-",
-                total ? `${total.toFixed(2)} Ltr` : "-"
-              ];
-            });
+              // Add group total row
+              offsiteNutrientTableBody.push([
+                { content: "Offsite Total:", colSpan: 3, styles: { fontStyle: 'bold', halign: 'right' } },
+                { content: `${offsiteNutrientGroupTotal.toFixed(2)} Ltr`, styles: { fontStyle: 'bold' } }
+              ]);
 
-            // Add customer total row
-            suppliedTableBody.push([
-              { content: "Customer Total:", colSpan: 3, styles: { fontStyle: 'bold', halign: 'right' } },
-              { content: `${customerSuppliedNutrientTotal.toFixed(2)} Ltr`, styles: { fontStyle: 'bold' } }
-            ]);
+              // Add to grand total
+              grandTotalOffsiteNutrients += offsiteNutrientGroupTotal;
 
-            // Add to grand total
-            grandTotalSuppliedNutrients += customerSuppliedNutrientTotal;
+              autoTable(doc, {
+                startY: yPos,
+                head: [["Nutrient Type", "Tank Capacity", "Topups", "Total (Ltr)"]],
+                body: offsiteNutrientTableBody,
+                theme: "grid",
+                styles: {
+                  fontSize: 9,
+                  cellPadding: 3,
+                  lineColor: [0, 100, 0], // Green border for offsite
+                  lineWidth: 0.2
+                },
+                headStyles: {
+                  fillColor: [240, 255, 240], // Light green background
+                  textColor: [0, 100, 0], // Dark green text
+                  fontStyle: 'bold',
+                  lineWidth: 0.2,
+                  lineColor: [0, 100, 0]
+                },
+                margin: { left: margin, right: margin },
+                didDrawPage: function (data) {
+                  yPos = data.cursor.y + 15;
+                }
+              });
 
-            autoTable(doc, {
-              startY: yPos,
-              head: [["Nutrient Type", "Tank Capacity", "Topups", "Total (Ltr)"]],
-              body: suppliedTableBody,
-              theme: "grid",
-              styles: {
-                fontSize: 9,
-                cellPadding: 3,
-                lineColor: [100, 100, 100],
-                lineWidth: 0.2
-              },
-              headStyles: {
-                fillColor: [255, 255, 255],
-                textColor: [0, 0, 0],
-                fontStyle: 'bold',
-                lineWidth: 0.2,
-                lineColor: [100, 100, 100]
-              },
-              margin: { left: margin, right: margin },
-              didDrawPage: function (data) {
-                yPos = data.cursor.y + 15;
-              }
-            });
+              yPos = doc.lastAutoTable.finalY + 15;
+            }
 
-            yPos = doc.lastAutoTable.finalY + 15;
-          } else {
-            doc.setFontSize(10);
-            doc.setFont(undefined, "normal");
-            doc.text("No supplied nutrients found.", margin, yPos);
-            yPos += 15;
-          }
+            /* OFFSITE PLANTS for this group */
+            if (offsiteGroup.plants.length > 0) {
+              doc.setFontSize(11);
+              doc.setFont(undefined, "bold");
+              doc.setTextColor(0, 100, 0); // Dark green for offsite
+              doc.text("Offsite Plants", margin, yPos);
+              doc.setTextColor(0, 0, 0); // Reset to black
+              yPos += 6;
 
-          /* SUPPLIED CHARGEABLE ITEMS */
-          const suppliedChargeableItem = groupedChargeableItem.find((s) => s.id === customer.id);
+              // Calculate total for this offsite group's plants
+              let offsitePlantGroupTotal = 0;
 
-          doc.setFontSize(11);
-          doc.setFont(undefined, "bold");
-          doc.setTextColor(255, 102, 0); // Orange
-          doc.text("Supplied Chargeable Items", margin, yPos);
-          doc.setTextColor(0, 0, 0); // Reset to black
-          yPos += 6;
+              // Prepare table data for offsite plants
+              const offsitePlantTableBody = offsiteGroup.plants.map((i) => {
+                const plant_name = i.plant_name;
+                const other_plant_name = i.other_plant_name || "";
+                const quantity = parseFloat(i.quantity) || 0;
 
-          if (suppliedChargeableItem && suppliedChargeableItem.items.length > 0) {
-            // Calculate total for this customer
-            let customerSuppliedChargeableTotal = 0;
+                // Add to group total
+                offsitePlantGroupTotal += quantity;
 
-            // Prepare table data for supplied chargeable items
-            const suppliedChargeableItemTableBody = suppliedChargeableItem.items.map((i) => {
-              const item_name = i.item_name;
-              const other_item_name = i.other_item_name;
-              const quantity = parseFloat(i.quantity) || 0;
+                // Use other_plant_name if plant_name is "Others", otherwise use plant_name
+                const displayName = plant_name === 'Others' && other_plant_name
+                  ? other_plant_name
+                  : plant_name || "Unknown Plant";
 
-              // Add to customer total
-              customerSuppliedChargeableTotal += quantity;
+                return [
+                  displayName,
+                  quantity ? `${quantity}` : "-",
+                ];
+              });
 
-              // Use other_item_name if item_name is "Others", otherwise use item_name
-              const displayName = item_name === 'Others' && other_item_name
-                ? other_item_name
-                : item_name || "Unknown Item";
+              // Add group total row
+              offsitePlantTableBody.push([
+                { content: "Offsite Total:", styles: { fontStyle: 'bold' } },
+                { content: `${offsitePlantGroupTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
+              ]);
 
-              return [
-                displayName,
-                quantity ? `${quantity}` : "-",
-              ];
-            });
+              // Add to grand total
+              grandTotalOffsitePlants += offsitePlantGroupTotal;
 
-            // Add customer total row
-            suppliedChargeableItemTableBody.push([
-              { content: "Customer Total:", styles: { fontStyle: 'bold' } },
-              { content: `${customerSuppliedChargeableTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
-            ]);
+              autoTable(doc, {
+                startY: yPos,
+                head: [["Plant Name", "Quantity"]],
+                body: offsitePlantTableBody,
+                theme: "grid",
+                styles: {
+                  fontSize: 9,
+                  cellPadding: 3,
+                  lineColor: [0, 100, 0], // Green border for offsite
+                  lineWidth: 0.2
+                },
+                headStyles: {
+                  fillColor: [240, 255, 240], // Light green background
+                  textColor: [0, 100, 0], // Dark green text
+                  fontStyle: 'bold',
+                  lineWidth: 0.2,
+                  lineColor: [0, 100, 0]
+                },
+                margin: { left: margin, right: margin },
+                didDrawPage: function (data) {
+                  yPos = data.cursor.y + 15;
+                }
+              });
 
-            // Add to grand total
-            grandTotalSuppliedChargeableItems += customerSuppliedChargeableTotal;
+              yPos = doc.lastAutoTable.finalY + 15;
+            }
 
-            autoTable(doc, {
-              startY: yPos,
-              head: [["Item Name", "Quantity"]],
-              body: suppliedChargeableItemTableBody,
-              theme: "grid",
-              styles: {
-                fontSize: 9,
-                cellPadding: 3,
-                lineColor: [100, 100, 100],
-                lineWidth: 0.2
-              },
-              headStyles: {
-                fillColor: [255, 255, 255],
-                textColor: [0, 0, 0],
-                fontStyle: 'bold',
-                lineWidth: 0.2,
-                lineColor: [100, 100, 100]
-              },
-              margin: { left: margin, right: margin },
-              didDrawPage: function (data) {
-                yPos = data.cursor.y + 15;
-              }
-            });
+            /* OFFSITE CHARGEABLE ITEMS for this group */
+            if (offsiteGroup.chargeable_items.length > 0) {
+              doc.setFontSize(11);
+              doc.setFont(undefined, "bold");
+              doc.setTextColor(0, 100, 0); // Dark green for offsite
+              doc.text("Offsite Chargeable Items", margin, yPos);
+              doc.setTextColor(0, 0, 0); // Reset to black
+              yPos += 6;
 
-            yPos = doc.lastAutoTable.finalY + 15;
-          } else {
-            doc.setFontSize(10);
-            doc.setFont(undefined, "normal");
-            doc.text("No supplied chargeable items found.", margin, yPos);
-            yPos += 15;
-          }
+              // Calculate total for this offsite group's chargeable items
+              let offsiteChargeableGroupTotal = 0;
 
-          /* NEED NUTRIENTS TABLE */
-          doc.setFontSize(11);
-          doc.setFont(undefined, "bold");
-          doc.setTextColor(255, 102, 0); // Orange
-          doc.text("Need Nutrients", margin, yPos);
-          doc.setTextColor(0, 0, 0); // Reset to black
-          yPos += 6;
+              // Prepare table data for offsite chargeable items
+              const offsiteChargeableTableBody = offsiteGroup.chargeable_items.map((i) => {
+                const item_name = i.item_name;
+                const other_item_name = i.other_item_name || "";
+                const quantity = parseFloat(i.quantity) || 0;
 
-          // Calculate total for this customer
-          let customerNeedNutrientTotal = 0;
+                // Add to group total
+                offsiteChargeableGroupTotal += quantity;
 
-          // Prepare table data for need nutrients
-          const needTableBody = customer.items.map((i) => {
-            const tankCap = parseFloat(i.tank_capacity) || 0;
-            const topups = parseFloat(i.topups) || 0;
-            const total = tankCap * topups;
+                // Use other_item_name if item_name is "Others", otherwise use item_name
+                const displayName = item_name === 'Others' && other_item_name
+                  ? other_item_name
+                  : item_name || "Unknown Item";
 
-            // Add to customer total
-            customerNeedNutrientTotal += total;
+                return [
+                  displayName,
+                  quantity ? `${quantity}` : "-",
+                ];
+              });
 
-            return [
-              i.nutrient_type || "-",
-              tankCap ? `${tankCap} Ltr` : "-",
-              topups || "-",
-              total ? `${total.toFixed(2)} Ltr` : "-"
-            ];
-          });
+              // Add group total row
+              offsiteChargeableTableBody.push([
+                { content: "Offsite Total:", styles: { fontStyle: 'bold' } },
+                { content: `${offsiteChargeableGroupTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
+              ]);
 
-          // Add customer total row
-          needTableBody.push([
-            { content: "Customer Total:", colSpan: 3, styles: { fontStyle: 'bold', halign: 'right' } },
-            { content: `${customerNeedNutrientTotal.toFixed(2)} Ltr`, styles: { fontStyle: 'bold' } }
-          ]);
+              // Add to grand total
+              grandTotalOffsiteChargeableItems += offsiteChargeableGroupTotal;
 
-          // Add to grand total
-          grandTotalNeedNutrients += customerNeedNutrientTotal;
+              autoTable(doc, {
+                startY: yPos,
+                head: [["Item Name", "Quantity"]],
+                body: offsiteChargeableTableBody,
+                theme: "grid",
+                styles: {
+                  fontSize: 9,
+                  cellPadding: 3,
+                  lineColor: [0, 100, 0], // Green border for offsite
+                  lineWidth: 0.2
+                },
+                headStyles: {
+                  fillColor: [240, 255, 240], // Light green background
+                  textColor: [0, 100, 0], // Dark green text
+                  fontStyle: 'bold',
+                  lineWidth: 0.2,
+                  lineColor: [0, 100, 0]
+                },
+                margin: { left: margin, right: margin },
+                didDrawPage: function (data) {
+                  yPos = data.cursor.y + 15;
+                }
+              });
 
-          autoTable(doc, {
-            startY: yPos,
-            head: [["Nutrient Type", "Tank Capacity", "Topups", "Total (Ltr)"]],
-            body: needTableBody,
-            theme: "grid",
-            styles: {
-              fontSize: 9,
-              cellPadding: 3,
-              lineColor: [100, 100, 100],
-              lineWidth: 0.2
-            },
-            headStyles: {
-              fillColor: [255, 255, 255],
-              textColor: [0, 0, 0],
-              fontStyle: 'bold',
-              lineWidth: 0.2,
-              lineColor: [100, 100, 100]
-            },
-            margin: { left: margin, right: margin },
-            didDrawPage: function (data) {
-              yPos = data.cursor.y + 10;
+              yPos = doc.lastAutoTable.finalY + 15;
+            }
+
+            // Add separator between offsite groups (if not the last one)
+            if (offsiteIndex < allOffsiteGroups.length - 1) {
+              checkPageBreak(15);
+              
+              doc.setFontSize(10);
+              doc.setFont(undefined, "bold");
+              doc.setTextColor(0, 100, 0); // Green color
+              doc.text("--- Next Offsite Request ---", pageWidth / 2 + 10, yPos, { align: "center" });
+              doc.setTextColor(0, 0, 0); // Reset to black
+              yPos += 15;
             }
           });
+          
+          // Add separator after all offsite data
+          checkPageBreak(20);
+          doc.setDrawColor(0, 0, 0);
+          doc.setLineWidth(0.5);
+          doc.line(margin, yPos, pageWidth - margin, yPos);
+          yPos += 15;
+        }
 
-          yPos = doc.lastAutoTable.finalY + 10;
+        // ===========================================
+        // SECOND: PROCESS REGULAR HYDROPONIC DATA
+        // ===========================================
+        if (groupedNeed.length > 0 || groupedSupplied.length > 0 || groupedPlants.length > 0 || 
+            groupedChargeableItem.length > 0 || groupedNeedChargeableItem.length > 0) {
+          
+          // Regular data section header
+          doc.setFontSize(14);
+          doc.setFont(undefined, "bold");
+          doc.setTextColor(255, 102, 0); // Orange
+          doc.text("REGULAR ONSITE DATA SECTION", pageWidth / 2 + 10, yPos, { align: "center" });
+          doc.setTextColor(0, 0, 0); // Reset to black
+          yPos += 15;
 
-          // Add separator line between customers
-          if (customerIndex < groupedNeed.length - 1) {
-            checkPageBreak(15);
+          // Get all unique customer IDs from regular data sources
+          const allRegularCustomers = new Set();
+          
+          groupedNeed.forEach(c => allRegularCustomers.add(c.id));
+          groupedSupplied.forEach(c => allRegularCustomers.add(c.id));
+          groupedPlants.forEach(c => allRegularCustomers.add(c.id));
+          groupedChargeableItem.forEach(c => allRegularCustomers.add(c.id));
+          groupedNeedChargeableItem.forEach(c => allRegularCustomers.add(c.id));
 
-            doc.setDrawColor(0, 0, 0);
-            doc.setLineWidth(0.2);
-            doc.line(margin, yPos, pageWidth - margin, yPos);
+          // Convert to array and process
+          const allRegularCustomersArray = Array.from(allRegularCustomers);
+
+          // Process each customer for regular data
+          allRegularCustomersArray.forEach((customerId, customerIndex) => {
+            // Find customer in each data source
+            const customerNeed = groupedNeed.find((s) => s.id === customerId);
+            const customerSupplied = groupedSupplied.find((s) => s.id === customerId);
+            const customerPlants = groupedPlants.find((s) => s.id === customerId);
+            const customerChargeableItem = groupedChargeableItem.find((s) => s.id === customerId);
+            const customerNeedChargeableItem = groupedNeedChargeableItem.find((s) => s.id === customerId);
+
+            // Get customer name (from any source that has it)
+            let customerName = "Unknown Customer";
+            if (customerNeed) customerName = customerNeed.name;
+            else if (customerSupplied) customerName = customerSupplied.name;
+            else if (customerPlants) customerName = customerPlants.name;
+            else if (customerChargeableItem) customerName = customerChargeableItem.name;
+            else if (customerNeedChargeableItem) customerName = customerNeedChargeableItem.name;
+
+            // Check if we need a new page
+            checkPageBreak(60);
+
+            // Customer name with orange section heading
+            doc.setFontSize(13);
+            doc.setFont(undefined, "bold");
+            doc.setTextColor(255, 102, 0); // Orange
+            doc.text(`Customer: ${customerName}`, margin, yPos);
+            doc.setTextColor(0, 0, 0); // Reset to black
             yPos += 10;
-          }
-        });
 
+            /* NEED CHARGEABLE ITEMS TABLE */
+            if (customerNeedChargeableItem && customerNeedChargeableItem.items.length > 0) {
+              doc.setFontSize(11);
+              doc.setFont(undefined, "bold");
+              doc.setTextColor(255, 102, 0); // Orange
+              doc.text("Need Chargeable Items", margin, yPos);
+              doc.setTextColor(0, 0, 0); // Reset to black
+              yPos += 6;
+
+              // Calculate totals for this customer
+              let customerNeedChargeableTotal = 0;
+
+              // Prepare table data for need chargeable items
+              const needChargeableItemTableBody = customerNeedChargeableItem.items.map((i) => {
+                const item_name = i.item_name || "";
+                const other_item_name = i.other_item_name || "";
+                const quantity = parseFloat(i.quantity) || 0;
+
+                // Add to customer total
+                customerNeedChargeableTotal += quantity;
+
+                // Use other_item_name if item_name is "Others", otherwise use item_name
+                const displayName = item_name === 'Others' && other_item_name
+                  ? other_item_name
+                  : item_name || "Unknown Item";
+
+                return [
+                  displayName,
+                  quantity ? `${quantity}` : "-",
+                ];
+              });
+
+              // Add customer total row
+              needChargeableItemTableBody.push([
+                { content: "Customer Total:", styles: { fontStyle: 'bold' } },
+                { content: `${customerNeedChargeableTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
+              ]);
+
+              // Add to grand total
+              grandTotalNeedChargeableItems += customerNeedChargeableTotal;
+
+              autoTable(doc, {
+                startY: yPos,
+                head: [["Item Name", "Quantity"]],
+                body: needChargeableItemTableBody,
+                theme: "grid",
+                styles: {
+                  fontSize: 9,
+                  cellPadding: 3,
+                  lineColor: [100, 100, 100],
+                  lineWidth: 0.2
+                },
+                headStyles: {
+                  fillColor: [255, 255, 255],
+                  textColor: [0, 0, 0],
+                  fontStyle: 'bold',
+                  lineWidth: 0.2,
+                  lineColor: [100, 100, 100]
+                },
+                margin: { left: margin, right: margin },
+                didDrawPage: function (data) {
+                  yPos = data.cursor.y + 15;
+                }
+              });
+
+              yPos = doc.lastAutoTable.finalY + 15;
+            }
+
+            /* SUPPLIED PLANTS */
+            if (customerPlants && customerPlants.items.length > 0) {
+              doc.setFontSize(11);
+              doc.setFont(undefined, "bold");
+              doc.setTextColor(255, 102, 0); // Orange
+              doc.text("Supplied Plants", margin, yPos);
+              doc.setTextColor(0, 0, 0); // Reset to black
+              yPos += 6;
+
+              // Calculate total for this customer
+              let customerSuppliedPlantTotal = 0;
+
+              // Prepare table data for supplied plants
+              const suppliedPlantTableBody = customerPlants.items.map((i) => {
+                const plant_name = i.plant_name;
+                const quantity = parseFloat(i.quantity) || 0;
+
+                // Add to customer total
+                customerSuppliedPlantTotal += quantity;
+
+                return [
+                  plant_name ? `${plant_name}` : "-",
+                  quantity ? `${quantity}` : "-",
+                ];
+              });
+
+              // Add customer total row
+              suppliedPlantTableBody.push([
+                { content: "Customer Total:", styles: { fontStyle: 'bold' } },
+                { content: `${customerSuppliedPlantTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
+              ]);
+
+              // Add to grand total
+              grandTotalSuppliedPlants += customerSuppliedPlantTotal;
+
+              autoTable(doc, {
+                startY: yPos,
+                head: [["Plant Name", "Quantity"]],
+                body: suppliedPlantTableBody,
+                theme: "grid",
+                styles: {
+                  fontSize: 9,
+                  cellPadding: 3,
+                  lineColor: [100, 100, 100],
+                  lineWidth: 0.2
+                },
+                headStyles: {
+                  fillColor: [255, 255, 255],
+                  textColor: [0, 0, 0],
+                  fontStyle: 'bold',
+                  lineWidth: 0.2,
+                  lineColor: [100, 100, 100]
+                },
+                margin: { left: margin, right: margin },
+                didDrawPage: function (data) {
+                  yPos = data.cursor.y + 15;
+                }
+              });
+
+              yPos = doc.lastAutoTable.finalY + 15;
+            }
+
+            /* SUPPLIED NUTRIENTS */
+            if (customerSupplied && customerSupplied.items.length > 0) {
+              doc.setFontSize(11);
+              doc.setFont(undefined, "bold");
+              doc.setTextColor(255, 102, 0); // Orange
+              doc.text("Supplied Nutrients", margin, yPos);
+              doc.setTextColor(0, 0, 0); // Reset to black
+              yPos += 6;
+
+              // Calculate total for this customer
+              let customerSuppliedNutrientTotal = 0;
+
+              // Prepare table data for supplied nutrients
+              const suppliedTableBody = customerSupplied.items.map((i) => {
+                const tankCap = parseFloat(i.tank_capacity) || 0;
+                const topups = parseFloat(i.topups) || 0;
+                const total = tankCap * topups;
+
+                // Add to customer total
+                customerSuppliedNutrientTotal += total;
+
+                return [
+                  i.nutrient_type || "-",
+                  tankCap ? `${tankCap} Ltr` : "-",
+                  topups || "-",
+                  total ? `${total.toFixed(2)} Ltr` : "-"
+                ];
+              });
+
+              // Add customer total row
+              suppliedTableBody.push([
+                { content: "Customer Total:", colSpan: 3, styles: { fontStyle: 'bold', halign: 'right' } },
+                { content: `${customerSuppliedNutrientTotal.toFixed(2)} Ltr`, styles: { fontStyle: 'bold' } }
+              ]);
+
+              // Add to grand total
+              grandTotalSuppliedNutrients += customerSuppliedNutrientTotal;
+
+              autoTable(doc, {
+                startY: yPos,
+                head: [["Nutrient Type", "Tank Capacity", "Topups", "Total (Ltr)"]],
+                body: suppliedTableBody,
+                theme: "grid",
+                styles: {
+                  fontSize: 9,
+                  cellPadding: 3,
+                  lineColor: [100, 100, 100],
+                  lineWidth: 0.2
+                },
+                headStyles: {
+                  fillColor: [255, 255, 255],
+                  textColor: [0, 0, 0],
+                  fontStyle: 'bold',
+                  lineWidth: 0.2,
+                  lineColor: [100, 100, 100]
+                },
+                margin: { left: margin, right: margin },
+                didDrawPage: function (data) {
+                  yPos = data.cursor.y + 15;
+                }
+              });
+
+              yPos = doc.lastAutoTable.finalY + 15;
+            }
+
+            /* SUPPLIED CHARGEABLE ITEMS */
+            if (customerChargeableItem && customerChargeableItem.items.length > 0) {
+              doc.setFontSize(11);
+              doc.setFont(undefined, "bold");
+              doc.setTextColor(255, 102, 0); // Orange
+              doc.text("Supplied Chargeable Items", margin, yPos);
+              doc.setTextColor(0, 0, 0); // Reset to black
+              yPos += 6;
+
+              // Calculate total for this customer
+              let customerSuppliedChargeableTotal = 0;
+
+              // Prepare table data for supplied chargeable items
+              const suppliedChargeableItemTableBody = customerChargeableItem.items.map((i) => {
+                const item_name = i.item_name;
+                const other_item_name = i.other_item_name;
+                const quantity = parseFloat(i.quantity) || 0;
+
+                // Add to customer total
+                customerSuppliedChargeableTotal += quantity;
+
+                // Use other_item_name if item_name is "Others", otherwise use item_name
+                const displayName = item_name === 'Others' && other_item_name
+                  ? other_item_name
+                  : item_name || "Unknown Item";
+
+                return [
+                  displayName,
+                  quantity ? `${quantity}` : "-",
+                ];
+              });
+
+              // Add customer total row
+              suppliedChargeableItemTableBody.push([
+                { content: "Customer Total:", styles: { fontStyle: 'bold' } },
+                { content: `${customerSuppliedChargeableTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
+              ]);
+
+              // Add to grand total
+              grandTotalSuppliedChargeableItems += customerSuppliedChargeableTotal;
+
+              autoTable(doc, {
+                startY: yPos,
+                head: [["Item Name", "Quantity"]],
+                body: suppliedChargeableItemTableBody,
+                theme: "grid",
+                styles: {
+                  fontSize: 9,
+                  cellPadding: 3,
+                  lineColor: [100, 100, 100],
+                  lineWidth: 0.2
+                },
+                headStyles: {
+                  fillColor: [255, 255, 255],
+                  textColor: [0, 0, 0],
+                  fontStyle: 'bold',
+                  lineWidth: 0.2,
+                  lineColor: [100, 100, 100]
+                },
+                margin: { left: margin, right: margin },
+                didDrawPage: function (data) {
+                  yPos = data.cursor.y + 15;
+                }
+              });
+
+              yPos = doc.lastAutoTable.finalY + 15;
+            }
+
+            /* NEED NUTRIENTS TABLE */
+            if (customerNeed && customerNeed.items.length > 0) {
+              doc.setFontSize(11);
+              doc.setFont(undefined, "bold");
+              doc.setTextColor(255, 102, 0); // Orange
+              doc.text("Need Nutrients", margin, yPos);
+              doc.setTextColor(0, 0, 0); // Reset to black
+              yPos += 6;
+
+              // Calculate total for this customer
+              let customerNeedNutrientTotal = 0;
+
+              // Prepare table data for need nutrients
+              const needTableBody = customerNeed.items.map((i) => {
+                const tankCap = parseFloat(i.tank_capacity) || 0;
+                const topups = parseFloat(i.topups) || 0;
+                const total = tankCap * topups;
+
+                // Add to customer total
+                customerNeedNutrientTotal += total;
+
+                return [
+                  i.nutrient_type || "-",
+                  tankCap ? `${tankCap} Ltr` : "-",
+                  topups || "-",
+                  total ? `${total.toFixed(2)} Ltr` : "-"
+                ];
+              });
+
+              // Add customer total row
+              needTableBody.push([
+                { content: "Customer Total:", colSpan: 3, styles: { fontStyle: 'bold', halign: 'right' } },
+                { content: `${customerNeedNutrientTotal.toFixed(2)} Ltr`, styles: { fontStyle: 'bold' } }
+              ]);
+
+              // Add to grand total
+              grandTotalNeedNutrients += customerNeedNutrientTotal;
+
+              autoTable(doc, {
+                startY: yPos,
+                head: [["Nutrient Type", "Tank Capacity", "Topups", "Total (Ltr)"]],
+                body: needTableBody,
+                theme: "grid",
+                styles: {
+                  fontSize: 9,
+                  cellPadding: 3,
+                  lineColor: [100, 100, 100],
+                  lineWidth: 0.2
+                },
+                headStyles: {
+                  fillColor: [255, 255, 255],
+                  textColor: [0, 0, 0],
+                  fontStyle: 'bold',
+                  lineWidth: 0.2,
+                  lineColor: [100, 100, 100]
+                },
+                margin: { left: margin, right: margin },
+                didDrawPage: function (data) {
+                  yPos = data.cursor.y + 10;
+                }
+              });
+
+              yPos = doc.lastAutoTable.finalY + 10;
+            }
+
+            // Add separator line between customers (if not last customer)
+            if (customerIndex < allRegularCustomersArray.length - 1) {
+              checkPageBreak(15);
+
+              doc.setDrawColor(0, 0, 0);
+              doc.setLineWidth(0.2);
+              doc.line(margin, yPos, pageWidth - margin, yPos);
+              yPos += 10;
+            }
+          });
+        }
+        
         /* ----------------------------------
            GRAND TOTALS SUMMARY SECTION
            (Add this after all customers are processed)
         ---------------------------------- */
 
         // Check if we need a new page for grand totals
-        checkPageBreak(80);
+        checkPageBreak(100);
 
         // Add a separator line before grand totals
         doc.setDrawColor(0, 0, 0);
@@ -774,8 +1125,10 @@ export default function ReportTable() {
         doc.setTextColor(0, 0, 0); // Reset to black
         yPos += 10;
 
-        // Prepare grand totals table
+        // Prepare grand totals table with offsite data
         const grandTotalsData = [
+          // Regular Data Section
+          [{ content: "REGULAR HYDROPONIC DATA:", colSpan: 2, styles: { fontStyle: 'bold', fontSize: 11, textColor: [255, 102, 0] } }],
           ["Supplied Nutrients Total:", `${grandTotalSuppliedNutrients.toFixed(2)} Ltr`],
           ["Need Nutrients Total:", `${grandTotalNeedNutrients.toFixed(2)} Ltr`],
           ["", ""], // Empty row for spacing
@@ -783,7 +1136,17 @@ export default function ReportTable() {
           ["Need Plants Total:", `${grandTotalNeedPlants.toFixed(2)} units`],
           ["", ""], // Empty row for spacing
           ["Supplied Chargeable Items Total:", `${grandTotalSuppliedChargeableItems.toFixed(2)} units`],
-          ["Need Chargeable Items Total:", `${grandTotalNeedChargeableItems.toFixed(2)} units`]
+          ["Need Chargeable Items Total:", `${grandTotalNeedChargeableItems.toFixed(2)} units`],
+          
+          // Spacer row
+          ["", ""],
+          ["", ""],
+          
+          // Offsite Data Section
+          [{ content: "OFFSITE DATA:", colSpan: 2, styles: { fontStyle: 'bold', fontSize: 11, textColor: [0, 100, 0] } }],
+          ["Offsite Nutrients Total:", `${grandTotalOffsiteNutrients.toFixed(2)} Ltr`],
+          ["Offsite Plants Total:", `${grandTotalOffsitePlants.toFixed(2)} units`],
+          ["Offsite Chargeable Items Total:", `${grandTotalOffsiteChargeableItems.toFixed(2)} units`]
         ];
 
         autoTable(doc, {
@@ -811,8 +1174,10 @@ export default function ReportTable() {
         // Add a summary note
         doc.setFontSize(9);
         doc.setFont(undefined, "italic");
-        doc.text("Note: All totals are calculated across all customers in the selected date range.", margin, yPos);
+        doc.text("Note: Offsite data represents items supplied for non-hydroponic/offsite use.", margin, yPos);
         yPos += 5;
+        doc.text("Regular data represents items for standard hydroponic systems.", margin, yPos);
+        yPos += 10;
       }
     }
 

@@ -73,6 +73,35 @@ switch ($method) {
                     $need_chargeable_item[] = $row;
                 }
 
+                // offsite Material Data
+                $offsiteSql1 = "SELECT omd.id, omd.customer_id, omd.delivery_status, omd.created_date, omd.created_time, omd.created_by, u.name, cd.locality, u.phone,u.profile_pic,omd.updated_date FROM offsite_material_deliver omd INNER JOIN users u ON omd.customer_id=u.id INNER JOIN customers_details cd ON omd.customer_id=cd.user_id where omd.created_date BETWEEN '$startDate' and '$endDate'";
+                $offsiteResult1 = $conn->query($offsiteSql1);
+                $offsiteData = [];
+                while ($row = $offsiteResult1->fetch_assoc()) {
+                    $offsiteData[]=$row;
+                }
+
+                $offsite_supplied_plants = "SELECT u.name, omd.id, omd.customer_id, omnp.plant_name, omnp.other_plant_name, omnp.quantity, omd.id offsite_id FROM offsite_material_need_plants omnp INNER JOIN offsite_material_deliver omd ON omd.id=omnp.offsite_id INNER JOIN users u ON u.id=omd.customer_id where omd.created_date BETWEEN '$startDate' and '$endDate'";
+                $offsiteSupplientPlantResult2 = $conn->query($offsite_supplied_plants);
+                $offsiteSupplientPlantData = [];
+                while ($row = $offsiteSupplientPlantResult2->fetch_assoc()) {
+                    $offsiteSupplientPlantData[]=$row;
+                }
+
+                $offsiteSql3 = "SELECT u.name, omnn.id, omd.customer_id, omnn.nutrient_type, omnn.tank_capacity, omnn.topups, omnn.other_nutrient_name, omnn.other_tank_capacity, omd.id offsite_id FROM offsite_material_need_nutrients omnn INNER JOIN offsite_material_deliver omd ON omd.id=omnn.offsite_id INNER JOIN users u ON u.id=omd.customer_id where omd.created_date BETWEEN '$startDate' and '$endDate'";
+                $offsiteResult3 = $conn->query($offsiteSql3);
+                $offsiteNutrients = [];
+                while ($row = $offsiteResult3->fetch_assoc()) {
+                    $offsiteNutrients[]=$row;
+                }
+
+                $offsiteSql4 = "SELECT u.name, omnc.id, omd.customer_id, omnc.item_name, omnc.quantity, omd.id offsite_id FROM offsite_material_need_chargeable_items omnc INNER JOIN offsite_material_deliver omd ON omd.id=omnc.offsite_id INNER JOIN users u ON u.id=omd.customer_id where omd.created_date BETWEEN '$startDate' and '$endDate'";
+                $offsiteResult4 = $conn->query($offsiteSql4);
+                $offsiteChargeableItems = [];
+                while ($row = $offsiteResult4->fetch_assoc()) {
+                    $offsiteChargeableItems[]=$row;
+                }
+
                 echo json_encode([
                     "status" => "success",
                     "supplied_plants" => $supplied_plants,
@@ -81,7 +110,12 @@ switch ($method) {
                     "need_plants" => $need_plants,
                     "need_nutrients" => $need_nutrients,
                     "need_chargeable_item" => $need_chargeable_item,
+                    "offsiteData" => $offsiteData,
+                    "offsiteSupplientPlantData" => $offsiteSupplientPlantData,
+                    "offsiteNutrients" => $offsiteNutrients,
+                    "offsiteChargeableItems" => $offsiteChargeableItems
                 ]);
+
             }else{
                 $sql1 = "SELECT u.name,sv.id, t.name technician_name, AVG(sv.site_rating) site_rating,sv.created_date,sv.created_time FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id INNER JOIN users t ON t.user_code=sv.visited_by WHERE sv.created_date BETWEEN '$startDate' and '$endDate' and u.status='active' GROUP BY u.name;";
                 $result1 = $conn->query($sql1);

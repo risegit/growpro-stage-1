@@ -70,7 +70,7 @@ switch ($method) {
             echo json_encode($response);
 
         }else{
-            $result = $conn->query("SELECT cd.user_id, u.name, u.phone, cd.locality, cd.landmark, u.status, SUM(g.no_of_plants) AS total_no_of_plants FROM users u INNER JOIN customers_details cd ON u.id = cd.user_id INNER JOIN growers g ON u.id = g.customer_id WHERE u.role = 'customer' $whereAddition GROUP BY cd.user_id, u.name, u.phone, cd.locality, cd.landmark, u.status ORDER BY u.id DESC;");
+            $result = $conn->query("SELECT cd.user_id, u.name, u.phone, cd.locality, cd.landmark, u.status, SUM(g.no_of_plants * g.grower_qty) AS total_no_of_plants FROM users u INNER JOIN customers_details cd ON u.id = cd.user_id INNER JOIN growers g ON u.id = g.customer_id WHERE u.role = 'customer' $whereAddition GROUP BY cd.user_id, u.name, u.phone, cd.locality, cd.landmark, u.status ORDER BY u.id DESC;");
             $data = [];
             while ($row = $result->fetch_assoc()) {
                 $data[] = $row;

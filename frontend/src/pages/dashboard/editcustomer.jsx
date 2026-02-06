@@ -150,7 +150,7 @@ const StepperCustomerForm = () => {
   const systemTypes = ['Small Grower', 'Long Grower', 'Mini Pro Grower',
     'Semi Pro Grower', 'Pro Grower', 'Vertical Outdoor Grower', 'Flat Bed',
     'Indoor Grower', 'Furniture Integrated Grower', 'Mini Grower', 'Dutch Bucket',
-    'Growbags', 'Microgreen Racks', 'Other'];
+    'Growbags', 'Microgreen Racks', 'Wall Mounted', 'Other'];
   const motorTypes = ['Small Motor (10W)', 'Big Motor (40W)', 'Other'];
   const modelOfLight = ['Nx1.1', 'Nx4', 'Other'];
   const lengthOfLight = ['2ft', '3ft', '4ft', 'Other'];
