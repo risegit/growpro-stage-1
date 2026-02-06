@@ -15,6 +15,7 @@ export default function UserTable() {
   const user = JSON.parse(localStorage.getItem("user"));
   const userRole = user?.role;
   const isAdmin = userRole === "admin"; // Check if user is admin
+  const isCoordinator = userRole === "co-ordinator";
 
   const formatDate = (dateString) => {
     if (!dateString) return "-";
@@ -787,7 +788,7 @@ const exportAllAMCToExcel = () => {
                     </div>
                   </th>
                   {/* Show Days Left column only for admin */}
-                  {isAdmin && (
+                  {(isAdmin || isCoordinator) && (
                     <th
                       className="w-[11%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
                       onClick={() => handleSort('validity_upto')}
@@ -858,7 +859,7 @@ const exportAllAMCToExcel = () => {
                       </td>
 
                       {/* Days Left - Only show for admin */}
-                      {isAdmin && (
+                      {(isAdmin || isCoordinator) && (
                         <td className="py-4 px-4 text-gray-700 truncate">
                           <p>
                             {daysLeft} Days
@@ -994,7 +995,7 @@ const exportAllAMCToExcel = () => {
                     </div>
 
                     {/* Days Left - Only show for admin */}
-                    {isAdmin && (
+                    {(isAdmin || isCoordinator) && (
                       <>
                         <div className="flex flex-col">
                           <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">

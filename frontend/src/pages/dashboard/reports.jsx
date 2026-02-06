@@ -1128,7 +1128,7 @@ export default function ReportTable() {
         // Prepare grand totals table with offsite data
         const grandTotalsData = [
           // Regular Data Section
-          [{ content: "REGULAR HYDROPONIC DATA:", colSpan: 2, styles: { fontStyle: 'bold', fontSize: 11, textColor: [255, 102, 0] } }],
+          [{ content: "REGULAR ONSITE DATA:", colSpan: 2, styles: { fontStyle: 'bold', fontSize: 11, textColor: [255, 102, 0] } }],
           ["Supplied Nutrients Total:", `${grandTotalSuppliedNutrients.toFixed(2)} Ltr`],
           ["Need Nutrients Total:", `${grandTotalNeedNutrients.toFixed(2)} Ltr`],
           ["", ""], // Empty row for spacing
