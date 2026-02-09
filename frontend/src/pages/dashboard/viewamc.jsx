@@ -8,7 +8,7 @@ export default function UserTable() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
-  const usersPerPage = 10;
+  const [usersPerPage, setUsersPerPage] = useState(10);
   const navigate = useNavigate();
   const [pdfLoaded, setPdfLoaded] = useState(false);
 
@@ -614,6 +614,39 @@ const exportAllAMCToExcel = () => {
   const goToPrevious = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const goToNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
+  // Get page numbers to display (with ellipsis)
+  const getPageNumbers = () => {
+    const delta = 2; // Number of pages to show on each side of current page
+    const range = [];
+    const rangeWithDots = [];
+    let l;
+
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
+        range.push(i);
+      }
+    }
+
+    range.forEach((i) => {
+      if (l) {
+        if (i - l === 2) {
+          rangeWithDots.push(l + 1);
+        } else if (i - l !== 1) {
+          rangeWithDots.push('...');
+        }
+      }
+      rangeWithDots.push(i);
+      l = i;
+    });
+
+    return rangeWithDots;
+  };
+
+  const handlePageSizeChange = (e) => {
+    setUsersPerPage(Number(e.target.value));
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
+
   // 🔹 Get AMC Status function
   const getAMCStatus = (validity_upto) => {
     const validityDate = new Date(validity_upto);
@@ -1033,7 +1066,7 @@ const exportAllAMCToExcel = () => {
                         `}
                       >
                         {status}
-                      </span>
+                    </span>
                     </div>
                   </div>
 
@@ -1053,50 +1086,93 @@ const exportAllAMCToExcel = () => {
       )}
     </div>
 
-    {/* Pagination */}
+    {/* Improved Pagination */}
     {filteredUsers.length > 0 && (
       <div className="px-5 sm:px-6 py-4 border-t bg-gray-50">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-gray-600">
-            Showing {indexOfFirstUser + 1} to{" "}
-            {Math.min(indexOfLastUser, filteredUsers.length)} of{" "}
-            {filteredUsers.length} users
-          </p>
+          {/* Show entries info */}
           <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Show</span>
+            <select
+              value={usersPerPage}
+              onChange={handlePageSizeChange}
+              className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={30}>30</option>
+              <option value={50}>50</option>
+            </select>
+            <span className="text-sm text-gray-600">entries</span>
+          </div>
+
+          {/* Page info */}
+          <p className="text-sm text-gray-600">
+            Showing <span className="font-medium">{indexOfFirstUser + 1}</span> to{" "}
+            <span className="font-medium">{Math.min(indexOfLastUser, filteredUsers.length)}</span> of{" "}
+            <span className="font-medium">{filteredUsers.length}</span> entries
+          </p>
+
+          {/* Pagination controls */}
+          <div className="flex items-center gap-1">
+            {/* Previous button */}
             <button
               onClick={goToPrevious}
               disabled={currentPage === 1}
-              className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === 1
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
+              className={`p-2 rounded-lg transition ${
+                currentPage === 1
+                  ? "text-gray-400 cursor-not-allowed"
+                  : "text-gray-600 hover:bg-gray-200"
+              }`}
+              aria-label="Previous page"
             >
-              Previous
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
             </button>
-            {[...Array(totalPages)].map((_, index) => (
-              <button
-                key={index + 1}
-                onClick={() => goToPage(index + 1)}
-                className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === index + 1
-                  ? "bg-blue-500 text-white"
-                  : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+
+            {/* Page numbers */}
+            {getPageNumbers().map((pageNum, index) => (
+              pageNum === '...' ? (
+                <span key={`ellipsis-${index}`} className="px-3 py-1 text-gray-500">
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={pageNum}
+                  onClick={() => goToPage(pageNum)}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                    currentPage === pageNum
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-700 hover:bg-gray-200"
                   }`}
-              >
-                {index + 1}
-              </button>
+                >
+                  {pageNum}
+                </button>
+              )
             ))}
+
+            {/* Next button */}
             <button
               onClick={goToNext}
               disabled={currentPage === totalPages}
-              className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === totalPages
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
+              className={`p-2 rounded-lg transition ${
+                currentPage === totalPages
+                  ? "text-gray-400 cursor-not-allowed"
+                  : "text-gray-600 hover:bg-gray-200"
+              }`}
+              aria-label="Next page"
             >
-              Next
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           </div>
         </div>
+
+        {/* Quick jump to page */}
+
       </div>
     )}
   </div>

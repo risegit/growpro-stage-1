@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { FileText } from "lucide-react";
+import { FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function UserTable() {
@@ -10,6 +10,7 @@ export default function UserTable() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [usersPerPage, setUsersPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState({
     key: null,
     direction: 'ascending' // 'ascending' or 'descending'
@@ -43,7 +44,6 @@ export default function UserTable() {
     });
   };
 
-  const usersPerPage = 10;
   const navigate = useNavigate();
   const [pdfLoaded, setPdfLoaded] = useState(false);
 
@@ -854,9 +854,65 @@ export default function UserTable() {
     { orderType == 'onsite' ? navigate(`/dashboard/editmaterialdeliver/${userId}`) : navigate(`/dashboard/edit-offsite-material-order/${userId}`); }
   };
 
-  const goToPage = (page) => setCurrentPage(page);
+  const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
   const goToPrevious = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const goToNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  const goToFirst = () => setCurrentPage(1);
+  const goToLast = () => setCurrentPage(totalPages);
+
+  // Get visible page numbers with ellipsis
+  const getVisiblePages = () => {
+    const delta = 2; // Number of pages to show on each side
+    const range = [];
+    
+    if (totalPages <= 7) {
+      // Show all pages if total pages is 7 or less
+      for (let i = 1; i <= totalPages; i++) {
+        range.push(i);
+      }
+      return range;
+    }
+    
+    // Always include first page
+    range.push(1);
+    
+    // Calculate range around current page
+    const start = Math.max(2, currentPage - delta);
+    const end = Math.min(totalPages - 1, currentPage + delta);
+    
+    // Add ellipsis if needed before middle range
+    if (start > 2) {
+      range.push("...");
+    }
+    
+    // Add middle range
+    for (let i = start; i <= end; i++) {
+      range.push(i);
+    }
+    
+    // Add ellipsis if needed after middle range
+    if (end < totalPages - 1) {
+      range.push("...");
+    }
+    
+    // Always include last page
+    if (totalPages > 1) {
+      range.push(totalPages);
+    }
+    
+    return range;
+  };
+
+  // Handle page size change
+  const handlePageSizeChange = (e) => {
+    setUsersPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
 
   if (loading) {
     return (
@@ -1174,7 +1230,7 @@ export default function UserTable() {
                             Download PDF
                           </button>
                           <button
-                            onClick={() => handleEdit(user.id)}
+                            onClick={() => handleEdit(user.id, user.tech_name ? 'onsite' : 'offsite')}
                             className="flex-1 px-4 py-3 btn-primary"
                           >
                             Edit Delivery
@@ -1189,50 +1245,115 @@ export default function UserTable() {
           )}
         </div>
 
-        {/* Pagination */}
+        {/* Enhanced Pagination */}
         {filteredUsers.length > 0 && (
           <div className="px-5 sm:px-6 py-4 border-t bg-gray-50">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-gray-600">
-                Showing {indexOfFirstUser + 1} to{" "}
-                {Math.min(indexOfLastUser, filteredUsers.length)} of{" "}
-                {filteredUsers.length} users
-              </p>
+              {/* Entries per page selector */}
               <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Show</span>
+                <select
+                  value={usersPerPage}
+                  onChange={handlePageSizeChange}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={30}>30</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span className="text-sm text-gray-600">entries per page</span>
+              </div>
+
+              {/* Page information */}
+              <p className="text-sm text-gray-600">
+                Showing <span className="font-medium">{indexOfFirstUser + 1}</span> to{" "}
+                <span className="font-medium">{Math.min(indexOfLastUser, filteredUsers.length)}</span> of{" "}
+                <span className="font-medium">{filteredUsers.length}</span> entries
+              </p>
+
+              {/* Compact pagination controls */}
+              <div className="flex items-center gap-1">
+                {/* First page button */}
+                <button
+                  onClick={goToFirst}
+                  disabled={currentPage === 1}
+                  className={`p-2 rounded-lg transition ${currentPage === 1
+                      ? "text-gray-400 cursor-not-allowed"
+                      : "text-gray-600 hover:bg-gray-200"
+                    }`}
+                  title="First page"
+                >
+                  <ChevronsLeft size={18} />
+                </button>
+
+                {/* Previous button */}
                 <button
                   onClick={goToPrevious}
                   disabled={currentPage === 1}
-                  className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === 1
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className={`p-2 rounded-lg transition ${currentPage === 1
+                      ? "text-gray-400 cursor-not-allowed"
+                      : "text-gray-600 hover:bg-gray-200"
                     }`}
+                  title="Previous page"
                 >
-                  Previous
+                  <ChevronLeft size={18} />
                 </button>
-                {[...Array(totalPages)].map((_, index) => (
-                  <button
-                    key={index + 1}
-                    onClick={() => goToPage(index + 1)}
-                    className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === index + 1
-                      ? "bg-blue-500 text-white"
-                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                      }`}
-                  >
-                    {index + 1}
-                  </button>
+
+                {/* Page numbers with ellipsis */}
+                {getVisiblePages().map((page, index) => (
+                  page === "..." ? (
+                    <span
+                      key={`ellipsis-${index}`}
+                      className="px-2 py-1 text-gray-500"
+                    >
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={page}
+                      onClick={() => goToPage(page)}
+                      className={`px-3 py-1 rounded-lg text-sm font-medium transition ${currentPage === page
+                          ? "bg-blue-600 text-white"
+                          : "text-gray-700 hover:bg-gray-200"
+                        }`}
+                    >
+                      {page}
+                    </button>
+                  )
                 ))}
+
+                {/* Next button */}
                 <button
                   onClick={goToNext}
                   disabled={currentPage === totalPages}
-                  className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === totalPages
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className={`p-2 rounded-lg transition ${currentPage === totalPages
+                      ? "text-gray-400 cursor-not-allowed"
+                      : "text-gray-600 hover:bg-gray-200"
                     }`}
+                  title="Next page"
                 >
-                  Next
+                  <ChevronRight size={18} />
+                </button>
+
+                {/* Last page button */}
+                <button
+                  onClick={goToLast}
+                  disabled={currentPage === totalPages}
+                  className={`p-2 rounded-lg transition ${currentPage === totalPages
+                      ? "text-gray-400 cursor-not-allowed"
+                      : "text-gray-600 hover:bg-gray-200"
+                    }`}
+                  title="Last page"
+                >
+                  <ChevronsRight size={18} />
                 </button>
               </div>
             </div>
+
+            {/* Quick page jump */}
+
           </div>
         )}
       </div>
