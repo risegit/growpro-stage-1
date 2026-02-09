@@ -6,7 +6,7 @@ export default function UserTable() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 10;
+  const [usersPerPage, setUsersPerPage] = useState(10);
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem("user"));
@@ -88,6 +88,58 @@ export default function UserTable() {
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
   const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
 
+  // 🔹 Improved Pagination Logic with Ellipsis
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxVisiblePages = 5; // Number of page buttons to show
+    
+    if (totalPages <= maxVisiblePages) {
+      // Show all pages if total pages is less than or equal to maxVisiblePages
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      // Always show first page
+      pageNumbers.push(1);
+      
+      // Calculate start and end of visible pages
+      let startPage = Math.max(2, currentPage - 1);
+      let endPage = Math.min(totalPages - 1, currentPage + 1);
+      
+      // Adjust if we're near the start
+      if (currentPage <= 3) {
+        startPage = 2;
+        endPage = 4;
+      }
+      
+      // Adjust if we're near the end
+      if (currentPage >= totalPages - 2) {
+        startPage = totalPages - 3;
+        endPage = totalPages - 1;
+      }
+      
+      // Add ellipsis after first page if needed
+      if (startPage > 2) {
+        pageNumbers.push('...');
+      }
+      
+      // Add middle pages
+      for (let i = startPage; i <= endPage; i++) {
+        pageNumbers.push(i);
+      }
+      
+      // Add ellipsis before last page if needed
+      if (endPage < totalPages - 1) {
+        pageNumbers.push('...');
+      }
+      
+      // Always show last page
+      pageNumbers.push(totalPages);
+    }
+    
+    return pageNumbers;
+  };
+
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1);
@@ -97,7 +149,17 @@ export default function UserTable() {
     navigate(`/dashboard/customers/editcustomer/${userId}`);
   };
 
-  const goToPage = (page) => setCurrentPage(page);
+  const handleUsersPerPageChange = (e) => {
+    setUsersPerPage(Number(e.target.value));
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages && page !== '...') {
+      setCurrentPage(page);
+    }
+  };
+  
   const goToPrevious = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const goToNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
@@ -336,50 +398,111 @@ export default function UserTable() {
           )}
         </div>
 
-        {/* Pagination */}
+        {/* Improved Pagination with Entries Selector */}
         {filteredUsers.length > 0 && (
           <div className="px-6 py-4 border-t bg-gray-50">
             <div className="flex flex-col sm:flex-row items-center justify-between">
-              <p className="text-sm text-gray-600">
+              {/* Left side: Show entries selector */}
+              <div className="flex items-center gap-3 mb-4 sm:mb-0">
+                <span className="text-sm text-gray-600">Show</span>
+                <select
+                  value={usersPerPage}
+                  onChange={handleUsersPerPageChange}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+                >
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="30">30</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span className="text-sm text-gray-600">entries</span>
+              </div>
+
+              {/* Center: Page info */}
+              <p className="text-sm text-gray-600 mb-4 sm:mb-0">
                 Showing {indexOfFirstUser + 1} to{" "}
                 {Math.min(indexOfLastUser, filteredUsers.length)} of{" "}
                 {filteredUsers.length} users
               </p>
 
-              <div className="flex items-center gap-2 mt-3 sm:mt-0">
+              {/* Right side: Pagination controls */}
+              <div className="flex items-center space-x-1">
+                {/* Previous Button */}
                 <button
                   onClick={goToPrevious}
                   disabled={currentPage === 1}
-                  className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === 1
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                    }`}
+                  className={`px-3 py-2 rounded-md font-medium text-sm transition ${
+                    currentPage === 1
+                      ? "text-gray-400 cursor-not-allowed"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                  aria-label="Previous page"
                 >
-                  Previous
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
                 </button>
 
-                {[...Array(totalPages)].map((_, index) => (
+                {/* Page Numbers */}
+                {totalPages > 1 && getPageNumbers().map((pageNumber, index) => (
                   <button
-                    key={index + 1}
-                    onClick={() => goToPage(index + 1)}
-                    className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === index + 1
-                        ? "bg-blue-500 text-white"
-                        : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                      }`}
+                    key={index}
+                    onClick={() => goToPage(pageNumber)}
+                    className={`px-3 py-2 min-w-[40px] rounded-md font-medium text-sm transition ${
+                      pageNumber === currentPage
+                        ? "bg-blue-600 text-white"
+                        : pageNumber === '...'
+                        ? "text-gray-500 cursor-default"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                    disabled={pageNumber === '...'}
+                    aria-label={
+                      pageNumber === '...'
+                        ? "More pages"
+                        : `Go to page ${pageNumber}`
+                    }
                   >
-                    {index + 1}
+                    {pageNumber}
                   </button>
                 ))}
 
+                {/* Next Button */}
                 <button
                   onClick={goToNext}
-                  disabled={currentPage === totalPages}
-                  className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === totalPages
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                    }`}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className={`px-3 py-2 rounded-md font-medium text-sm transition ${
+                    currentPage === totalPages || totalPages === 0
+                      ? "text-gray-400 cursor-not-allowed"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                  aria-label="Next page"
                 >
-                  Next
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
                 </button>
               </div>
             </div>

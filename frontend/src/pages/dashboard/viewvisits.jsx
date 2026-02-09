@@ -1,23 +1,22 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { FileText } from "lucide-react";
+import { FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { TrashIcon } from "@heroicons/react/24/solid";
 
 export default function UserTable() {
   const [allUsers, setAllUsers] = useState([]);
-  const [allFullData, setAllFullData] = useState({}); // Initialize as empty object
+  const [allFullData, setAllFullData] = useState({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pdfLoaded, setPdfLoaded] = useState(false);
-  const usersPerPage = 10;
+  const [usersPerPage, setUsersPerPage] = useState(10);
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem("user"));
   const userRole = user?.role;
   const user_code = user?.user_code;
 
-  // Rename the outer formatDate to avoid conflict
   const formatDateForDisplay = (dateString) => {
     if (!dateString) return "-";
     try {
@@ -32,7 +31,6 @@ export default function UserTable() {
     }
   };
 
-  // Helper function for PDF date formatting
   const formatDateForPDF = (dateString) => {
     if (!dateString) return new Date().toISOString().split('T')[0];
     try {
@@ -62,7 +60,7 @@ export default function UserTable() {
     };
   }, []);
 
-  // Generate PDF Report (keep the function but remove inner formatDate)
+  // Generate PDF Report (keep existing function)
   const generatePDF = async (visitData, fullApiData) => {
     try {
       console.log("Starting PDF generation...");
@@ -1175,9 +1173,46 @@ export default function UserTable() {
     navigate(`/dashboard/sitevisits/deletevisit/${userId}`);
   };
 
-  const goToPage = (page) => setCurrentPage(page);
+  const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
   const goToPrevious = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const goToNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  const goToFirst = () => setCurrentPage(1);
+  const goToLast = () => setCurrentPage(totalPages);
+
+  // Get visible page numbers with ellipsis
+  const getVisiblePages = () => {
+    const delta = 2; // Number of pages to show on each side
+    const range = [];
+    
+    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+      range.push(i);
+    }
+    
+    if (currentPage - delta > 2) {
+      range.unshift("...");
+    }
+    if (currentPage + delta < totalPages - 1) {
+      range.push("...");
+    }
+    
+    range.unshift(1);
+    if (totalPages > 1) {
+      range.push(totalPages);
+    }
+    
+    return range;
+  };
+
+  // Handle page size change
+  const handlePageSizeChange = (e) => {
+    setUsersPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
 
   if (loading) {
     return (
@@ -1239,9 +1274,6 @@ export default function UserTable() {
                       {userRole !== "technician" && (
                         <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-right">Action</th>
                       )}
-                      {/* {userRole !== "technician,co-ordinator" && (
-                        <th className="w-[12%] py-4 px-4 font-medium text-gray-700 text-center">Delete</th>
-                      )} */}
                     </tr>
                   </thead>
                   <tbody>
@@ -1318,18 +1350,6 @@ export default function UserTable() {
                               </button>
                             </td>
                           )}
-
-                          {/* {userRole !== "technician,co-ordinator" && (
-                            <td className="py-4 px-4 text-left">
-                              <button
-                                onClick={() => handleDelete(user.site_visit_id)}
-                                className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                                title="Delete"
-                              >
-                                <TrashIcon className="w-5 h-5" />
-                              </button>
-                            </td>
-                          )} */}
                         </tr>
                       );
                     })}
@@ -1414,50 +1434,115 @@ export default function UserTable() {
           )}
         </div>
 
-        {/* Pagination */}
+        {/* Enhanced Pagination with Page Size Selector */}
         {filteredUsers.length > 0 && (
           <div className="px-5 sm:px-6 py-4 border-t bg-gray-50">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-gray-600">
-                Showing {indexOfFirstUser + 1} to{" "}
-                {Math.min(indexOfLastUser, filteredUsers.length)} of{" "}
-                {filteredUsers.length} users
-              </p>
+              {/* Entries per page selector */}
               <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Show</span>
+                <select
+                  value={usersPerPage}
+                  onChange={handlePageSizeChange}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={30}>30</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span className="text-sm text-gray-600">entries per page</span>
+              </div>
+
+              {/* Page information */}
+              <p className="text-sm text-gray-600">
+                Showing <span className="font-medium">{indexOfFirstUser + 1}</span> to{" "}
+                <span className="font-medium">{Math.min(indexOfLastUser, filteredUsers.length)}</span> of{" "}
+                <span className="font-medium">{filteredUsers.length}</span> entries
+              </p>
+
+              {/* Compact pagination controls */}
+              <div className="flex items-center gap-1">
+                {/* First page button */}
+                <button
+                  onClick={goToFirst}
+                  disabled={currentPage === 1}
+                  className={`p-2 rounded-lg transition ${currentPage === 1
+                      ? "text-gray-400 cursor-not-allowed"
+                      : "text-gray-600 hover:bg-gray-200"
+                    }`}
+                  title="First page"
+                >
+                  <ChevronsLeft size={18} />
+                </button>
+
+                {/* Previous button */}
                 <button
                   onClick={goToPrevious}
                   disabled={currentPage === 1}
-                  className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === 1
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className={`p-2 rounded-lg transition ${currentPage === 1
+                      ? "text-gray-400 cursor-not-allowed"
+                      : "text-gray-600 hover:bg-gray-200"
                     }`}
+                  title="Previous page"
                 >
-                  Previous
+                  <ChevronLeft size={18} />
                 </button>
-                {[...Array(totalPages)].map((_, index) => (
-                  <button
-                    key={index + 1}
-                    onClick={() => goToPage(index + 1)}
-                    className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === index + 1
-                      ? "bg-blue-500 text-white"
-                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                      }`}
-                  >
-                    {index + 1}
-                  </button>
+
+                {/* Page numbers with ellipsis */}
+                {getVisiblePages().map((page, index) => (
+                  page === "..." ? (
+                    <span
+                      key={`ellipsis-${index}`}
+                      className="px-2 py-1 text-gray-500"
+                    >
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={page}
+                      onClick={() => goToPage(page)}
+                      className={`px-3 py-1 rounded-lg text-sm font-medium transition ${currentPage === page
+                          ? "bg-blue-600 text-white"
+                          : "text-gray-700 hover:bg-gray-200"
+                        }`}
+                    >
+                      {page}
+                    </button>
+                  )
                 ))}
+
+                {/* Next button */}
                 <button
                   onClick={goToNext}
                   disabled={currentPage === totalPages}
-                  className={`px-3 py-2 rounded-lg font-medium transition ${currentPage === totalPages
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className={`p-2 rounded-lg transition ${currentPage === totalPages
+                      ? "text-gray-400 cursor-not-allowed"
+                      : "text-gray-600 hover:bg-gray-200"
                     }`}
+                  title="Next page"
                 >
-                  Next
+                  <ChevronRight size={18} />
+                </button>
+
+                {/* Last page button */}
+                <button
+                  onClick={goToLast}
+                  disabled={currentPage === totalPages}
+                  className={`p-2 rounded-lg transition ${currentPage === totalPages
+                      ? "text-gray-400 cursor-not-allowed"
+                      : "text-gray-600 hover:bg-gray-200"
+                    }`}
+                  title="Last page"
+                >
+                  <ChevronsRight size={18} />
                 </button>
               </div>
             </div>
+
+            {/* Quick page jump */}
+         
           </div>
         )}
       </div>
