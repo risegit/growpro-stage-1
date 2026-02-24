@@ -47,7 +47,8 @@ switch ($method) {
             echo json_encode(["status" => "success", "amc_data" => $amc_data, "grower_data" => $grower_data, "consumable_data" => $consumable_data]);
         }elseif ($customerId) {
             // $growerResult = $conn->query("SELECT growers.id,growers.system_type,growers.system_type_other FROM users INNER JOIN growers ON users.id=growers.customer_id where growers.customer_id='$customerId'");
-            $growerResult = $conn->query("SELECT g.id, g.system_type, g.system_type_other, g.grower_qty AS total_grower_qty, IFNULL(SUM(ag.grower_qty), 0) AS used_grower_qty, (g.grower_qty - IFNULL(SUM(ag.grower_qty), 0)) AS remaining_grower_qty FROM growers g LEFT JOIN amc_growers ag ON ag.grower_id = g.id WHERE g.customer_id = '$customerId' GROUP BY g.id, g.system_type,g.system_type_other,g.grower_qty HAVING remaining_grower_qty > 0");
+            // $growerResult = $conn->query("SELECT g.id, g.system_type, g.system_type_other, g.grower_qty AS total_grower_qty, IFNULL(SUM(ag.grower_qty), 0) AS used_grower_qty, (g.grower_qty - IFNULL(SUM(ag.grower_qty), 0)) AS remaining_grower_qty FROM growers g LEFT JOIN amc_growers ag ON ag.grower_id = g.id WHERE g.customer_id = '$customerId' GROUP BY g.id, g.system_type,g.system_type_other,g.grower_qty HAVING remaining_grower_qty > 0");
+            $growerResult = $conn->query("SELECT g.id, g.system_type, g.system_type_other, g.grower_qty total_grower_qty, IFNULL(SUM( CASE WHEN CURDATE() BETWEEN ad.validity_from AND ad.validity_upto THEN ag.grower_qty ELSE 0 END ), 0) AS used_grower_qty, (g.grower_qty - IFNULL(SUM( CASE WHEN CURDATE() BETWEEN ad.validity_from AND ad.validity_upto THEN ag.grower_qty ELSE 0 END ), 0)) AS remaining_grower_qty, u.name, u.phone FROM growers g INNER JOIN users u ON g.customer_id = u.id LEFT JOIN amc_growers ag ON ag.grower_id = g.id LEFT JOIN amc_details ad ON ad.id = ag.amc_id WHERE g.customer_id = '$customerId' GROUP BY g.id, g.system_type, g.system_type_other, g.grower_qty, u.name, u.phone HAVING remaining_grower_qty > 0;");
             $growerData = [];
             while ($row1 = $growerResult->fetch_assoc()) {
                 $growerData[] = $row1;
@@ -63,10 +64,10 @@ switch ($method) {
             }
             echo json_encode(["status" => "success", "data" => $data]);
         }else{
-            $result = $conn->query("SELECT g.id AS grower_id, g.customer_id, g.system_type, g.grower_qty, u.name, u.phone FROM growers g LEFT JOIN amc_growers ag ON ag.grower_id = g.id INNER JOIN users u ON g.customer_id = u.id WHERE u.status='active' and ag.id IS NULL GROUP BY u.name");
+            $result = $conn->query("SELECT DISTINCT u.id AS customer_id, u.name, u.phone FROM users u INNER JOIN growers g ON g.customer_id = u.id WHERE u.status = 'active';");
             // $result = $conn->query("SELECT u.id AS customer_id, u.name, u.phone, SUM(g.grower_qty) AS total_grower_qty, IFNULL(SUM(ag.used_qty), 0) AS used_grower_qty, (SUM(g.grower_qty) - IFNULL(SUM(ag.used_qty), 0)) AS remaining_grower_qty FROM users u INNER JOIN growers g ON g.customer_id = u.id LEFT JOIN ( SELECT grower_id, SUM(grower_qty) AS used_qty FROM amc_growers GROUP BY grower_id ) ag ON ag.grower_id = g.id WHERE u.status = 'active' GROUP BY u.id, u.name, u.phone HAVING remaining_grower_qty > 0;");
             $data = [];
-
+            // echo json_encode(["status" => "success", "query" => $query]);
             while ($row = $result->fetch_assoc()) {
                 $data[] = $row;
             }
