@@ -15,6 +15,8 @@ export function Home() {
     user?.user_code?.startsWith("TC") ? technicianCards : adminCards;
 
   const [cardData, setCardData] = useState(initialCards);
+  const [expiredAmcData, setExpiredAmcData] = useState([]);
+  const [showExpiredAmcModal, setShowExpiredAmcModal] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -28,6 +30,11 @@ export function Home() {
 
         if (data.status === "success") {
           const stats = data.data[0];
+          
+          // Store expired AMC data
+          if (data.expired_amc_data) {
+            setExpiredAmcData(data.expired_amc_data);
+          }
 
           const updatedCards = [...initialCards];
 
@@ -44,7 +51,12 @@ export function Home() {
             if (updatedCards[1]) {
               updatedCards[1].value = stats.active_amc;
               updatedCards[1].footer.value = stats.renew_amc_7_days;
+              updatedCards[1].footer.label = "renewals in 7 days";
               updatedCards[1].footer.value1 = stats.expired_amc;
+              updatedCards[1].footer.label1 = "expired AMC";
+              
+              // Add click handler to show expired AMC details
+              updatedCards[1].footer.onClick = () => setShowExpiredAmcModal(true);
             }
             cardIndex = 2; // Next index for admin
           }
@@ -68,6 +80,12 @@ export function Home() {
 
     fetchDashboardData();
   }, []);
+
+  // Function to format date
+  const formatDate = (dateString) => {
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+  };
 
   return (
     <div className="mt-12">
@@ -100,15 +118,21 @@ export function Home() {
                 {/* Show default footer for other cards */}
                 {index !== 0 && (
                   <>
-                    {card.footer.value && (
-                      <p>
+                    {card.footer.value !== undefined && (
+                      <p 
+                        className={card.footer.onClick ? "cursor-pointer hover:text-blue-600" : ""}
+                        onClick={card.footer.onClick}
+                      >
                         <strong className="text-green-500">{card.footer.value}</strong>{" "}
                         {card.footer.label}
                       </p>
                     )}
 
-                    {card.footer.value1 && (
-                      <p>
+                    {card.footer.value1 !== undefined && (
+                      <p 
+                        className={card.footer.onClick ? "cursor-pointer hover:text-blue-600" : ""}
+                        onClick={card.footer.onClick}
+                      >
                         <strong className="text-green-500">{card.footer.value1}</strong>{" "}
                         {card.footer.label1}
                       </p>
@@ -121,6 +145,104 @@ export function Home() {
         ))}
 
       </div>
+
+      {/* Expired AMC Modal */}
+      {showExpiredAmcModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
+          <div className="relative bg-white rounded-lg shadow-xl w-11/12 max-w-4xl max-h-[90vh] overflow-auto">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
+              <h3 className="text-xl font-semibold text-gray-900">
+                Expired AMC Details ({expiredAmcData.length})
+              </h3>
+              <button
+                onClick={() => setShowExpiredAmcModal(false)}
+                className="text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50 sticky top-[73px]">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Sr. No.
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Customer Name
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      AMC ID
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Valid Upto
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Visits/Month
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {expiredAmcData.length > 0 ? (
+                    expiredAmcData.map((item, index) => (
+                      <tr key={item.amc_id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                          {index + 1}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {item.customer_name}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          {item.amc_id}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          {formatDate(item.validity_upto)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          {item.visits_per_month || 'N/A'}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          <a
+                            href={`${import.meta.env.VITE_PAGE_URL}amc/addamc`}
+                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            Renew
+                          </a>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="px-4 py-6 text-center text-sm text-gray-500">
+                        No expired AMC records found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end p-4 border-t sticky bottom-0 bg-white">
+              <button
+                onClick={() => setShowExpiredAmcModal(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 focus:outline-none"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

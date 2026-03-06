@@ -61,12 +61,25 @@ switch ($method) {
                 (SELECT COUNT(DISTINCT technician_id) FROM site_visit_schedule WHERE visit_date = CURRENT_DATE) AS technicians_today,
                 (SELECT COUNT(*) FROM amc_details WHERE validity_upto BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, INTERVAL 7 DAY)) AS renew_amc_7_days
                 ";
+
+            $expiredAMCDetailsSql = "
+                SELECT c.id AS customer_id, c.name AS customer_name, a.validity_upto, a.id AS amc_id, a.visits_per_month,a.validity_from,a.validity_upto,a.amc_free_paid
+                FROM amc_details a
+                LEFT JOIN users c ON a.customer_id = c.id
+                WHERE a.validity_upto < CURRENT_DATE
+                ORDER BY a.validity_upto ASC";
         }
 
         $result = $conn->query($summarySql);
         $data = [];
         while ($row = $result->fetch_assoc()) {
             $data[] = $row;
+        }
+
+        $expiredAMCDetailsResult = $conn->query($expiredAMCDetailsSql);
+        $expiredAMCData = [];
+        while ($row = $expiredAMCDetailsResult->fetch_assoc()) {
+            $expiredAMCData[] = $row;
         }
 
         // -----------------------------
@@ -100,7 +113,7 @@ switch ($method) {
             $visit_assign_data[] = $row;
         }
 
-        echo json_encode(["status" => "success","data" => $data,"visit_assign_data" => $visit_assign_data,"role" => $role]);
+        echo json_encode(["status" => "success","data" => $data,"visit_assign_data" => $visit_assign_data,"role" => $role, "expired_amc_data" => $expiredAMCData]);
         // echo json_encode(["status" => "success","data" => $data,"visit_assign_data"=>$visit_assign_data]);
 
         break;
