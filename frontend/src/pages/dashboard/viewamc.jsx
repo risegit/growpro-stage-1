@@ -785,7 +785,7 @@ const exportAllAMCToExcel = () => {
                     </div>
                   </th>
                   <th
-                    className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                    className="w-[11%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
                     onClick={() => handleSort('phone')}
                   >
                     <div className="flex items-center">
@@ -803,7 +803,7 @@ const exportAllAMCToExcel = () => {
                     </div>
                   </th>
                   <th
-                    className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                    className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
                     onClick={() => handleSort('visits_per_month')}
                   >
                     <div className="flex items-center">
@@ -812,11 +812,11 @@ const exportAllAMCToExcel = () => {
                     </div>
                   </th>
                   <th
-                    className="w-[16%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
+                    className="w-[12%] py-4 px-4 font-medium text-gray-700 text-left cursor-pointer hover:bg-gray-50 transition"
                     onClick={() => handleSort('remaining_visits_current_month')}
                   >
                     <div className="flex items-center">
-                      Visit Pending For This Month
+                      Visit Pending<br/>This Month
                       <SortArrow columnKey="remaining_visits_current_month" />
                     </div>
                   </th>
@@ -832,7 +832,7 @@ const exportAllAMCToExcel = () => {
                       </div>
                     </th>
                   )}
-                  <th className="w-[10%] py-4 px-4 font-medium text-gray-700 text-left">
+                  <th className="w-[11%] py-4 px-4 font-medium text-gray-700 text-left">
                     AMC Status
                   </th>
                   {userRole !== "technician" && (
@@ -840,9 +840,9 @@ const exportAllAMCToExcel = () => {
                     Report
                   </th>
                   )}
-                  <th className="w-[5%] py-4 px-4 font-medium text-gray-700 text-left">
+                  {/* <th className="w-[5%] py-4 px-4 font-medium text-gray-700 text-left">
                     Status
-                  </th>
+                  </th> */}
                   {userRole !== "technician" && (
                     <th className="py-4 px-4 font-medium text-gray-700 text-right">Action</th>
                   )}
@@ -940,16 +940,16 @@ const exportAllAMCToExcel = () => {
                         </td>
                       )}
 
-                      <td className="py-4 px-4">
+                      {/* <td className="py-4 px-4">
                         <span
                           className={`px-3 py-1 rounded-2xl text-sm font-medium ${user.status === "active"
                               ? "bg-green-600 text-white"
                               : "bg-red-600 text-white"
                             }`}
                         >
-                          {/* {user.status} */}
+                          
                         </span>
-                      </td>
+                      </td> */}
 
                       {/* Action */}
                       {userRole !== "technician" && (
@@ -1052,7 +1052,7 @@ const exportAllAMCToExcel = () => {
                     )}
 
                     {/* Status */}
-                    <div className="flex flex-col">
+                    {/* <div className="flex flex-col">
                       <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
                         Status
                       </span>
@@ -1068,7 +1068,7 @@ const exportAllAMCToExcel = () => {
                       >
                         {status}
                     </span>
-                    </div>
+                    </div> */}
                   </div>
 
                   {userRole !== "technician" && (
