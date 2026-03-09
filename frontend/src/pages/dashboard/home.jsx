@@ -212,7 +212,7 @@ export function Home() {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                           <a
-                            href={`${import.meta.env.VITE_PAGE_URL}amc/addamc`}
+                            href={`${import.meta.env.VITE_PAGE_URL}amc/addamc?customer_id=${encodeURIComponent(item.customer_id)}`}
                             className="text-blue-600 hover:text-blue-800 hover:underline"
                           >
                             Renew

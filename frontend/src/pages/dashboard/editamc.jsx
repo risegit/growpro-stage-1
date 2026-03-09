@@ -57,6 +57,8 @@ export default function AMCForm() {
     name: ''
   });
 
+  // New state for expiry check
+  const [isExpired, setIsExpired] = useState(false);
 
   const systemTypes = ['Small Grower', 'Long Grower', 'Mini Pro Grower',
     'Semi Pro Grower', 'Pro Grower', 'Vertical Outdoor Grower', 'Flat Bed',
@@ -96,6 +98,18 @@ export default function AMCForm() {
       .replace(/\b\w/g, (c) => c.toUpperCase()); // capitalize each word
   };
 
+  // Function to check if AMC is expired
+  const checkIfExpired = (validityUpto) => {
+    if (!validityUpto) return false;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day
+    
+    const expiryDate = new Date(validityUpto);
+    expiryDate.setHours(0, 0, 0, 0); // Reset time to start of day
+    
+    return today > expiryDate;
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -110,7 +124,6 @@ export default function AMCForm() {
         console.log("Fetched data:", data);
 
         const amc = Array.isArray(data.amc_data) ? data.amc_data[0] : data.amc_data;
-        // const grower_data = Array.isArray(data.grower_data) ? data.grower_data[0] : data.grower_data;
         const consumable_data = Array.isArray(data.consumable_data) ? data.consumable_data : [];
 
         // ------------------------------------
@@ -119,6 +132,14 @@ export default function AMCForm() {
         const otherItem = consumable_data.find(
           c => c.other_consumable && c.other_consumable.trim() !== ""
         );
+
+        // ------------------------------------
+        // CHECK IF AMC IS EXPIRED
+        // ------------------------------------
+        if (amc && amc.validity_upto) {
+          const expired = checkIfExpired(amc.validity_upto);
+          setIsExpired(expired);
+        }
 
         // ------------------------------------
         // SET AMC FIELDS
@@ -191,9 +212,6 @@ export default function AMCForm() {
             }
           });
 
-          // 🟦 Log the cleaned qty map as well
-          // console.log("🟢 updated systemQty (after clean):", updatedQty);
-
           return updatedQty;
         });
 
@@ -213,8 +231,6 @@ export default function AMCForm() {
 
     fetchUser();
   }, [id]);
-
-
 
   useEffect(() => {
     const fetchConsumable = async () => {
@@ -243,16 +259,6 @@ export default function AMCForm() {
             }))
             : [];
 
-          // setGrowers(grower_opts);
-
-          
-          // setFormData((prev) => ({
-          //   ...prev,
-          //   grower: grower_opts,
-          // }));
-
-
-
           setConsumable(opts);
         }
       } catch (error) {
@@ -265,44 +271,62 @@ export default function AMCForm() {
     fetchConsumable();
   }, []);
 
+  // Check expiry whenever validityUpto changes
+  useEffect(() => {
+    if (formData.validityUpto) {
+      const expired = checkIfExpired(formData.validityUpto);
+      setIsExpired(expired);
+    }
+  }, [formData.validityUpto]);
+
   const handlePriceChange = (e) => {
-  const { name, value } = e.target;
+    // If expired, prevent changes
+    if (isExpired) {
+      toast.warning("Cannot modify expired AMC contract");
+      return;
+    }
 
-  if (errors[name]) {
+    const { name, value } = e.target;
+
+    if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
-  }
-
-  setFormData((prev) => {
-    if (value === "Free") {
-      return {
-        ...prev,
-        [name]: value,
-        pricing: "0",
-        transport: "0",
-        gst: "0",
-        total: "0",
-      };
     }
 
-    
-    // If Paid → clear values (but not null)
-    if (value === "Paid") {
+    setFormData((prev) => {
+      if (value === "Free") {
+        return {
+          ...prev,
+          [name]: value,
+          pricing: "0",
+          transport: "0",
+          gst: "0",
+          total: "0",
+        };
+      }
 
-      return {
-        ...prev,
-        [name]: value,
-        pricing: "",
-        transport: "",
-        gst: "",
-        total: "",
-      };
-    }
+      // If Paid → clear values (but not null)
+      if (value === "Paid") {
+        return {
+          ...prev,
+          [name]: value,
+          pricing: "",
+          transport: "",
+          gst: "",
+          total: "",
+        };
+      }
 
-    return { ...prev, [name]: value };
-  });
-};
+      return { ...prev, [name]: value };
+    });
+  };
 
   const handleInputChange = (e) => {
+    // If expired, prevent changes
+    if (isExpired) {
+      toast.warning("Cannot modify expired AMC contract");
+      return;
+    }
+
     const { name, value } = e.target;
 
     setFormData((prev) => ({
@@ -384,6 +408,12 @@ export default function AMCForm() {
   };
 
   const handleAddonInputChange = (e) => {
+    // If expired, prevent changes
+    if (isExpired) {
+      toast.warning("Cannot modify expired AMC contract");
+      return;
+    }
+
     const { name, value } = e.target;
     setAddonFormData((prev) => ({
       ...prev,
@@ -400,6 +430,12 @@ export default function AMCForm() {
   };
 
   const handleCustomerChange = (selected) => {
+    // If expired, prevent changes
+    if (isExpired) {
+      toast.warning("Cannot modify expired AMC contract");
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, customer: selected }));
     if (errors.customer) {
       setErrors((prev) => ({ ...prev, customer: '' }));
@@ -407,6 +443,12 @@ export default function AMCForm() {
   };
 
   const handleGrowerChange = (selected) => {
+    // If expired, prevent changes
+    if (isExpired) {
+      toast.warning("Cannot modify expired AMC contract");
+      return;
+    }
+
     setAddonFormData((prev) => ({ ...prev, grower: selected }));
     if (addonErrors.grower) {
       setAddonErrors((prev) => ({ ...prev, grower: '' }));
@@ -414,6 +456,12 @@ export default function AMCForm() {
   };
 
   const handleConsumableChange = (selected) => {
+    // If expired, prevent changes
+    if (isExpired) {
+      toast.warning("Cannot modify expired AMC contract");
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       consumables: selected || []
@@ -424,6 +472,12 @@ export default function AMCForm() {
   };
 
   const handleAddonConsumableChange = (selected) => {
+    // If expired, prevent changes
+    if (isExpired) {
+      toast.warning("Cannot modify expired AMC contract");
+      return;
+    }
+
     setAddonFormData((prev) => ({
       ...prev,
       consumables: selected || []
@@ -548,6 +602,12 @@ export default function AMCForm() {
   };
 
   const handleSubmit = async () => {
+    // If expired, prevent submission
+    if (isExpired) {
+      toast.error("Cannot submit expired AMC contract");
+      return;
+    }
+
     // Validate form including grower quantities
     if (!validateForm()) {
       toast.error("Please fix all errors before submitting.");
@@ -622,10 +682,20 @@ export default function AMCForm() {
   };
 
   const handleAddOn = () => {
+    // If expired, prevent adding add-on
+    if (isExpired) {
+      toast.warning("Cannot add add-on to expired AMC contract");
+      return;
+    }
     setShowAddon(true);
   };
 
   const handleRemoveAddon = () => {
+    // If expired, prevent removing add-on
+    if (isExpired) {
+      toast.warning("Cannot modify expired AMC contract");
+      return;
+    }
     setShowAddon(false);
     setAddonFormData({
       grower: '',
@@ -647,6 +717,12 @@ export default function AMCForm() {
 
   // Handle grower selection change - remove quantity when grower is removed
   const handleGrowerSelectionChange = (selected) => {
+    // If expired, prevent changes
+    if (isExpired) {
+      toast.warning("Cannot modify expired AMC contract");
+      return;
+    }
+
     // Get removed growers
     const currentGrowers = formData.grower || [];
     const removedGrowers = currentGrowers.filter(
@@ -673,14 +749,32 @@ export default function AMCForm() {
   return (
     <div className="w-full min-h-screen bg-gray-100 mt-10">
       <div className="mx-auto bg-white rounded-2xl shadow-xl p-6">
-        {/* Header */}
-        <div className="px-2 py-4 border-b">
-          <h1 className="text-2xl font-bold mb-1 text-gray-800">Edit AMC Contract</h1>
-          <p className="text-sm text-gray-600">Annual Maintenance Contract Details</p>
+        {/* Header with Expiry Warning */}
+        <div className="px-2 py-4 border-b flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold mb-1 text-gray-800">Edit AMC Contract</h1>
+            <p className="text-sm text-gray-600">Annual Maintenance Contract Details</p>
+          </div>
+          {isExpired && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg">
+              <span className="font-semibold">⚠️ EXPIRED CONTRACT</span>
+              <p className="text-sm">This AMC has expired and cannot be modified</p>
+            </div>
+          )}
         </div>
 
+        {/* Disabled overlay for expired contracts */}
+        {isExpired && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-700">
+              <span className="font-semibold">🔒 Read Only Mode:</span> This AMC contract has expired. 
+              You can view the details but cannot make any changes.
+            </p>
+          </div>
+        )}
+
         {/* Main Form */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 py-6 [&_input]:h-[44px] [&_select]:h-[44px]">
+        <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 px-4 py-6 [&_input]:h-[44px] [&_select]:h-[44px] ${isExpired ? 'opacity-75' : ''}`}>
           {/* Customer */}
           <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">Customer Name: <span className="text-green-500">{formData.customer}</span></label>
@@ -706,6 +800,7 @@ export default function AMCForm() {
                   styles={{
                     menu: (provided) => ({ ...provided, zIndex: 9999 }),
                   }}
+                  isDisabled={isExpired} // Disable if expired
                 />
 
                 {growerHasOther && (
@@ -714,7 +809,8 @@ export default function AMCForm() {
                     name="systemTypeOther"
                     value={formData.systemTypeOther}
                     readOnly
-                    className="mt-2 px-3 py-2 border rounded-lg"
+                    className="mt-2 px-3 py-2 border rounded-lg bg-gray-50"
+                    disabled={isExpired}
                   />
                 )}
               </>
@@ -748,6 +844,10 @@ export default function AMCForm() {
                       max={grower.max_qty}
                       value={systemQty[grower.value] || ''}
                       onChange={(e) => {
+                        if (isExpired) {
+                          toast.warning("Cannot modify expired AMC contract");
+                          return;
+                        }
                         let val = Number(e.target.value);
 
                         // ⬅️ Enforce max limit
@@ -760,13 +860,14 @@ export default function AMCForm() {
                           [grower.value]: val,
                         });
                       }}
+                      disabled={isExpired}
                       className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
                         errors.systemQty &&
                         (!systemQty[grower.value] ||
                           parseInt(systemQty[grower.value]) <= 0)
                           ? 'border-red-500 focus:ring-red-400'
                           : 'border-gray-300 focus:ring-blue-400'
-                      }`}
+                      } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                       placeholder={`Enter ${grower.label} quantity`}
                     />
                   </div>
@@ -781,7 +882,10 @@ export default function AMCForm() {
               name="amc_free_paid"
               value={formData.amc_free_paid}
               onChange={handlePriceChange}
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.amc_free_paid ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+              disabled={isExpired}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                errors.amc_free_paid ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+              } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             >
               <option value="" disabled>Select Free or Paid</option>
               <option value="Paid">Paid</option>
@@ -797,7 +901,10 @@ export default function AMCForm() {
               name="duration"
               value={formData.duration}
               onChange={handleInputChange}
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.duration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+              disabled={isExpired}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                errors.duration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+              } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             >
               <option value="" disabled>Select duration</option>
               {durationOptions.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
@@ -808,8 +915,11 @@ export default function AMCForm() {
                 name="otherDuration"
                 value={formData.otherDuration}
                 onChange={handleInputChange}
+                disabled={isExpired}
                 placeholder="Duration in days (e.g. for monthly type 30)"
-                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.otherDuration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                  errors.otherDuration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               />
             )}
             {errors.duration && <span className="text-red-500 text-sm mt-1">{errors.duration}</span>}
@@ -824,9 +934,12 @@ export default function AMCForm() {
               name="visitsPerMonth"
               value={formData.visitsPerMonth}
               onChange={handleInputChange}
+              disabled={isExpired}
               placeholder="Enter number of visits"
               min="0"
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.visitsPerMonth ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                errors.visitsPerMonth ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+              } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             />
             {errors.visitsPerMonth && <span className="text-red-500 text-sm mt-1">{errors.visitsPerMonth}</span>}
           </div>
@@ -839,7 +952,10 @@ export default function AMCForm() {
               name="validityFrom"
               value={formData.validityFrom}
               onChange={handleInputChange}
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityFrom ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+              disabled={isExpired}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                errors.validityFrom ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+              } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             />
             {errors.validityFrom && <span className="text-red-500 text-sm mt-1">{errors.validityFrom}</span>}
           </div>
@@ -852,8 +968,11 @@ export default function AMCForm() {
               name="validityUpto"
               value={formData.validityUpto}
               onChange={handleInputChange}
+              disabled={isExpired}
               min={formData.validityFrom || undefined}
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityUpto ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                errors.validityUpto ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+              } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             />
             {errors.validityUpto && <span className="text-red-500 text-sm mt-1">{errors.validityUpto}</span>}
           </div>
@@ -871,6 +990,7 @@ export default function AMCForm() {
               styles={{
                 menu: (provided) => ({ ...provided, zIndex: 9999 }),
               }}
+              isDisabled={isExpired}
             />
             {consumablesHasOther && (
               <input
@@ -878,8 +998,11 @@ export default function AMCForm() {
                 name="otherConsumable"
                 value={formData.otherConsumable}
                 onChange={handleInputChange}
+                disabled={isExpired}
                 placeholder="Specify other consumable"
-                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.otherConsumable ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                  errors.otherConsumable ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               />
             )}
             {errors.consumables && <span className="text-red-500 text-sm mt-1">{errors.consumables}</span>}
@@ -894,10 +1017,13 @@ export default function AMCForm() {
               name="pricing"
               value={formData.pricing}
               onChange={handleInputChange}
+              disabled={isExpired}
               placeholder="Enter pricing"
               step="0.01"
               min="0"
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.pricing ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                errors.pricing ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+              } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             />
             {errors.pricing && <span className="text-red-500 text-sm mt-1">{errors.pricing}</span>}
           </div>
@@ -910,10 +1036,13 @@ export default function AMCForm() {
               name="transport"
               value={formData.transport}
               onChange={handleInputChange}
+              disabled={isExpired}
               placeholder="Enter transport cost"
               step="0.01"
               min="0"
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.transport ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                errors.transport ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+              } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             />
             {errors.transport && <span className="text-red-500 text-sm mt-1">{errors.transport}</span>}
           </div>
@@ -926,11 +1055,14 @@ export default function AMCForm() {
               name="gst"
               value={formData.gst}
               onChange={handleInputChange}
+              disabled={isExpired}
               placeholder="Enter GST percentage"
               step="0.01"
               min="0"
               max="100"
-              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.gst ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                errors.gst ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+              } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             />
             {errors.gst && <span className="text-red-500 text-sm mt-1">{errors.gst}</span>}
           </div>
@@ -945,6 +1077,7 @@ export default function AMCForm() {
               readOnly
               placeholder="Auto-calculated"
               className="px-3 py-2 border rounded-lg bg-gray-50 text-gray-700 font-semibold cursor-not-allowed"
+              disabled={isExpired}
             />
             <span className="text-xs text-gray-500 mt-1">Auto-calculated from Pricing + Transport + GST</span>
           </div>
@@ -952,8 +1085,17 @@ export default function AMCForm() {
               <input
                 type="checkbox"
                 checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                onChange={(e) => {
+                  if (isExpired) {
+                    toast.warning("Cannot modify expired AMC contract");
+                    return;
+                  }
+                  setFormData({ ...formData, isActive: e.target.checked });
+                }}
+                disabled={isExpired}
+                className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                  isExpired ? 'cursor-not-allowed opacity-50' : ''
+                }`}
                 id="isActive"
               />
               <label htmlFor="isActive" className="ml-2 block text-gray-700 font-medium">
@@ -972,7 +1114,10 @@ export default function AMCForm() {
               </div>
               <button
                 onClick={handleRemoveAddon}
-                className="bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded-lg transition"
+                disabled={isExpired}
+                className={`bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded-lg transition ${
+                  isExpired ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 Remove
               </button>
@@ -992,6 +1137,7 @@ export default function AMCForm() {
                     menu: (provided) => ({ ...provided, zIndex: 9999 }),
                     control: (provided) => ({ ...provided, minHeight: '44px' }),
                   }}
+                  isDisabled={isExpired}
                 />
                 {addonErrors.grower && <span className="text-red-500 text-sm mt-1">{addonErrors.grower}</span>}
               </div>
@@ -1004,7 +1150,10 @@ export default function AMCForm() {
                   name="validityFrom"
                   value={addonFormData.validityFrom}
                   onChange={handleAddonInputChange}
-                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.validityFrom ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                  disabled={isExpired}
+                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                    addonErrors.validityFrom ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 />
                 {addonErrors.validityFrom && <span className="text-red-500 text-sm mt-1">{addonErrors.validityFrom}</span>}
               </div>
@@ -1017,8 +1166,11 @@ export default function AMCForm() {
                   name="validityUpto"
                   value={addonFormData.validityUpto}
                   onChange={handleAddonInputChange}
+                  disabled={isExpired}
                   min={addonFormData.validityFrom || undefined}
-                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.validityUpto ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                    addonErrors.validityUpto ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 />
                 {addonErrors.validityUpto && <span className="text-red-500 text-sm mt-1">{addonErrors.validityUpto}</span>}
               </div>
@@ -1030,7 +1182,10 @@ export default function AMCForm() {
                   name="duration"
                   value={addonFormData.duration}
                   onChange={handleAddonInputChange}
-                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.duration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                  disabled={isExpired}
+                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                    addonErrors.duration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 >
                   <option value="">Select duration</option>
                   {durationOptions.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
@@ -1041,8 +1196,11 @@ export default function AMCForm() {
                     name="otherDuration"
                     value={addonFormData.otherDuration}
                     onChange={handleAddonInputChange}
+                    disabled={isExpired}
                     placeholder="Enter custom duration (e.g., 18 months)"
-                    className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.otherDuration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                    className={`mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                      addonErrors.otherDuration ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                    } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                   />
                 )}
                 {addonErrors.duration && <span className="text-red-500 text-sm mt-1">{addonErrors.duration}</span>}
@@ -1057,9 +1215,12 @@ export default function AMCForm() {
                   name="visitsPerMonth"
                   value={addonFormData.visitsPerMonth}
                   onChange={handleAddonInputChange}
+                  disabled={isExpired}
                   placeholder="Enter number of visits"
                   min="0"
-                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.visitsPerMonth ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                    addonErrors.visitsPerMonth ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 />
                 {addonErrors.visitsPerMonth && <span className="text-red-500 text-sm mt-1">{addonErrors.visitsPerMonth}</span>}
               </div>
@@ -1077,6 +1238,7 @@ export default function AMCForm() {
                   styles={{
                     menu: (provided) => ({ ...provided, zIndex: 9999 }),
                   }}
+                  isDisabled={isExpired}
                 />
                 {addonErrors.consumables && <span className="text-red-500 text-sm mt-1">{addonErrors.consumables}</span>}
               </div>
@@ -1089,10 +1251,13 @@ export default function AMCForm() {
                   name="pricing"
                   value={addonFormData.pricing}
                   onChange={handleAddonInputChange}
+                  disabled={isExpired}
                   placeholder="Enter pricing"
                   step="0.01"
                   min="0"
-                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.pricing ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                    addonErrors.pricing ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 />
                 {addonErrors.pricing && <span className="text-red-500 text-sm mt-1">{addonErrors.pricing}</span>}
               </div>
@@ -1105,10 +1270,13 @@ export default function AMCForm() {
                   name="transport"
                   value={addonFormData.transport}
                   onChange={handleAddonInputChange}
+                  disabled={isExpired}
                   placeholder="Enter transport cost"
                   step="0.01"
                   min="0"
-                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.transport ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                    addonErrors.transport ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 />
                 {addonErrors.transport && <span className="text-red-500 text-sm mt-1">{addonErrors.transport}</span>}
               </div>
@@ -1121,11 +1289,14 @@ export default function AMCForm() {
                   name="gst"
                   value={addonFormData.gst}
                   onChange={handleAddonInputChange}
+                  disabled={isExpired}
                   placeholder="Enter GST percentage"
                   step="0.01"
                   min="0"
                   max="100"
-                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${addonErrors.gst ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'}`}
+                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${
+                    addonErrors.gst ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-400'
+                  } ${isExpired ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 />
                 {addonErrors.gst && <span className="text-red-500 text-sm mt-1">{addonErrors.gst}</span>}
               </div>
@@ -1140,6 +1311,7 @@ export default function AMCForm() {
                   readOnly
                   placeholder="Auto-calculated"
                   className="px-3 py-2 border rounded-lg bg-gray-50 text-gray-700 font-semibold cursor-not-allowed"
+                  disabled={isExpired}
                 />
                 <span className="text-xs text-gray-500 mt-1">Auto-calculated from Pricing + Transport + GST</span>
               </div>
@@ -1147,14 +1319,33 @@ export default function AMCForm() {
           </div>
         )}
 
+        {/* Add On Button */}
+        {!showAddon && !isExpired && (
+          <div className="px-4 py-2">
+            <button
+              onClick={handleAddOn}
+              className="bg-green-500 hover:bg-green-600 text-white font-medium px-4 py-2 rounded-lg transition"
+            >
+              + Add Add-On Contract
+            </button>
+          </div>
+        )}
+
         {/* Submit Button */}
         <div className="flex items-center justify-end px-4 py-4">
           <button
             onClick={handleSubmit}
-            disabled={loading}
-            className={`px-6 py-3 btn-primary ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={loading || isExpired}
+            className={`px-6 py-3 btn-primary ${
+              loading || isExpired ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            {loading ? "Please wait..." : "Submit (जमा करें)"}
+            {loading 
+              ? "Please wait..." 
+              : isExpired 
+                ? "Contract Expired - Cannot Submit" 
+                : "Submit (जमा करें)"
+            }
           </button>
         </div>
       </div>
