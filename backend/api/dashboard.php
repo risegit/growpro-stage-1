@@ -68,6 +68,9 @@ switch ($method) {
                 LEFT JOIN users c ON a.customer_id = c.id
                 WHERE a.validity_upto < CURRENT_DATE
                 ORDER BY a.validity_upto ASC";
+
+            $expiredAMC7DaysDetailsSql = "
+                SELECT c.id AS customer_id, c.name AS customer_name, a.id AS amc_id, a.visits_per_month, a.validity_from, a.validity_upto, a.amc_free_paid FROM amc_details a LEFT JOIN users c ON a.customer_id = c.id WHERE a.validity_upto BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, INTERVAL 7 DAY) ORDER BY a.validity_upto ASC";
         }
 
         $result = $conn->query($summarySql);
@@ -80,6 +83,12 @@ switch ($method) {
         $expiredAMCData = [];
         while ($row = $expiredAMCDetailsResult->fetch_assoc()) {
             $expiredAMCData[] = $row;
+        }
+
+        $expiredAMC7DaysDetailsResult = $conn->query($expiredAMC7DaysDetailsSql);
+        $expiredAMC7DaysData = [];
+        while ($row = $expiredAMC7DaysDetailsResult->fetch_assoc()) {
+            $expiredAMC7DaysData[] = $row;
         }
 
         // -----------------------------
@@ -113,7 +122,7 @@ switch ($method) {
             $visit_assign_data[] = $row;
         }
 
-        echo json_encode(["status" => "success","data" => $data,"visit_assign_data" => $visit_assign_data,"role" => $role, "expired_amc_data" => $expiredAMCData]);
+        echo json_encode(["status" => "success","data" => $data,"visit_assign_data" => $visit_assign_data,"role" => $role, "expired_amc_data" => $expiredAMCData, "expired_amc_in_7_days" => $expiredAMC7DaysData]);
         // echo json_encode(["status" => "success","data" => $data,"visit_assign_data"=>$visit_assign_data]);
 
         break;
