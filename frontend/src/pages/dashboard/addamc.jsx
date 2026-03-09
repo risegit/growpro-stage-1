@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Select from 'react-select';
 import { toast } from "react-toastify";
+import { useSearchParams } from 'react-router-dom';
 
 export default function AMCForm() {
   const [formData, setFormData] = useState({
@@ -22,7 +23,6 @@ export default function AMCForm() {
     total: ''
   });
 
-  // Change systemQty to store with ID as key
   const [systemQty, setSystemQty] = useState({});
   const [errors, setErrors] = useState({});
   const [customers, setCustomers] = useState([]);
@@ -33,7 +33,11 @@ export default function AMCForm() {
   const [loadingGrowers, setLoadingGrowers] = useState(false);
   const [loadingConsumable, setLoadingConsumable] = useState(false);
   const [isNoGrowers, setIsNoGrowers] = useState(false);
+  const [initialCustomerSet, setInitialCustomerSet] = useState(false);
 
+    const [searchParams] = useSearchParams();
+    const custId = searchParams.get('customer_id');
+  
   const durationOptions = [
     { value: '30', label: 'Monthly' },
     { value: '90', label: 'Quarterly' },
@@ -77,6 +81,87 @@ export default function AMCForm() {
     };
   }, []);
 
+  // Auto-select customer if custId exists
+  useEffect(() => {
+    
+    if (custId && customers.length > 0 && !initialCustomerSet) {
+      
+      const selectedCustomer = customers.find(c => c.value === parseInt(custId) || c.value === custId);
+    
+      if (selectedCustomer) {
+        setFormData(prev => ({ ...prev, customer: selectedCustomer }));
+        setInitialCustomerSet(true);
+        
+        // Load growers for this customer
+        loadGrowersForCustomer(selectedCustomer.value);
+      }
+    }
+  }, [custId, customers, initialCustomerSet]);
+
+  const loadGrowersForCustomer = async (customerId) => {
+    setLoadingGrowers(true);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}api/amc.php?customer_id=${customerId}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch growers");
+
+      const data = await res.json();
+
+      const opts = Array.isArray(data.data)
+        ? data.data.map((g) => ({
+            value: g.id,
+            label: g.system_type,
+            other: g.system_type_other,
+            qty: g.remaining_grower_qty ?? "",
+          }))
+        : [];
+
+      const isEmptyGrowers = opts.length === 0;
+      setIsNoGrowers(isEmptyGrowers);
+
+      if (isEmptyGrowers) {
+        setGrowers([]);
+        setFormData((prev) => ({
+          ...prev,
+          grower: [],
+          systemTypeOther: "",
+        }));
+        setSystemQty({});
+        return;
+      }
+
+      const hasOther = opts.some((g) => g.other && g.other.trim() !== "");
+      const otherValue = hasOther
+        ? opts.find((g) => g.other && g.other.trim() !== "")?.other
+        : "";
+
+      setGrowers(opts);
+      setFormData((prev) => ({
+        ...prev,
+        grower: opts,
+        systemTypeOther: otherValue,
+      }));
+
+      setSystemQty((prevQty) => {
+        const updatedQty = { ...prevQty };
+        opts.forEach((g) => {
+          if (updatedQty[g.value] === undefined) {
+            updatedQty[g.value] = g.qty ?? "";
+          }
+        });
+        return updatedQty;
+      });
+    } catch (err) {
+      console.error("Error fetching growers:", err);
+      setGrowers([]);
+      setFormData((prev) => ({ ...prev, grower: null }));
+      setSystemQty({});
+    } finally {
+      setLoadingGrowers(false);
+    }
+  };
+
   useEffect(() => {
     const fetchConsumable = async () => {
       try {
@@ -103,43 +188,39 @@ export default function AMCForm() {
     fetchConsumable();
   }, []);
 
-
   const handlePriceChange = (e) => {
-  const { name, value } = e.target;
+    const { name, value } = e.target;
 
-  if (errors[name]) {
+    if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
-  }
-
-  setFormData((prev) => {
-    if (value === "Free") {
-      return {
-        ...prev,
-        [name]: value,
-        pricing: "0",
-        transport: "0",
-        gst: "0",
-        total: "0",
-      };
     }
 
-    
-    // If Paid → clear values (but not null)
-    if (value === "Paid") {
+    setFormData((prev) => {
+      if (value === "Free") {
+        return {
+          ...prev,
+          [name]: value,
+          pricing: "0",
+          transport: "0",
+          gst: "0",
+          total: "0",
+        };
+      }
 
-      return {
-        ...prev,
-        [name]: value,
-        pricing: "",
-        transport: "",
-        gst: "",
-        total: "",
-      };
-    }
+      if (value === "Paid") {
+        return {
+          ...prev,
+          [name]: value,
+          pricing: "",
+          transport: "",
+          gst: "",
+          total: "",
+        };
+      }
 
-    return { ...prev, [name]: value };
-  });
-};
+      return { ...prev, [name]: value };
+    });
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -209,99 +290,24 @@ export default function AMCForm() {
   const growerHasOther = Array.isArray(formData.grower) && formData.grower.some((g) => g.label === "Other");
 
   const handleCustomerChange = async (selected) => {
-  if (!selected) {
-    setFormData((prev) => ({ ...prev, customer: null, grower: null }));
-    setGrowers([]);
-    setIsNoGrowers(false);
-    setSystemQty({});
-    return;
-  }
-
-  if (formData.customer && formData.customer.value === selected.value) return;
-
-  setFormData((prev) => ({ ...prev, customer: selected }));
-
-  if (errors.customer) {
-    setErrors((prev) => ({ ...prev, customer: "" }));
-  }
-
-  setLoadingGrowers(true);
-  try {
-    const res = await fetch(
-      `${import.meta.env.VITE_API_URL}api/amc.php?customer_id=${selected.value}`
-    );
-    if (!res.ok) throw new Error("Failed to fetch growers");
-
-    const data = await res.json();
-
-    // ⭐ MAP GROWERS + INCLUDE qty FROM PHP
-    const opts = Array.isArray(data.data)
-      ? data.data.map((g) => ({
-          value: g.id,
-          label: g.system_type,
-          other: g.system_type_other,
-          qty: g.remaining_grower_qty ?? "", // qty from PHP
-        }))
-      : [];
-
-    const isEmptyGrowers = opts.length === 0;
-    setIsNoGrowers(isEmptyGrowers);
-
-    if (isEmptyGrowers) {
+    if (!selected) {
+      setFormData((prev) => ({ ...prev, customer: null, grower: null }));
       setGrowers([]);
-      setFormData((prev) => ({
-        ...prev,
-        grower: [],
-        systemTypeOther: "",
-      }));
+      setIsNoGrowers(false);
       setSystemQty({});
       return;
     }
 
-    const hasOther = opts.some((g) => g.other && g.other.trim() !== "");
-    const otherValue = hasOther
-      ? opts.find((g) => g.other && g.other.trim() !== "")?.other
-      : "";
+    if (formData.customer && formData.customer.value === selected.value) return;
 
-    setGrowers(opts);
-    setFormData((prev) => ({
-      ...prev,
-      grower: opts,
-      systemTypeOther: otherValue,
-    }));
+    setFormData((prev) => ({ ...prev, customer: selected }));
 
-    // ⭐ PRESERVE OLD QTY, FILL NEW QTY ONLY IF NOT EXISTS
-    setSystemQty((prevQty) => {
-      const updatedQty = { ...prevQty };
+    if (errors.customer) {
+      setErrors((prev) => ({ ...prev, customer: "" }));
+    }
 
-      // Keep existing qty OR set qty from API
-      opts.forEach((g) => {
-        if (updatedQty[g.value] === undefined) {
-          updatedQty[g.value] = g.qty ?? "";
-        }
-      });
-
-      // Remove qty for removed growers
-      Object.keys(updatedQty).forEach((key) => {
-        if (!opts.some((g) => g.value === key)) {
-          delete updatedQty[key];
-        }
-      });
-
-      return updatedQty;
-    });
-  } catch (err) {
-    console.error("Error fetching growers:", err);
-    setGrowers([]);
-    setFormData((prev) => ({ ...prev, grower: null }));
-    setSystemQty({});
-  } finally {
-    setLoadingGrowers(false);
-  }
-};
-
-
-
+    await loadGrowersForCustomer(selected.value);
+  };
 
   const handleGrowerChange = (selected) => {
     setFormData(prev => ({
@@ -347,12 +353,11 @@ export default function AMCForm() {
       newErrors.customer = 'Please select a customer';
     }
 
-    // Validate grower quantities using ID as key
     if (formData.grower && formData.grower.length > 0) {
       const missingQuantities = [];
       
       formData.grower.forEach((grower) => {
-        const qty = systemQty[grower.value]; // Use ID to get quantity
+        const qty = systemQty[grower.value];
         const qtyStr = qty !== undefined && qty !== null ? String(qty) : "";
         if (
           qtyStr.trim() === "" ||
@@ -361,7 +366,6 @@ export default function AMCForm() {
         ) {
           missingQuantities.push(grower.label);
         }
-
       });
       
       if (missingQuantities.length > 0) {
@@ -435,14 +439,12 @@ export default function AMCForm() {
         JSON.stringify(formData.grower?.map((g) => g.value) || [])
       );
 
-      // ⭐ Append grower quantities with ID as key
       const filteredGrowerQty = {};
       (formData.grower || []).forEach((g) => {
           filteredGrowerQty[g.value] = systemQty[g.value];
       });
 
       formPayload.append("grower_quantities", JSON.stringify(filteredGrowerQty));
-
 
       console.log("Form Payload Data:");
       for (let [key, value] of formPayload.entries()) {
@@ -478,6 +480,7 @@ export default function AMCForm() {
           total: ''
         });
         setSystemQty({});
+        setInitialCustomerSet(false);
       } else {
         toast.error(result.error || "Something went wrong");
       }
@@ -519,6 +522,7 @@ export default function AMCForm() {
             {errors.customer && <span className="text-red-500 text-sm mt-1">{errors.customer}</span>}
           </div>
 
+          {/* Rest of your JSX remains exactly the same */}
           <div className="flex flex-col">
             <label className="mb-1 font-medium text-gray-700">
               System Type <span className="text-red-500">*</span>
@@ -540,15 +544,11 @@ export default function AMCForm() {
                     setSystemQty((prev) => {
                       const updated = { ...prev };
 
-                      // Ensure new growers get default qty (from API)
                       selected.forEach((g) => {
                         if (updated[g.value] === undefined) {
                           updated[g.value] = g.qty ?? "";
                         }
                       });
-
-                      // ❗ DO NOT DELETE removed growers' qty
-                      // We simply won't display them in UI
 
                       return updated;
                     });
@@ -602,7 +602,6 @@ export default function AMCForm() {
                       onChange={(e) => {
                         let val = Number(e.target.value);
 
-                        // ⬅️ Enforce max limit
                         if (grower.qty && val > grower.qty) {
                           val = grower.qty;
                         }
@@ -690,7 +689,6 @@ export default function AMCForm() {
               name="validityFrom"
               value={formData.validityFrom}
               onChange={handleInputChange}
-              // min={today}
               className={`px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none transition ${errors.validityFrom
                 ? "border-red-500 focus:ring-red-400"
                 : "border-gray-300 focus:ring-blue-400"
