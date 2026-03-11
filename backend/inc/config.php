@@ -8,6 +8,12 @@ header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 // $password = "";
 // $database = "growpro";
 
+// Live database credentials of app.growpro.co.in
+// $servername = "localhost";
+// $username = "growpro-app-user";
+// $password = "R0z2P[Yic)2z";
+// $database = "growpro-app";
+
 $servername = "localhost";
 $username = "growpro_11_Nov_User";
 $password = "R0z2P[Yic)2z";
