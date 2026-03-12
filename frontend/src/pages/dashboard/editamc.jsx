@@ -1105,7 +1105,7 @@ export default function AMCForm() {
         </div>
 
         {/* Add On Form */}
-        {showAddon && (
+        {/* {showAddon && (
           <div className="border-t pt-6">
             <div className="px-2 py-4 border-b flex justify-between items-center">
               <div>
@@ -1124,7 +1124,7 @@ export default function AMCForm() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 py-6 [&_input]:h-[44px] [&_select]:h-[44px]">
-              {/* Grower - Full Width */}
+              
               <div className="flex flex-col md:col-span-2">
                 <label className="mb-2 font-medium text-gray-700">Select Grower <span className="text-red-500">*</span></label>
                 <Select
@@ -1142,7 +1142,7 @@ export default function AMCForm() {
                 {addonErrors.grower && <span className="text-red-500 text-sm mt-1">{addonErrors.grower}</span>}
               </div>
 
-              {/* Validity From */}
+              
               <div className="flex flex-col">
                 <label className="mb-1 font-medium text-gray-700">Validity From <span className="text-red-500">*</span></label>
                 <input
@@ -1158,7 +1158,7 @@ export default function AMCForm() {
                 {addonErrors.validityFrom && <span className="text-red-500 text-sm mt-1">{addonErrors.validityFrom}</span>}
               </div>
 
-              {/* Validity Upto */}
+              
               <div className="flex flex-col">
                 <label className="mb-1 font-medium text-gray-700">Validity Upto <span className="text-red-500">*</span></label>
                 <input
@@ -1175,7 +1175,7 @@ export default function AMCForm() {
                 {addonErrors.validityUpto && <span className="text-red-500 text-sm mt-1">{addonErrors.validityUpto}</span>}
               </div>
 
-              {/* Duration */}
+              
               <div className="flex flex-col">
                 <label className="mb-1 font-medium text-gray-700">Duration of AMC <span className="text-red-500">*</span></label>
                 <select
@@ -1207,7 +1207,7 @@ export default function AMCForm() {
                 {addonErrors.otherDuration && <span className="text-red-500 text-sm mt-1">{addonErrors.otherDuration}</span>}
               </div>
 
-              {/* Visits per Month */}
+              
               <div className="flex flex-col">
                 <label className="mb-1 font-medium text-gray-700">Visits per Month <span className="text-red-500">*</span></label>
                 <input
@@ -1225,7 +1225,7 @@ export default function AMCForm() {
                 {addonErrors.visitsPerMonth && <span className="text-red-500 text-sm mt-1">{addonErrors.visitsPerMonth}</span>}
               </div>
 
-              {/* Consumables */}
+              
               <div className="flex flex-col md:col-span-2">
                 <label className="mb-2 font-medium text-gray-700">Consumables Included in the AMC <span className="text-red-500">*</span></label>
                 <Select
@@ -1243,7 +1243,7 @@ export default function AMCForm() {
                 {addonErrors.consumables && <span className="text-red-500 text-sm mt-1">{addonErrors.consumables}</span>}
               </div>
 
-              {/* Pricing */}
+              
               <div className="flex flex-col">
                 <label className="mb-1 font-medium text-gray-700">Pricing (₹) <span className="text-red-500">*</span></label>
                 <input
@@ -1262,7 +1262,7 @@ export default function AMCForm() {
                 {addonErrors.pricing && <span className="text-red-500 text-sm mt-1">{addonErrors.pricing}</span>}
               </div>
 
-              {/* Transport */}
+              
               <div className="flex flex-col">
                 <label className="mb-1 font-medium text-gray-700">Transport (₹) <span className="text-red-500">*</span></label>
                 <input
@@ -1281,7 +1281,7 @@ export default function AMCForm() {
                 {addonErrors.transport && <span className="text-red-500 text-sm mt-1">{addonErrors.transport}</span>}
               </div>
 
-              {/* GST */}
+              
               <div className="flex flex-col">
                 <label className="mb-1 font-medium text-gray-700">GST (%) <span className="text-red-500">*</span></label>
                 <input
@@ -1301,7 +1301,7 @@ export default function AMCForm() {
                 {addonErrors.gst && <span className="text-red-500 text-sm mt-1">{addonErrors.gst}</span>}
               </div>
 
-              {/* Total */}
+              
               <div className="flex flex-col">
                 <label className="mb-1 font-medium text-gray-700">Total (₹)</label>
                 <input
@@ -1317,10 +1317,10 @@ export default function AMCForm() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Add On Button */}
-        {!showAddon && !isExpired && (
+        {/* {!showAddon && !isExpired && (
           <div className="px-4 py-2">
             <button
               onClick={handleAddOn}
@@ -1329,7 +1329,7 @@ export default function AMCForm() {
               + Add Add-On Contract
             </button>
           </div>
-        )}
+        )} */}
 
         {/* Submit Button */}
         <div className="flex items-center justify-end px-4 py-4">
