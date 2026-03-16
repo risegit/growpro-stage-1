@@ -59,7 +59,7 @@ switch ($method) {
                 (SELECT COUNT(*) FROM site_visit_schedule WHERE visit_date = CURRENT_DATE) AS today_scheduled,
                 (SELECT COUNT(*) FROM site_visit_schedule WHERE MONTH(created_date)=MONTH(CURRENT_DATE)) AS monthly_visits,
                 (SELECT COUNT(DISTINCT technician_id) FROM site_visit_schedule WHERE visit_date = CURRENT_DATE) AS technicians_today,
-                (SELECT COUNT(*) FROM amc_details WHERE validity_upto BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, INTERVAL 7 DAY)) AS renew_amc_7_days
+                (SELECT COUNT(*) FROM amc_details WHERE validity_upto BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY)) AS renew_amc_30_days
                 ";
 
             $expiredAMCDetailsSql = "
@@ -70,7 +70,7 @@ switch ($method) {
                 ORDER BY a.validity_upto ASC";
 
             $expiredAMC7DaysDetailsSql = "
-                SELECT c.id AS customer_id, c.name AS customer_name, a.id AS amc_id, a.visits_per_month, a.validity_from, a.validity_upto, a.amc_free_paid FROM amc_details a LEFT JOIN users c ON a.customer_id = c.id WHERE a.validity_upto BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, INTERVAL 7 DAY) ORDER BY a.validity_upto ASC";
+                SELECT c.id AS customer_id, c.name AS customer_name, a.id AS amc_id, a.visits_per_month, a.validity_from, a.validity_upto, a.amc_free_paid FROM amc_details a LEFT JOIN users c ON a.customer_id = c.id WHERE a.validity_upto BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY) ORDER BY a.validity_upto ASC";
         }
 
         $result = $conn->query($summarySql);
@@ -122,7 +122,7 @@ switch ($method) {
             $visit_assign_data[] = $row;
         }
 
-        echo json_encode(["status" => "success","data" => $data,"visit_assign_data" => $visit_assign_data,"role" => $role, "expired_amc_data" => $expiredAMCData, "expired_amc_in_7_days" => $expiredAMC7DaysData]);
+        echo json_encode(["status" => "success","data" => $data,"visit_assign_data" => $visit_assign_data,"role" => $role, "expired_amc_data" => $expiredAMCData, "expired_amc_in_30_days" => $expiredAMC7DaysData]);
         // echo json_encode(["status" => "success","data" => $data,"visit_assign_data"=>$visit_assign_data]);
 
         break;

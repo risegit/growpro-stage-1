@@ -39,8 +39,8 @@ export function Home() {
           }
           
           // Store renewal AMC data (expiring in 7 days)
-          if (data.expired_amc_in_7_days) {
-            setRenewalAmcData(data.expired_amc_in_7_days);
+          if (data.expired_amc_in_30_days) {
+            setRenewalAmcData(data.expired_amc_in_30_days);
           }
 
           const updatedCards = [...initialCards];
@@ -57,8 +57,8 @@ export function Home() {
           if (!user.user_code.startsWith("TC")) {
             if (updatedCards[1]) {
               updatedCards[1].value = stats.active_amc;
-              updatedCards[1].footer.value = stats.renew_amc_7_days;
-              updatedCards[1].footer.label = "renewals in 7 days";
+              updatedCards[1].footer.value = stats.renew_amc_30_days;
+              updatedCards[1].footer.label = "renewals in 30 days";
               updatedCards[1].footer.value1 = stats.expired_amc;
               updatedCards[1].footer.label1 = "expired AMC";
               
@@ -274,7 +274,7 @@ export function Home() {
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
               <h3 className="text-xl font-semibold text-gray-900">
-                AMC Renewals in Next 7 Days ({renewalAmcData.length})
+                AMC Renewals in Next 30 Days ({renewalAmcData.length})
               </h3>
               <button
                 onClick={() => setShowRenewalAmcModal(false)}
