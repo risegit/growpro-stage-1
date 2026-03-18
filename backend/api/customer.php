@@ -372,10 +372,10 @@ switch ($method) {
                                     $photoAtInstallationPath = 'uploads/customers/' . $newName;
                                 }
                                 // ✅ Otherwise, insert new grower
-                                $insertSQL ="INSERT INTO growers (customer_id, system_type, grower_qty, no_of_plants, no_of_levels, channel_per_level, holes_per_channel, setup_dimension, motor_used, timer_used, no_of_lights, model_of_lights, length_of_lights, tank_capacity, nutrition_given, other_specifications, installation_photo_url, status, date, time) VALUES ('$user_id', '{$grower['systemType']}', '{$grower['growerQuantity']}', '{$grower['numPlants']}', '{$grower['numLevels']}', '{$grower['numChannelPerLevel']}', '{$grower['numHolesPerChannel']}', '{$grower['setupDimension']}', '{$grower['motorType']}', '{$grower['timerUsed']}', '{$grower['numLights']}', '{$grower['modelOfLight']}', '{$grower['lengthOfLight']}', '{$grower['tankCapacity']}', '{$grower['nutritionGiven']}', '{$grower['otherSpecifications']}', '$newName', 'active', '$date', '$time')";
+                                $insertSQL ="INSERT INTO growers (customer_id, system_type, grower_qty, no_of_plants, no_of_levels, channel_per_level, holes_per_channel, setup_dimension, motor_used, no_of_lights, model_of_lights, length_of_lights, tank_capacity, nutrition_given, other_specifications, installation_photo_url, status, date, time) VALUES ('$user_id', '{$grower['systemType']}', '{$grower['growerQuantity']}', '{$grower['numPlants']}', '{$grower['numLevels']}', '{$grower['numChannelPerLevel']}', '{$grower['numHolesPerChannel']}', '{$grower['setupDimension']}', '{$grower['motorType']}', '{$grower['numLights']}', '{$grower['modelOfLight']}', '{$grower['lengthOfLight']}', '{$grower['tankCapacity']}', '{$grower['nutritionGiven']}', '{$grower['otherSpecifications']}', '$newName', 'active', '$date', '$time')";
                                 $conn->query($insertSQL);
                                 $grower_id = $conn->insert_id;
-                                
+                                echo json_encode(["status" => "success", "message" => "insertSQL".$insertSQL]);
                             }
                             
 
