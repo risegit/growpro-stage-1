@@ -365,6 +365,25 @@ const generatePDF = (visitData) => {
   doc.save(`AMC_Report_${visitData.amc_id}_${visitData.name.replace(/\s+/g,'_')}.pdf`);
 };
 
+  // 🔹 Get AMC Status function
+  const getAMCStatus = (validity_upto) => {
+    const validityDate = new Date(validity_upto);
+    const today = new Date();
+
+    validityDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    const diffTime = validityDate - today;
+    const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (daysLeft > 31) {
+      return "On-going";
+    } else if (daysLeft > 0 && daysLeft <= 30) {
+      return "Renew Soon";
+    } else {
+      return "Expired";
+    }
+  };
 
   // 🔹 Filter users based on search
   const filteredUsers = useMemo(() => {
@@ -376,6 +395,7 @@ const generatePDF = (visitData) => {
         user.locality.toLowerCase().includes(query) ||
         user.visits_per_month.toLowerCase().includes(query) ||
         user.pending_visits.toLowerCase().includes(query) ||
+        getAMCStatus(user.validity_upto).toLowerCase().includes(query) ||
         user.phone.includes(query)
     );
   }, [sortedUsers, searchQuery]);
@@ -648,25 +668,7 @@ const exportAllAMCToExcel = () => {
     setCurrentPage(1); // Reset to first page when changing page size
   };
 
-  // 🔹 Get AMC Status function
-  const getAMCStatus = (validity_upto) => {
-    const validityDate = new Date(validity_upto);
-    const today = new Date();
-
-    validityDate.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-
-    const diffTime = validityDate - today;
-    const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (daysLeft > 10) {
-      return "On-going";
-    } else if (daysLeft > 0 && daysLeft <= 10) {
-      return "Renew Soon";
-    } else {
-      return "Expired";
-    }
-  };
+  
 
   if (loading) {
     return (

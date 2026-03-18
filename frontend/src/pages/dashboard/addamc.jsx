@@ -9,7 +9,7 @@ export default function AMCForm() {
     customer: null,
     grower: null,
     systemQty: '',
-    amc_free_paid: '',
+    amc_free_paid: '', 
     validityFrom: '',
     validityUpto: '',
     duration: '',
