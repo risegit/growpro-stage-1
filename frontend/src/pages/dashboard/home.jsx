@@ -36,7 +36,7 @@ export function Home() {
           // Store expired AMC data
           if (data.expired_amc_data) {
             setExpiredAmcData(data.expired_amc_data);
-          }
+          } 
           
           // Store renewal AMC data (expiring in 7 days)
           if (data.expired_amc_in_30_days) {
