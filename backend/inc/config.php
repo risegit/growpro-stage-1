@@ -3,10 +3,10 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 
-// $servername = "localhost";
-// $username = "root";
-// $password = "";
-// $database = "growpro";
+$servername = "localhost";
+$username = "root";
+$password = "";
+$database = "growpro";
 
 // Live database credentials of app.growpro.co.in
 // $servername = "localhost";
@@ -14,10 +14,10 @@ header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 // $password = "R0z2P[Yic)2z";
 // $database = "growpro-app";
 
-$servername = "localhost";
-$username = "growpro_11_Nov_User";
-$password = "R0z2P[Yic)2z";
-$database = "growpro";
+// $servername = "localhost";
+// $username = "growpro_11_Nov_User";
+// $password = "R0z2P[Yic)2z";
+// $database = "growpro";
 
 $conn = new mysqli($servername, $username, $password, $database);
 if ($conn->connect_error) {
