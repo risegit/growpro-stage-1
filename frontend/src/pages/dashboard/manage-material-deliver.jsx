@@ -57,29 +57,32 @@ export default function UserTable() {
         const data = await response.json();
         console.log("API Response:", data);
 
-        // Match plants with users based on customer_id
-        const usersWithPlants = data.data.map(user => {
-          // Find plants for this specific user based on customer_id
-          const userPlants = data.plants.filter(plant =>
-            plant.customer_id === user.customer_id
+        // Match plants, nutrients, and chargeable items with users based on delivery order ID (id)
+        const usersWithItems = data.data.map(user => {
+          // Find plants for this specific delivery order based on material_delivery_id (or similar field)
+          // Assuming the plants/nutrients/chargeableItems have a field like 'material_delivery_id' that matches user.id
+          const userPlants = data.plants.filter(plant => 
+            plant.material_delivery_id === user.id || plant.delivery_id === user.id
           );
-          const userNutrients = data.nutrients.filter(nutrient =>
-            nutrient.customer_id === user.customer_id
+          
+          const userNutrients = data.nutrients.filter(nutrient => 
+            nutrient.material_delivery_id === user.id || nutrient.delivery_id === user.id
           );
-          const userchargeableItem = data.chargeableItems.filter(chargeableItem =>
-            chargeableItem.customer_id === user.customer_id
+          
+          const userChargeableItem = data.chargeableItems.filter(chargeableItem => 
+            chargeableItem.material_delivery_id === user.id || chargeableItem.delivery_id === user.id
           );
 
           return {
             ...user,
             plants: userPlants,
             nutrients: userNutrients,
-            chargeableItems: userchargeableItem
+            chargeableItems: userChargeableItem
           };
         });
 
-        console.log("Users with plants:", usersWithPlants);
-        setAllUsers(usersWithPlants);
+        console.log("Users with items:", usersWithItems);
+        setAllUsers(usersWithItems);
         setPlantsList(data.plants || []);
         setNutrientsList(data.nutrients || []);
         setChargeableItemList(data.chargeableItems || []);
@@ -113,646 +116,656 @@ export default function UserTable() {
   }, []);
 
   const generatePDF = (user) => {
-    if (!window.jspdf) {
-      alert('PDF library is still loading. Please try again in a moment.');
-      return;
-    }
+  if (!window.jspdf) {
+    alert('PDF library is still loading. Please try again in a moment.');
+    return;
+  }
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
 
-    // Helper function to format dates
-    const formatDateForPDF = (dateString) => {
-      if (!dateString) return "-";
+  // Helper function to format dates
+  const formatDateForPDF = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return dateString;
+  // Helper function for nutrient calculation
+  const calculateSuppliesForPDF = (tankCapacity, topups) => {
+    if (!tankCapacity || !topups) return "0";
+    const capacity = parseFloat(tankCapacity);
+    const topup = parseFloat(topups);
+    if (isNaN(capacity) || isNaN(topup)) return "0";
+    return (capacity * topup).toFixed(2);
+  };
 
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    };
+  /* -------------------------------------------------------
+     🔹 CUSTOMER HEADER INFORMATION
+  --------------------------------------------------------*/
+  // Determine delivery date based on status
+  let deliveryDateText;
 
-    // Helper function for nutrient calculation
-    const calculateSuppliesForPDF = (tankCapacity, topups) => {
-      if (!tankCapacity || !topups) return "0";
-      const capacity = parseFloat(tankCapacity);
-      const topup = parseFloat(topups);
-      if (isNaN(capacity) || isNaN(topup)) return "0";
-      return (capacity * topup).toFixed(2);
-    };
-
-    /* -------------------------------------------------------
-       🔹 CUSTOMER HEADER INFORMATION
-    --------------------------------------------------------*/
-    // Determine delivery date based on status
-    let deliveryDateText;
-
-    if (user.delivery_status &&
-      (user.delivery_status.toLowerCase() === 'partial' ||
-        user.delivery_status.toLowerCase() === 'yes')) {
-      // Check if updated_date exists and is not null
-      if (user.updated_date && user.updated_date !== null && user.updated_date !== 'null') {
-        deliveryDateText = formatDateForPDF(user.updated_date);
-      } else {
-        // Fallback to created_date if updated_date is not available
-        deliveryDateText = formatDateForPDF(user.created_date || new Date().toISOString());
-      }
-    } else if (user.delivery_status && user.delivery_status.toLowerCase() === 'no') {
-      deliveryDateText = "Not Delivered";
+  if (user.delivery_status &&
+    (user.delivery_status.toLowerCase() === 'partial' ||
+      user.delivery_status.toLowerCase() === 'yes')) {
+    if (user.updated_date && user.updated_date !== null && user.updated_date !== 'null') {
+      deliveryDateText = formatDateForPDF(user.updated_date);
     } else {
-      // Default case
       deliveryDateText = formatDateForPDF(user.created_date || new Date().toISOString());
     }
+  } else if (user.delivery_status && user.delivery_status.toLowerCase() === 'no') {
+    deliveryDateText = "Not Delivered";
+  } else {
+    deliveryDateText = formatDateForPDF(user.created_date || new Date().toISOString());
+  }
 
-    // Determine delivery status text and color
-    const deliveryStatus = user.delivery_status || "Not specified";
-    let statusText = deliveryStatus;
-    let statusColor = [0, 0, 0]; // Default black
+  // Determine delivery status text and color
+  const deliveryStatus = user.delivery_status || "Not specified";
+  let statusText = deliveryStatus;
+  let statusColor = [0, 0, 0];
 
-    switch (deliveryStatus.toLowerCase()) {
-      case 'delivered':
-      case 'yes':
-        statusColor = [34, 197, 94]; // Green
-        statusText = "Delivered";
-        break;
-      case 'partial':
-        statusColor = [244, 166, 76]; // Amber/Orange
-        statusText = "Partially Delivered";
-        break;
-      case 'pending':
-      case 'no':
-        statusColor = [239, 68, 68]; // Red
-        statusText = "Pending";
-        break;
-    }
+  switch (deliveryStatus.toLowerCase()) {
+    case 'delivered':
+    case 'yes':
+      statusColor = [34, 197, 94];
+      statusText = "Delivered";
+      break;
+    case 'partial':
+      statusColor = [244, 166, 76];
+      statusText = "Partially Delivered";
+      break;
+    case 'pending':
+    case 'no':
+      statusColor = [239, 68, 68];
+      statusText = "Pending";
+      break;
+  }
 
-    /* -------------------------------------------------------
-       🔹 HEADER DESIGN (Matching your design)
-    --------------------------------------------------------*/
-    const logoPath = `${import.meta.env.BASE_URL}img/growprologo.jpeg`;
+  /* -------------------------------------------------------
+     🔹 HEADER DESIGN
+  --------------------------------------------------------*/
+  const logoPath = `${import.meta.env.BASE_URL}img/growprologo.jpeg`;
+  try {
     doc.addImage(logoPath, 'JPEG', 15, 10, 30, 30);
+  } catch (error) {
+    console.log("Logo could not be loaded, continuing without it");
+  }
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  const textStartX = margin + 30;
+
+  doc.setFontSize(14);
+  doc.setFont(undefined, "bold");
+  doc.text("Consumables Delivery Report", pageWidth / 2, 20, { align: "center" });
+
+  let yPos = 40;
+
+  // Client Name
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
+  doc.text("Client Name:", textStartX, yPos);
+  doc.setFont(undefined, "bold");
+  doc.line(textStartX + 28, yPos + 1, textStartX + 90, yPos + 1);
+  doc.text(user.name || "", textStartX + 29, yPos);
+
+  // Delivery Date
+  doc.setFont(undefined, "normal");
+  doc.text("Delivery Date:", pageWidth - 75, yPos);
+  doc.setFont(undefined, "bold");
+  doc.line(pageWidth - 45, yPos + 1, pageWidth - 15, yPos + 1);
+  doc.text(deliveryDateText, pageWidth - 44, yPos);
+
+  yPos += 7;
+
+  // Delivery Status
+  doc.setFont(undefined, "normal");
+  doc.text("Delivery Status:", pageWidth - 75, yPos);
+  doc.setFont(undefined, "bold");
+  doc.line(pageWidth - 45, yPos + 1, pageWidth - 15, yPos + 1);
+  doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+  doc.text(statusText, pageWidth - 44, yPos);
+  doc.setTextColor(0, 0, 0);
+
+  // Order ID and Customer ID
+  yPos += 7;
+  doc.setFont(undefined, "normal");
+  doc.text("Order ID:", textStartX, yPos);
+  doc.setFont(undefined, "bold");
+  doc.line(textStartX + 20, yPos + 1, textStartX + 70, yPos + 1);
+  doc.text(user.id || "", textStartX + 21, yPos);
+
+  // Customer ID on the right
+  doc.setFont(undefined, "normal");
+  doc.text("Customer ID:", pageWidth - 75, yPos);
+  doc.setFont(undefined, "bold");
+  doc.line(pageWidth - 45, yPos + 1, pageWidth - 15, yPos + 1);
+  doc.text(user.customer_id || "", pageWidth - 44, yPos);
+
+  yPos += 10;
+
+  // Separator line
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+
+  yPos += 15;
+  doc.setFont(undefined, "normal");
+
+  /* -------------------------------------------------------
+     🔹 DELIVERY INFORMATION
+  --------------------------------------------------------*/
+  yPos += 5;
+  doc.setFontSize(12);
+  doc.setFont(undefined, "bold");
+  doc.setTextColor(59, 130, 246);
+  doc.text("Dear Customer, the following are our consumables we have delivered to you:", 20, yPos);
+
+  yPos += 6;
+  doc.setLineWidth(0.3);
+  doc.line(20, yPos, 190, yPos);
+
+  yPos += 10;
+  doc.setFontSize(11);
+
+  /* -------------------------------------------------------
+     🔹 GET ITEMS FOR THIS SPECIFIC ORDER
+     Match by BOTH customer_id AND order id
+  --------------------------------------------------------*/
+  const customerId = user.customer_id;
+  const orderId = user.id;
+
+  console.log(`Looking for items with customer_id: ${customerId} and order id: ${orderId}`);
+
+  // Get plants for this specific order (match by customer_id AND order id)
+  const orderPlants = (plantsList || []).filter(plant => 
+    plant.customer_id === customerId && 
+    (plant.id === orderId)
+  );
+
+  // Get nutrients for this specific order
+  const orderNutrients = (nutrientsList || []).filter(nutrient => 
+    nutrient.customer_id === customerId && 
+    (nutrient.id === orderId)
+  );
+
+  // Get chargeable items for this specific order
+  const orderChargeableItems = (chargeableItemList || []).filter(item => 
+    item.customer_id === customerId && 
+    (item.id === orderId)
+  );
+
+  console.log("Found plants for this order:", orderPlants);
+  console.log("Found nutrients for this order:", orderNutrients);
+  console.log("Found chargeable items for this order:", orderChargeableItems);
+
+  /* -------------------------------------------------------
+     🔹 PLANTS DELIVERED
+  --------------------------------------------------------*/
+  if (yPos > 200 && orderPlants.length > 0) {
+    doc.addPage();
+    yPos = 20;
+  }
+
+  if (orderPlants.length > 0) {
+    doc.setFontSize(16);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(59, 130, 246);
+    doc.text("Plant Delivery:", 20, yPos);
+
+    yPos += 6;
+    doc.setLineWidth(0.3);
+    doc.line(20, yPos, 190, yPos);
+
+    yPos += 10;
+
+    // Table headers
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(244, 166, 76);
+    doc.text("#", 25, yPos);
+    doc.text("Plant Name", 35, yPos);
+    doc.text("Quantity", 120, yPos);
+
+    yPos += 8;
+    doc.setLineWidth(0.2);
+    doc.line(20, yPos, 190, yPos);
+    yPos += 5;
+
+    // Data rows
+    doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(0, 0, 0);
+
+    orderPlants.forEach((plant, index) => {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      const serialNo = index + 1;
+      const plantName = plant.plant_name === "Others" || plant.plant_name === "others"
+        ? (plant.other_plant_name || "Custom Plant")
+        : plant.plant_name || "-";
+      const quantity = plant.quantity || "-";
+
+      doc.text(serialNo.toString(), 25, yPos);
+      doc.text(plantName, 35, yPos);
+      doc.text(quantity.toString(), 120, yPos);
+
+      yPos += 8;
+
+      if (index < orderPlants.length - 1) {
+        doc.setLineWidth(0.1);
+        doc.line(35, yPos, 180, yPos);
+        yPos += 5;
+      }
+    });
+
+    // Total summary
+    yPos += 10;
+    doc.setFontSize(10);
+
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(244, 166, 76);
+    doc.text("Total Plants: ", 25, yPos);
+
+    doc.setTextColor(0, 0, 0);
+    doc.text(`${orderPlants.length}`, 60, yPos);
+
+    const totalPlantQuantity = orderPlants.reduce((sum, plant) => {
+      return sum + (parseInt(plant.quantity) || 0);
+    }, 0);
+
+    doc.setTextColor(244, 166, 76);
+    doc.text("Total Plant Quantity: ", 100, yPos);
+
+    doc.setTextColor(0, 0, 0);
+    doc.text(`${totalPlantQuantity} units`, 145, yPos);
+
+    yPos += 15;
+  } else {
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+    doc.text("No plants in this delivery order", 25, yPos);
+    yPos += 15;
+  }
+
+  /* -------------------------------------------------------
+     🔹 NUTRIENTS INFORMATION
+  --------------------------------------------------------*/
+  if (yPos > 180 && orderNutrients.length > 0) {
+    doc.addPage();
+    yPos = 20;
+  }
+
+  if (orderNutrients.length > 0) {
+    doc.setFontSize(16);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(59, 130, 246);
+    doc.text("Nutrients Delivery:", 20, yPos);
+
+    yPos += 6;
+    doc.setLineWidth(0.3);
+    doc.line(20, yPos, 190, yPos);
+
+    yPos += 10;
+
+    // Table headers
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(244, 166, 76);
+    doc.text("#", 25, yPos);
+    doc.text("Nutrient Type", 35, yPos);
+    doc.text("Tank Capacity", 90, yPos);
+    doc.text("Topups", 130, yPos);
+    doc.text("Total Nutrients", 160, yPos);
+
+    yPos += 8;
+    doc.setLineWidth(0.2);
+    doc.line(20, yPos, 190, yPos);
+    yPos += 5;
+
+    // Data rows
+    doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(0, 0, 0);
+
+    orderNutrients.forEach((nutrient, index) => {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      const serialNo = index + 1;
+      const nutrientType = nutrient.nutrient_type || "-";
+      const tankCapacity = nutrient.tank_capacity || "-";
+      const topups = nutrient.topups || "-";
+      const supplies = calculateSuppliesForPDF(nutrient.tank_capacity, nutrient.topups) + " L";
+
+      doc.text(serialNo.toString(), 25, yPos);
+      doc.text(nutrientType, 35, yPos);
+      doc.text(`${tankCapacity} L`, 90, yPos);
+      doc.text(topups, 130, yPos);
+      doc.text(supplies, 160, yPos);
+
+      yPos += 8;
+
+      if (index < orderNutrients.length - 1) {
+        doc.setLineWidth(0.1);
+        doc.line(35, yPos, 180, yPos);
+        yPos += 5;
+      }
+    });
+
+    // Total summary
+    yPos += 10;
+    doc.setFontSize(10);
+
+    const totalSupplies = orderNutrients.reduce((sum, nutrient) => {
+      if (!nutrient.tank_capacity || !nutrient.topups) return sum;
+      const capacity = parseFloat(nutrient.tank_capacity);
+      const topups = parseFloat(nutrient.topups);
+      if (isNaN(capacity) || isNaN(topups)) return sum;
+      return sum + (capacity * topups);
+    }, 0);
+
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(244, 166, 76);
+    doc.text("Total Nutrient Supplies: ", 25, yPos);
+
+    doc.setTextColor(0, 0, 0);
+    doc.text(`${totalSupplies.toFixed(2)} L`, 70, yPos);
+
+    yPos += 15;
+  } else {
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+    doc.text("No nutrients in this delivery order", 25, yPos);
+    yPos += 15;
+  }
+
+  /* -------------------------------------------------------
+     🔹 CHARGEABLE ITEMS
+  --------------------------------------------------------*/
+  if (yPos > 180 && orderChargeableItems.length > 0) {
+    doc.addPage();
+    yPos = 20;
+  }
+
+  if (orderChargeableItems.length > 0) {
+    doc.setFontSize(16);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(59, 130, 246);
+    doc.text("Chargeable Items:", 20, yPos);
+
+    yPos += 6;
+    doc.setLineWidth(0.3);
+    doc.line(20, yPos, 190, yPos);
+
+    yPos += 10;
+
+    // Table headers
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(244, 166, 76);
+    doc.text("#", 25, yPos);
+    doc.text("Item Name", 40, yPos);
+    doc.text("Quantity", 150, yPos);
+
+    yPos += 8;
+    doc.setLineWidth(0.2);
+    doc.line(20, yPos, 190, yPos);
+    yPos += 5;
+
+    // Data rows
+    doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(0, 0, 0);
+
+    orderChargeableItems.forEach((item, index) => {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      const serialNo = index + 1;
+      const itemName = item.item_name === "Others" || item.item_name === "others"
+        ? (item.other_item_name || "Custom Item")
+        : item.item_name || "-";
+      const quantity = item.quantity || "-";
+
+      doc.text(serialNo.toString(), 25, yPos);
+      doc.text(itemName, 40, yPos);
+      doc.text(quantity.toString(), 150, yPos);
+
+      yPos += 8;
+
+      if (index < orderChargeableItems.length - 1) {
+        doc.setLineWidth(0.1);
+        doc.line(40, yPos, 180, yPos);
+        yPos += 5;
+      }
+    });
+
+    // Total summary
+    yPos += 10;
+    doc.setFontSize(10);
+
+    const totalChargeableItems = orderChargeableItems.length;
+    const totalChargeableQuantity = orderChargeableItems.reduce((sum, item) => {
+      return sum + (parseInt(item.quantity) || 0);
+    }, 0);
+
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(244, 166, 76);
+    doc.text("Total Chargeable Items: ", 25, yPos);
+
+    doc.setTextColor(0, 0, 0);
+    doc.text(`${totalChargeableItems}`, 75, yPos);
+
+    doc.setTextColor(244, 166, 76);
+    doc.text("Total Quantity: ", 100, yPos);
+
+    doc.setTextColor(0, 0, 0);
+    doc.text(`${totalChargeableQuantity} units`, 130, yPos);
+
+    yPos += 15;
+  } else {
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+    doc.text("No chargeable items in this delivery order", 25, yPos);
+    yPos += 15;
+  }
+
+  /* -------------------------------------------------------
+     🔹 OVERALL SUMMARY
+  --------------------------------------------------------*/
+  if (yPos > 150) {
+    doc.addPage();
+    yPos = 20;
+  }
+
+  yPos += 5;
+  doc.setFontSize(14);
+  doc.setFont(undefined, "bold");
+  doc.setTextColor(59, 130, 246);
+  doc.text("Overall Summary", 20, yPos);
+
+  yPos += 6;
+  doc.setLineWidth(0.3);
+  doc.line(20, yPos, 190, yPos);
+
+  yPos += 10;
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+
+  // Use the filtered items for summary
+  const totalPlants = orderPlants.length;
+  const totalNutrientsCount = orderNutrients.length;
+  const totalChargeableItemsCount = orderChargeableItems.length;
+  const totalItems = totalPlants + totalNutrientsCount + totalChargeableItemsCount;
+
+  doc.text(`Total Items Delivered: ${totalItems}`, 25, yPos);
+  yPos += 8;
+
+  if (totalPlants > 0) {
+    const totalPlantQty = orderPlants.reduce((sum, plant) => sum + (parseInt(plant.quantity) || 0), 0);
+    doc.text(`Total Plants: ${totalPlantQty} units`, 25, yPos);
+    yPos += 8;
+  }
+
+  if (totalNutrientsCount > 0) {
+    const totalSupplies = orderNutrients.reduce((sum, nutrient) => {
+      if (!nutrient.tank_capacity || !nutrient.topups) return sum;
+      const capacity = parseFloat(nutrient.tank_capacity);
+      const topups = parseFloat(nutrient.topups);
+      if (isNaN(capacity) || isNaN(topups)) return sum;
+      return sum + (capacity * topups);
+    }, 0);
+    doc.text(`Total Nutrients: ${totalSupplies.toFixed(2)} L`, 25, yPos);
+    yPos += 8;
+  }
+
+  if (totalChargeableItemsCount > 0) {
+    const totalChargeableQty = orderChargeableItems.reduce((sum, item) =>
+      sum + (parseInt(item.quantity) || 0), 0);
+    doc.text(`Total Chargeable Items: ${totalChargeableQty} units`, 25, yPos);
+    yPos += 8;
+  }
+
+  // If no items at all
+  if (totalItems === 0) {
+    doc.text("No items found for this delivery order", 25, yPos);
+    yPos += 8;
+  }
+
+  // Closing content
+  if (yPos > 180) {
+    doc.addPage();
+    yPos = 20;
+  }
+
+  yPos += 15;
+  doc.setFontSize(12);
+  doc.setFont(undefined, "bold");
+  doc.setTextColor(0, 0, 0);
+  doc.text("Do let us know if you'd like any further clarity on the material supplied. ", 20, yPos);
+
+  yPos += 15;
+  doc.text("Happy Growing!", 20, yPos);
+  yPos += 8;
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
+  doc.setTextColor(66, 66, 66);
+  doc.text("Email: sales@growpro.co.in", 20, yPos);
+  doc.link(20, yPos - 5, 200, 10, { url: "mailto:sales@growpro.co.in" });
+  yPos += 6;
+  doc.text("Phone: 859 175 3001", 20, yPos);
+  doc.link(20, yPos - 5, 200, 10, { url: "tel:+91 859 175 3001" });
+  yPos += 6;
+  doc.text("GrowPro Technology", 20, yPos);
+  doc.link(20, yPos - 5, 200, 10, { url: "https://growpro.com/" });
+
+  /* -------------------------------------------------------
+     🔹 FOOTER
+  --------------------------------------------------------*/
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
 
     const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 15;
-    const textStartX = margin + 30;
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-    // Title
-    doc.setFontSize(14);
-    doc.setFont(undefined, "bold");
-    doc.text("Consumables Delivery Report", pageWidth / 2, 20, { align: "center" });
+    const footerHeight = 22;
+    const footerY = pageHeight - footerHeight;
 
-    let yPos = 40;
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, footerY, pageWidth, footerHeight, "F");
 
-    // Client Name (Customer Name in our case)
+    doc.setDrawColor(225, 122, 0);
+    doc.setLineWidth(1.2);
+    doc.line(0, footerY + 2, pageWidth, footerY + 2);
+
+    const row1Y = footerY + 10;
+    const row2Y = footerY + 17;
+
     doc.setFontSize(10);
-    doc.setFont(undefined, "normal");
-    doc.text("Client Name:", textStartX, yPos);
+
+    // Email
+    doc.setTextColor(225, 122, 0);
     doc.setFont(undefined, "bold");
-    // Draw line for client name
-    doc.line(textStartX + 28, yPos + 1, textStartX + 90, yPos + 1);
-    // Add customer name text
-    doc.text(user.name || "", textStartX + 29, yPos);
+    doc.text("Email:", 20, row1Y);
 
-    // Delivery Date on the right side
-    doc.setFont(undefined, "normal");
-    doc.text("Delivery Date:", pageWidth - 75, yPos);
-    doc.setFont(undefined, "bold");
-    // Draw line for delivery date
-    doc.line(pageWidth - 45, yPos + 1, pageWidth - 15, yPos + 1);
-    // Add delivery date text
-    doc.text(deliveryDateText, pageWidth - 44, yPos);
+    const emailText = "sales@growpro.co.in";
+    const emailX = 40;
+    doc.setTextColor(0, 102, 204);
 
-    yPos += 7;
-
-    // Delivery Status on the right side
-    doc.setFont(undefined, "normal");
-    doc.text("Delivery Status:", pageWidth - 75, yPos);
-    doc.setFont(undefined, "bold");
-    // Draw line for delivery status
-    doc.line(pageWidth - 45, yPos + 1, pageWidth - 15, yPos + 1);
-    // Add delivery status with color
-    doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
-    doc.text(statusText, pageWidth - 44, yPos);
-    doc.setTextColor(0, 0, 0); // Reset to black
-
-    yPos += 10;
-
-    // Separator line below header
-    doc.setDrawColor(0, 0, 0); // Black line
-    doc.setLineWidth(0.5);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-
-    yPos += 15;
-
-    // Reset to normal font weight
-    doc.setFont(undefined, "normal");
-
-    /* -------------------------------------------------------
-       🔹 DELIVERY INFORMATION
-    --------------------------------------------------------*/
-    yPos += 5;
-    doc.setFontSize(12);
-    doc.setFont(undefined, "bold");
-    doc.setTextColor(59, 130, 246);
-    doc.text("Dear Customer, the following are our consumables we have delivered to you:", 20, yPos);
-
-    yPos += 6;
-    doc.setLineWidth(0.3);
-    doc.line(20, yPos, 190, yPos);
-
-    yPos += 10;
-    doc.setFontSize(11);
-
-    /* -------------------------------------------------------
-       🔹 PLANTS DELIVERED
-    --------------------------------------------------------*/
-    // Check if we need a new page before plants
-    if (yPos > 200 && user.plants && user.plants.length > 0) {
-      doc.addPage();
-      yPos = 20;
-    }
-
-    if (user.plants && user.plants.length > 0) {
-      doc.setFontSize(16);
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(59, 130, 246);
-      doc.text("Plant Delivery:", 20, yPos);
-
-
-      yPos += 6;
-      doc.setLineWidth(0.3);
-      doc.line(20, yPos, 190, yPos);
-
-      yPos += 10;
-
-      // Table headers for plants
-      doc.setFontSize(10);
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(244, 166, 76);
-      doc.text("#", 25, yPos);
-      doc.text("Plant Name", 35, yPos);
-      doc.text("Quantity", 120, yPos);
-
-      yPos += 8;
-      doc.setLineWidth(0.2);
-      doc.line(20, yPos, 190, yPos);
-      yPos += 5;
-
-      // Plants data rows
-      doc.setFontSize(9);
-      doc.setFont(undefined, "normal");
-      doc.setTextColor(0, 0, 0);
-
-      user.plants.forEach((plant, index) => {
-        // Check if we need a new page
-        if (yPos > 250) {
-          doc.addPage();
-          yPos = 20;
-        }
-
-        const serialNo = index + 1;
-        const plantName = plant.plant_name === "Others" || plant.plant_name === "others"
-          ? (plant.other_plant_name || "Custom Plant")
-          : plant.plant_name || "-";
-        const quantity = plant.quantity || "-";
-
-        doc.text(serialNo.toString(), 25, yPos);
-        doc.text(plantName, 35, yPos);
-        doc.text(quantity.toString(), 120, yPos);
-
-        yPos += 8;
-
-        // Add small space between rows
-        if (index < user.plants.length - 1) {
-          doc.setLineWidth(0.1);
-          doc.line(35, yPos, 180, yPos);
-          yPos += 5;
-        }
+    if (typeof doc.textWithLink === 'function') {
+      doc.textWithLink(emailText, emailX, row1Y, {
+        url: "mailto:sales@growpro.co.in",
+        underline: true
       });
-
-      // Add total summary for plants
-      yPos += 10;
-      doc.setFontSize(10);
-
-      // Total Plants label (orange)
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(244, 166, 76);
-      doc.text("Total Plants: ", 25, yPos);
-
-      // Total Plants value (black)
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(0, 0, 0);
-      doc.text(`${user.plants.length}`, 60, yPos);
-
-      const totalPlantQuantity = user.plants.reduce((sum, plant) => {
-        return sum + (parseInt(plant.quantity) || 0);
-      }, 0);
-
-      // Total Plant Quantity label (orange)
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(244, 166, 76);
-      doc.text("Total Plant Quantity: ", 100, yPos);
-
-      // Total Plant Quantity value (black)
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(0, 0, 0);
-      doc.text(`${totalPlantQuantity} units`, 145, yPos);
-
-      yPos += 15;
-
     } else {
-      doc.setFontSize(10);
       doc.setFont(undefined, "normal");
-      doc.text("No plants listed for delivery", 25, yPos);
-      yPos += 15;
-    }
-
-    /* -------------------------------------------------------
-       🔹 NUTRIENTS INFORMATION
-    --------------------------------------------------------*/
-    // Check if we need a new page before nutrients
-    if (yPos > 180 && user.nutrients && user.nutrients.length > 0) {
-      doc.addPage();
-      yPos = 20;
-    }
-
-    if (user.nutrients && user.nutrients.length > 0) {
-      doc.setFontSize(16);
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(59, 130, 246);
-      doc.text("Nutrients Delivery:", 20, yPos);
-
-      yPos += 6;
-      doc.setLineWidth(0.3);
-      doc.line(20, yPos, 190, yPos);
-
-      yPos += 10;
-
-      // Table headers for nutrients
-      doc.setFontSize(10);
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(244, 166, 76);
-      doc.text("#", 25, yPos);
-      doc.text("Nutrient Type", 35, yPos);
-      doc.text("Tank Capacity", 90, yPos);
-      doc.text("Topups", 130, yPos);
-      doc.text("Total Nutrients", 160, yPos);
-
-      yPos += 8;
+      doc.text(emailText, emailX, row1Y);
+      const emailWidth = doc.getTextWidth(emailText);
+      doc.setDrawColor(0, 102, 204);
       doc.setLineWidth(0.2);
-      doc.line(20, yPos, 190, yPos);
-      yPos += 5;
+      doc.line(emailX, row1Y + 0.5, emailX + emailWidth, row1Y + 0.5);
+    }
 
-      // Nutrients data rows
-      doc.setFontSize(9);
-      doc.setFont(undefined, "normal");
-      doc.setTextColor(0, 0, 0);
+    // Phone
+    doc.setTextColor(225, 122, 0);
+    doc.setFont(undefined, "bold");
+    doc.text("Phone:", 20, row2Y);
 
-      user.nutrients.forEach((nutrient, index) => {
-        // Check if we need a new page
-        if (yPos > 250) {
-          doc.addPage();
-          yPos = 20;
-        }
+    const phoneText = "+91 859 175 3001";
+    const phoneX = 40;
+    const cleanPhoneNumber = "+918591753001";
 
-        const serialNo = index + 1;
-        const nutrientType = nutrient.nutrient_type || "-";
-        const tankCapacity = nutrient.tank_capacity || "-";
-        const topups = nutrient.topups || "-";
-        const supplies = calculateSuppliesForPDF(nutrient.tank_capacity, nutrient.topups) + " L";
+    doc.setTextColor(0, 102, 204);
 
-        doc.text(serialNo.toString(), 25, yPos);
-        doc.text(nutrientType, 35, yPos);
-        doc.text(`${tankCapacity} L`, 90, yPos);
-        doc.text(topups, 130, yPos);
-        doc.text(supplies, 160, yPos);
-
-        yPos += 8;
-
-        // Add small space between rows
-        if (index < user.nutrients.length - 1) {
-          doc.setLineWidth(0.1);
-          doc.line(35, yPos, 180, yPos);
-          yPos += 5;
-        }
+    if (typeof doc.textWithLink === 'function') {
+      doc.textWithLink(phoneText, phoneX, row2Y, {
+        url: `tel:${cleanPhoneNumber}`,
+        underline: true
       });
-
-      // Add total summary for nutrients
-      yPos += 10;
-      doc.setFontSize(10);
-
-      const totalSupplies = user.nutrients.reduce((sum, nutrient) => {
-        if (!nutrient.tank_capacity || !nutrient.topups) return sum;
-        const capacity = parseFloat(nutrient.tank_capacity);
-        const topups = parseFloat(nutrient.topups);
-        if (isNaN(capacity) || isNaN(topups)) return sum;
-        return sum + (capacity * topups);
-      }, 0);
-
-      // Total Nutrient Supplies label (orange)
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(244, 166, 76);
-      doc.text("Total Nutrient Supplies: ", 25, yPos);
-
-      // Total Nutrient Supplies value (black)
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(0, 0, 0);
-      doc.text(`${totalSupplies.toFixed(2)} L`, 70, yPos);
-
-      yPos += 15;
-    }
-
-    /* -------------------------------------------------------
-       🔹 CHARGEABLE ITEMS
-    --------------------------------------------------------*/
-    // Check if we need a new page before chargeable items
-    if (yPos > 180 && user.chargeableItems && user.chargeableItems.length > 0) {
-      doc.addPage();
-      yPos = 20;
-    }
-
-    if (user.chargeableItems && user.chargeableItems.length > 0) {
-      doc.setFontSize(16);
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(59, 130, 246);
-      doc.text("Chargeable Items:", 20, yPos);
-
-      yPos += 6;
-      doc.setLineWidth(0.3);
-      doc.line(20, yPos, 190, yPos);
-
-      yPos += 10;
-
-      // Table headers for chargeable items
-      doc.setFontSize(10);
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(244, 166, 76);
-      doc.text("#", 25, yPos);
-      doc.text("Item Name", 40, yPos);
-      doc.text("Quantity", 150, yPos);
-
-      yPos += 8;
+    } else {
+      doc.setFont(undefined, "normal");
+      doc.text(phoneText, phoneX, row2Y);
+      const phoneWidth = doc.getTextWidth(phoneText);
+      doc.setDrawColor(0, 102, 204);
       doc.setLineWidth(0.2);
-      doc.line(20, yPos, 190, yPos);
-      yPos += 5;
-
-      // Chargeable items data rows
-      doc.setFontSize(9);
-      doc.setFont(undefined, "normal");
-      doc.setTextColor(0, 0, 0);
-
-      user.chargeableItems.forEach((item, index) => {
-        // Check if we need a new page
-        if (yPos > 250) {
-          doc.addPage();
-          yPos = 20;
-        }
-
-        const serialNo = index + 1;
-        const itemName = item.item_name === "Others" || item.item_name === "others"
-          ? (item.other_item_name || "Custom Item")
-          : item.item_name || "-";
-        const quantity = item.quantity || "-";
-
-        doc.text(serialNo.toString(), 25, yPos);
-        doc.text(itemName, 40, yPos);
-        doc.text(quantity.toString(), 150, yPos);
-
-        yPos += 8;
-
-        // Add small space between rows
-        if (index < user.chargeableItems.length - 1) {
-          doc.setLineWidth(0.1);
-          doc.line(40, yPos, 180, yPos);
-          yPos += 5;
-        }
-      });
-
-      // Add total summary for chargeable items
-      yPos += 10;
-      doc.setFontSize(10);
-
-      const totalChargeableItems = user.chargeableItems.length;
-      const totalChargeableQuantity = user.chargeableItems.reduce((sum, item) => {
-        return sum + (parseInt(item.quantity) || 0);
-      }, 0);
-
-      // Total Chargeable Items label (orange)
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(244, 166, 76);
-      doc.text("Total Chargeable Items: ", 25, yPos);
-
-      // Total Chargeable Items value (black)
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(0, 0, 0);
-      doc.text(`${totalChargeableItems}`, 75, yPos);
-
-      // Total Quantity label (orange)
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(244, 166, 76);
-      doc.text("Total Quantity: ", 100, yPos);
-
-      // Total Quantity value (black)
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(0, 0, 0);
-      doc.text(`${totalChargeableQuantity} units`, 130, yPos);
-
-      yPos += 15;
+      doc.line(phoneX, row2Y + 0.5, phoneX + phoneWidth, row2Y + 0.5);
     }
 
-    /* -------------------------------------------------------
-       🔹 OVERALL SUMMARY & CLOSING CONTENT
-    --------------------------------------------------------*/
-    // Check if we need a new page before overall summary
-    if (yPos > 150) {
-      doc.addPage();
-      yPos = 20;
-    }
+    // Right side
+    const rightX = pageWidth - 20;
 
-    yPos += 5;
-    doc.setFontSize(14);
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+
     doc.setFont(undefined, "bold");
-    doc.setTextColor(59, 130, 246);
-    doc.text("Overall Summary", 20, yPos);
+    doc.text("GrowPro Solutions", rightX, row1Y, { align: "right" });
 
-    yPos += 6;
-    doc.setLineWidth(0.3);
-    doc.line(20, yPos, 190, yPos);
-
-    yPos += 10;
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-
-    // Calculate totals
-    const totalPlants = user.plants?.length || 0;
-    const totalNutrientsCount = user.nutrients?.length || 0;
-    const totalChargeableItemsCount = user.chargeableItems?.length || 0;
-    const totalItems = totalPlants + totalNutrientsCount + totalChargeableItemsCount;
-
-    doc.text(`Total Items Delivered: ${totalItems}`, 25, yPos);
-    yPos += 8;
-
-    if (totalPlants > 0) {
-      const totalPlantQty = user.plants.reduce((sum, plant) => sum + (parseInt(plant.quantity) || 0), 0);
-      doc.text(`Total Plants: ${totalPlantQty} units`, 25, yPos);
-      yPos += 8;
-    }
-
-    if (totalNutrientsCount > 0) {
-      const totalSupplies = user.nutrients.reduce((sum, nutrient) => {
-        if (!nutrient.tank_capacity || !nutrient.topups) return sum;
-        const capacity = parseFloat(nutrient.tank_capacity);
-        const topups = parseFloat(nutrient.topups);
-        if (isNaN(capacity) || isNaN(topups)) return sum;
-        return sum + (capacity * topups);
-      }, 0);
-      doc.text(`Total Nutrients: ${totalSupplies.toFixed(2)} L`, 25, yPos);
-      yPos += 8;
-    }
-
-    if (totalChargeableItemsCount > 0) {
-      const totalChargeableQty = user.chargeableItems.reduce((sum, item) =>
-        sum + (parseInt(item.quantity) || 0), 0);
-      doc.text(`Total Chargeable Items: ${totalChargeableQty} units`, 25, yPos);
-      yPos += 8;
-    }
-
-    // Check if we need a new page before closing content
-    if (yPos > 180) {
-      doc.addPage();
-      yPos = 20;
-    }
-
-    yPos += 15;
-    doc.setFontSize(12);
-    doc.setFont(undefined, "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.text("Do let us know if you'd like any further clarity on the material supplied. ", 20, yPos);
-
-    yPos += 15;
-    doc.text("Happy Growing!", 20, yPos);
-    yPos += 8;
-    doc.setFontSize(10);
     doc.setFont(undefined, "normal");
-    doc.setTextColor(66, 66, 66);
-    doc.text("Email: sales@growpro.co.in", 20, yPos);
-    doc.link(20, yPos - 5, 200, 10, { url: "mailto:sales@growpro.co.in" });
-    yPos += 6;
-    doc.text("Phone: 859 175 3001", 20, yPos);
-    doc.link(20, yPos - 5, 200, 10, { url: "tel:+91 859 175 3001" });
-    yPos += 6;
-    doc.text("GrowPro Technology", 20, yPos);
-    doc.link(20, yPos - 5, 200, 10, { url: "https://growpro.com/" });
+    doc.text(`Page ${i} of ${pageCount}`, rightX, row2Y, { align: "right" });
+  }
 
-    /* -------------------------------------------------------
-       🔹 FOOTER
-    --------------------------------------------------------*/
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-
-      // FOOTER HEIGHT
-      const footerHeight = 22;
-      const footerY = pageHeight - footerHeight;
-
-      // White background
-      doc.setFillColor(255, 255, 255);
-      doc.rect(0, footerY, pageWidth, footerHeight, "F");
-
-      // Orange line (slightly lower)
-      doc.setDrawColor(225, 122, 0);
-      doc.setLineWidth(1.2);
-      doc.line(0, footerY + 2, pageWidth, footerY + 2);
-
-      // TEXT Y POSITION (centered)
-      const row1Y = footerY + 10;  // Email row
-      const row2Y = footerY + 17;  // Phone + Pagination row
-
-      // ------------------------------
-      // LEFT SIDE (Email + Phone as clickable links)
-      // ------------------------------
-      doc.setFontSize(10);
-
-      // Email label
-      doc.setTextColor(225, 122, 0);
-      doc.setFont(undefined, "bold");
-      doc.text("Email:", 20, row1Y);
-
-      // Email as clickable link with mailto
-      const emailText = "sales@growpro.co.in";
-      const emailX = 40;
-      doc.setTextColor(0, 102, 204); // Blue color for link
-
-      if (typeof doc.textWithLink === 'function') {
-        doc.textWithLink(emailText, emailX, row1Y, {
-          url: "mailto:sales@growpro.co.in",
-          underline: true
-        });
-      } else {
-        doc.setFont(undefined, "normal");
-        doc.text(emailText, emailX, row1Y);
-        // Add underline manually
-        const emailWidth = doc.getTextWidth(emailText);
-        doc.setDrawColor(0, 102, 204);
-        doc.setLineWidth(0.2);
-        doc.line(emailX, row1Y + 0.5, emailX + emailWidth, row1Y + 0.5);
-      }
-
-      // Phone label
-      doc.setTextColor(225, 122, 0);
-      doc.setFont(undefined, "bold");
-      doc.text("Phone:", 20, row2Y);
-
-      // Phone as clickable link with tel:
-      const phoneText = "+91 859 175 3001";
-      const phoneX = 40;
-      const cleanPhoneNumber = "+918591753001"; // Remove spaces for tel: link
-
-      doc.setTextColor(0, 102, 204); // Blue color for link
-
-      if (typeof doc.textWithLink === 'function') {
-        doc.textWithLink(phoneText, phoneX, row2Y, {
-          url: `tel:${cleanPhoneNumber}`,
-          underline: true
-        });
-      } else {
-        doc.setFont(undefined, "normal");
-        doc.text(phoneText, phoneX, row2Y);
-        // Add underline manually
-        const phoneWidth = doc.getTextWidth(phoneText);
-        doc.setDrawColor(0, 102, 204);
-        doc.setLineWidth(0.2);
-        doc.line(phoneX, row2Y + 0.5, phoneX + phoneWidth, row2Y + 0.5);
-      }
-
-      // ------------------------------
-      // RIGHT SIDE (Company + Page)
-      // ------------------------------
-      const rightX = pageWidth - 20;
-
-      doc.setFontSize(9);
-      doc.setTextColor(80, 80, 80);
-
-      doc.setFont(undefined, "bold");
-      doc.text("GrowPro Solutions", rightX, row1Y, { align: "right" });
-
-      doc.setFont(undefined, "normal");
-      doc.text(`Page ${i} of ${pageCount}`, rightX, row2Y, { align: "right" });
-    }
-
-    /* -------------------------------------------------------
-       🔥 FINAL PDF DOWNLOAD
-    --------------------------------------------------------*/
-    const safeName = (user.name || "customer").replace(/\s+/g, '_');
-    const fileName = `Consumables_Delivery_Report_${formatDateForPDF(user.created_date)}_${safeName}.pdf`;
-    doc.save(fileName);
-  };
+  /* -------------------------------------------------------
+     🔥 FINAL PDF DOWNLOAD
+  --------------------------------------------------------*/
+  const safeName = (user.name || "customer").replace(/\s+/g, '_');
+  const fileName = `Consumables_Delivery_Report_${formatDateForPDF(user.created_date)}_${safeName}_Order_${user.id}.pdf`;
+  doc.save(fileName);
+};
 
   // Helper function for nutrient calculation
   function calculateSuppliesForPDF(tankCapacity, topups) {
@@ -1052,7 +1065,7 @@ export default function UserTable() {
                     {currentUsers.map((user) => {
                       return (
                         <tr
-                          key={user._id}
+                          key={user.id || user._id}
                           className="border-b border-gray-200 hover:bg-gray-50 transition"
                         >
                           {/* Name */}
@@ -1092,6 +1105,7 @@ export default function UserTable() {
                               ((user.plants?.length > 0 || user.nutrients?.length > 0)
                                 ? ", Chargeable Items"
                                 : "Chargeable Items")}
+                            {!user.plants?.length && !user.nutrients?.length && !user.chargeableItems?.length && "No materials"}
                           </td>
 
                           {/* Delivery Status */}
@@ -1145,7 +1159,7 @@ export default function UserTable() {
                 {currentUsers.map((user) => {
                   return (
                     <div
-                      key={user._id}
+                      key={user.id || user._id}
                       className="border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition bg-white"
                     >
                       <div className="flex items-start gap-4 mb-5">
@@ -1164,6 +1178,9 @@ export default function UserTable() {
                           <h3 className="font-semibold text-gray-800 text-lg mb-2">
                             {user.name}
                           </h3>
+                          <p className="text-sm text-gray-600">
+                            Order ID: {user.id}
+                          </p>
                           <p className="text-sm text-gray-600">
                             Technician: {user.tech_name || "Not assigned"}
                           </p>

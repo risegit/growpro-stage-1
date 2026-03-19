@@ -83,424 +83,297 @@ export default function ReportTable() {
 
   /* ---------------- PDF GENERATION ---------------- */
   const generatePDF = async (data) => {
-    if (!data || data.status !== "success") {
-      alert("Report data not ready");
-      return;
-    }
+  console.log("=== PDF GENERATION STARTED ===");
+  console.log("Selected Report:", selectedReport);
+  console.log("Date Range:", startDate, "to", endDate);
+  console.log("API Data received:", data);
+  
+  if (!data || data.status !== "success") {
+    console.error("Invalid data or status not success:", data);
+    alert("Report data not ready");
+    return;
+  }
 
-    try {
-      const doc = new jsPDF("p", "mm", "a4");
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 15;
-      const footerHeight = 30;
-      const logoHeight = 18;
-      const logoSpacing = 10;
-      const contentStartY = 10 + logoHeight + logoSpacing;
-      
-      let yPos = contentStartY;
-      let currentPage = 1;
-      let totalPages = 1;
+  try {
+    console.log("Initializing jsPDF...");
+    const doc = new jsPDF("p", "mm", "a4");
+    console.log("jsPDF initialized successfully");
+    
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    const footerHeight = 30;
+    const logoHeight = 18;
+    const logoSpacing = 10;
+    const contentStartY = 10 + logoHeight + logoSpacing;
+    
+    let yPos = contentStartY;
+    let currentPage = 1;
+    let totalPages = 1;
 
-      // Helper to load logo
-      const loadImageToDataURL = async (imageUrl) => {
-        try {
-          const response = await fetch(imageUrl);
-          const blob = await response.blob();
-          return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-        } catch (error) {
-          console.error("Error loading logo:", error);
+    console.log("PDF dimensions:", { pageWidth, pageHeight, margin, contentStartY });
+
+    // Helper to load logo
+    const loadImageToDataURL = async (imageUrl) => {
+      console.log("Loading logo from:", imageUrl);
+      try {
+        const response = await fetch(imageUrl);
+        if (!response.ok) {
+          console.warn("Logo fetch failed with status:", response.status);
           return null;
         }
-      };
-
-      // Add logo to page
-      const addLogoToPage = async (pageNum) => {
-        try {
-          const logoUrl = `${import.meta.env.BASE_URL || ""}img/growprologo.jpeg`;
-          const logoDataUrl = await loadImageToDataURL(logoUrl);
-          if (logoDataUrl) {
-            const logoWidth = 25;
-            const logoHeight = 18;
-            const logoX = margin;
-            const logoY = 10;
-
-            if (pageNum > 1) {
-              doc.setPage(pageNum);
-            }
-
-            doc.addImage(logoDataUrl, 'JPEG', logoX, logoY, logoWidth, logoHeight);
-          }
-        } catch (error) {
-          console.error('Failed to add logo:', error);
-        }
-      };
-
-      // FIXED: Group offsite data by customer_id instead of offsite_id
-      const groupOffsiteDataByCustomer = () => {
-        // Create a map of customer_id to customer name from offsiteData
-        const customerInfoMap = {};
-        if (Array.isArray(data.offsiteData)) {
-          data.offsiteData.forEach(offsite => {
-            if (offsite && offsite.customer_id) {
-              customerInfoMap[offsite.customer_id] = {
-                customer_name: offsite.name || offsite.customer_name || "Unknown Customer",
-                offsite_ids: customerInfoMap[offsite.customer_id]?.offsite_ids || []
-              };
-              if (offsite.id) {
-                customerInfoMap[offsite.customer_id].offsite_ids.push(offsite.id);
-              }
-            }
-          });
-        }
-        
-        // Group all offsite data by customer_id
-        const groupedByCustomer = {};
-        
-        // Process offsite nutrients
-        if (Array.isArray(data.offsiteNutrients)) {
-          data.offsiteNutrients.forEach(item => {
-            if (item && item.customer_id) {
-              const customerId = item.customer_id;
-              const customerName = item.name || customerInfoMap[customerId]?.customer_name || "Unknown Customer";
-              
-              if (!groupedByCustomer[customerId]) {
-                groupedByCustomer[customerId] = {
-                  customer_id: customerId,
-                  customer_name: customerName,
-                  nutrients: [],
-                  plants: [],
-                  chargeable_items: []
-                };
-              }
-              
-              groupedByCustomer[customerId].nutrients.push(item);
-            }
-          });
-        }
-        
-        // Process offsite plant data
-        if (Array.isArray(data.offsiteSupplientPlantData)) {
-          data.offsiteSupplientPlantData.forEach(item => {
-            if (item && item.customer_id) {
-              const customerId = item.customer_id;
-              const customerName = item.name || customerInfoMap[customerId]?.customer_name || "Unknown Customer";
-              
-              if (!groupedByCustomer[customerId]) {
-                groupedByCustomer[customerId] = {
-                  customer_id: customerId,
-                  customer_name: customerName,
-                  nutrients: [],
-                  plants: [],
-                  chargeable_items: []
-                };
-              }
-              
-              groupedByCustomer[customerId].plants.push(item);
-            }
-          });
-        }
-        
-        // Process offsite chargeable items
-        if (Array.isArray(data.offsiteChargeableItems)) {
-          data.offsiteChargeableItems.forEach(item => {
-            if (item && item.customer_id) {
-              const customerId = item.customer_id;
-              const customerName = item.name || customerInfoMap[customerId]?.customer_name || "Unknown Customer";
-              
-              if (!groupedByCustomer[customerId]) {
-                groupedByCustomer[customerId] = {
-                  customer_id: customerId,
-                  customer_name: customerName,
-                  nutrients: [],
-                  plants: [],
-                  chargeable_items: []
-                };
-              }
-              
-              groupedByCustomer[customerId].chargeable_items.push(item);
-            }
-          });
-        }
-        
-        return Object.values(groupedByCustomer);
-      };
-
-      // Page break check
-      const checkPageBreak = (requiredSpace = 20) => {
-        const spaceNeeded = requiredSpace + 10;
-        if (yPos > pageHeight - footerHeight - spaceNeeded) {
-          doc.addPage();
-          currentPage++;
-          yPos = contentStartY;
-          addLogoToPage(currentPage);
-          return true;
-        }
-        return false;
-      };
-
-      // Function to add footer at the bottom of the last page
-      const addFooterAtBottom = () => {
-        doc.setPage(totalPages);
-        
-        const footerY = pageHeight - 15;
-        
-        doc.setDrawColor(225, 122, 0);
-        doc.setLineWidth(0.6);
-        doc.line(0, footerY - 12, pageWidth, footerY - 12);
-        
-        doc.setFontSize(9);
-        doc.setFont(undefined, "normal");
-        doc.setTextColor(100, 100, 100);
-        
-        doc.text("Email:", margin, footerY - 6);
-        doc.setTextColor(0, 0, 255);
-        doc.textWithLink("sales@growpro.co.in", margin + 20, footerY - 6, {
-          url: "mailto:sales@growpro.co.in"
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            console.log("Logo loaded successfully");
+            resolve(reader.result);
+          };
+          reader.onerror = (error) => {
+            console.error("Error reading logo:", error);
+            reject(error);
+          };
+          reader.readAsDataURL(blob);
         });
-        
-        doc.setTextColor(100, 100, 100);
-        doc.text("Phone:", margin, footerY);
-        doc.setTextColor(0, 0, 255);
-        doc.textWithLink("+91 859 175 3001", margin + 22, footerY, {
-          url: "tel:+918591753001"
-        });
-        
-        const rightX = pageWidth - margin;
-        
-        doc.setTextColor(100, 100, 100);
-        doc.setFont(undefined, "bold");
-        doc.text("GrowPro Solutions", rightX, footerY - 6, { align: "right" });
-        
-        doc.setFont(undefined, "normal");
-        doc.text(`Page ${totalPages} of ${totalPages}`, rightX, footerY, { align: "right" });
-      };
-
-      // Add logo to first page
-      await addLogoToPage(1);
-
-      // Title
-      doc.setFontSize(14);
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(255, 102, 0);
-      doc.text(`${selectedReport} Report`, pageWidth / 2 + 10, yPos, { align: "center" });
-      doc.setTextColor(0, 0, 0);
-      yPos += 10;
-
-      // Date range
-      doc.setFontSize(11);
-      doc.setFont(undefined, "normal");
-      doc.text(`From: ${startDate}  To: ${endDate}`, margin + 30, yPos);
-      yPos += 15;
-
-      /* =====================
-         CLIENT PERFORMANCE REPORT
-         ===================== */
-      if (selectedReport === "Client Performance") {
-        const clientData = data.client_performance || [];
-
-        if (clientData.length === 0) {
-          doc.setFontSize(12);
-          doc.setFont(undefined, "normal");
-          doc.text("No client performance data available.", margin, yPos);
-          yPos += 20;
-        } else {
-          const groupedByCustomer = {};
-          clientData.forEach(item => {
-            if (item && item.name) {
-              if (!groupedByCustomer[item.name]) {
-                groupedByCustomer[item.name] = [];
-              }
-              groupedByCustomer[item.name].push(item);
-            }
-          });
-
-          Object.entries(groupedByCustomer).forEach(([customerName, records], customerIndex) => {
-            if (checkPageBreak(50)) return;
-
-            doc.setFontSize(13);
-            doc.setFont(undefined, "bold");
-            doc.setTextColor(255, 102, 0);
-            doc.text(`Customer: ${customerName}`, margin, yPos);
-            doc.setTextColor(0, 0, 0);
-            yPos += 10;
-
-            doc.setFontSize(11);
-            doc.setFont(undefined, "bold");
-            doc.setTextColor(255, 102, 0);
-            doc.text("Performance Ratings", margin, yPos);
-            doc.setTextColor(0, 0, 0);
-            yPos += 6;
-
-            const performanceTableBody = records.map((record, index) => {
-              const siteRating = parseFloat(record.site_rating) || 0;
-              const ratingText = siteRating > 0 ? `${siteRating}/5` : "No rating";
-              const recordDate = record.created_date || "N/A";
-              const recordTime = record.created_time || "N/A";
-              const dateTime = `${recordDate} ${recordTime}`;
-              const technicianName = record.technician_name || "N/A";
-
-              return [
-                index + 1,
-                record.id || "N/A",
-                dateTime,
-                ratingText,
-                getRatingDescription(siteRating),
-                technicianName
-              ];
-            });
-
-            autoTable(doc, {
-              startY: yPos,
-              head: [["#", "ID", "Date & Time", "Site Rating", "Description", "Technician Name"]],
-              body: performanceTableBody,
-              theme: "grid",
-              styles: {
-                fontSize: 9,
-                cellPadding: 3,
-                lineColor: [100, 100, 100],
-                lineWidth: 0.2
-              },
-              headStyles: {
-                fillColor: [255, 255, 255],
-                textColor: [0, 0, 0],
-                fontStyle: 'bold',
-                lineWidth: 0.2,
-                lineColor: [100, 100, 100]
-              },
-              margin: { left: margin, right: margin }
-            });
-
-            yPos = doc.lastAutoTable.finalY + 15;
-
-            const totalRating = records.reduce((sum, record) => sum + (parseFloat(record.site_rating) || 0), 0);
-            const avgRating = records.length > 0 ? totalRating / records.length : 0;
-
-            if (checkPageBreak(15)) return;
-
-            doc.setFontSize(10);
-            doc.setFont(undefined, "bold");
-            doc.text(`Average Rating: ${avgRating.toFixed(1)}/5`, margin, yPos);
-            yPos += 15;
-
-            if (customerIndex < Object.keys(groupedByCustomer).length - 1) {
-              if (checkPageBreak(15)) return;
-
-              doc.setDrawColor(0, 0, 0);
-              doc.setLineWidth(0.2);
-              doc.line(margin, yPos, pageWidth - margin, yPos);
-              yPos += 10;
-            }
-          });
-
-          if (checkPageBreak(60)) return;
-
-          doc.setFontSize(13);
-          doc.setFont(undefined, "bold");
-          doc.setTextColor(255, 102, 0);
-          doc.text("Summary Statistics", margin, yPos);
-          doc.setTextColor(0, 0, 0);
-          yPos += 10;
-
-          const allRatings = clientData.map(item => parseFloat(item.site_rating) || 0);
-          const validRatings = allRatings.filter(rating => rating > 0);
-          const overallAvg = validRatings.length > 0
-            ? (validRatings.reduce((a, b) => a + b, 0) / validRatings.length).toFixed(1)
-            : "N/A";
-
-          const ratingCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-          validRatings.forEach(rating => {
-            if (rating >= 1 && rating <= 5) {
-              ratingCounts[Math.round(rating)]++;
-            }
-          });
-
-          const summaryData = [
-            ["Total Records", clientData.length.toString()],
-            ["Records with Ratings", validRatings.length.toString()],
-            ["Overall Average Rating", `${overallAvg}/5`],
-            ["5-Star Ratings", ratingCounts[5].toString()],
-            ["4-Star Ratings", ratingCounts[4].toString()],
-            ["3-Star Ratings", ratingCounts[3].toString()],
-            ["2-Star Ratings", ratingCounts[2].toString()],
-            ["1-Star Ratings", ratingCounts[1].toString()]
-          ];
-
-          autoTable(doc, {
-            startY: yPos,
-            body: summaryData,
-            theme: "grid",
-            styles: {
-              fontSize: 9,
-              cellPadding: 3,
-              lineColor: [100, 100, 100],
-              lineWidth: 0.2
-            },
-            margin: { left: margin, right: margin }
-          });
-
-          yPos = doc.lastAutoTable.finalY + 10;
-        }
+      } catch (error) {
+        console.error("Error loading logo:", error);
+        return null;
       }
+    };
 
-      /* =====================
-         RAW MATERIAL REPORT
-         ===================== */
-      else if (selectedReport === "RAW Material") {
-        // Initialize with empty arrays if data is missing
+    // Add logo to page
+    const addLogoToPage = async (pageNum) => {
+      console.log("Adding logo to page:", pageNum);
+      try {
+        const logoUrl = `${import.meta.env.BASE_URL || ""}img/growprologo.jpeg`;
+        const logoDataUrl = await loadImageToDataURL(logoUrl);
+        if (logoDataUrl) {
+          const logoWidth = 25;
+          const logoHeight = 18;
+          const logoX = margin;
+          const logoY = 10;
+
+          if (pageNum > 1) {
+            doc.setPage(pageNum);
+          }
+
+          doc.addImage(logoDataUrl, 'JPEG', logoX, logoY, logoWidth, logoHeight);
+          console.log("Logo added successfully to page:", pageNum);
+        } else {
+          console.warn("Logo data URL is null, skipping logo addition");
+        }
+      } catch (error) {
+        console.error('Failed to add logo:', error);
+      }
+    };
+
+    // Group onsite data by customer ID
+    const groupOnsiteDataByCustomer = (arr = []) => {
+      console.log("Grouping onsite data by customer, input array length:", arr.length);
+      if (!Array.isArray(arr)) {
+        console.warn("groupOnsiteDataByCustomer received non-array:", arr);
+        return [];
+      }
+      
+      const grouped = arr.reduce((acc, item) => {
+        if (!item || !item.id) {
+          console.warn("Item missing id in groupOnsiteDataByCustomer:", item);
+          return acc;
+        }
+
+        if (!acc[item.id]) {
+          acc[item.id] = {
+            id: item.id,
+            name: item.name || "Unknown",
+            items: [],
+          };
+        }
+        acc[item.id].items.push(item);
+        return acc;
+      }, {});
+      
+      const result = Object.values(grouped);
+      console.log("Grouped onsite result:", result.length, "groups");
+      return result;
+    };
+
+    // Page break check - FIXED: Always return and continue
+    const checkPageBreak = (requiredSpace = 20) => {
+      const spaceNeeded = requiredSpace + 10;
+      if (yPos > pageHeight - footerHeight - spaceNeeded) {
+        console.log("Adding new page, current yPos:", yPos);
+        doc.addPage();
+        currentPage++;
+        yPos = contentStartY;
+        // Don't await here to avoid blocking
+        addLogoToPage(currentPage).catch(err => console.error("Error adding logo:", err));
+        console.log("New page added, yPos reset to:", yPos);
+      }
+      return false; // Always return false so the function continues
+    };
+
+    // Function to add footer at the bottom of the last page
+    const addFooterAtBottom = () => {
+      console.log("Adding footer to page:", totalPages);
+      doc.setPage(totalPages);
+      
+      const footerY = pageHeight - 15;
+      
+      doc.setDrawColor(225, 122, 0);
+      doc.setLineWidth(0.6);
+      doc.line(0, footerY - 12, pageWidth, footerY - 12);
+      
+      doc.setFontSize(9);
+      doc.setFont(undefined, "normal");
+      doc.setTextColor(100, 100, 100);
+      
+      doc.text("Email:", margin, footerY - 6);
+      doc.setTextColor(0, 0, 255);
+      doc.textWithLink("sales@growpro.co.in", margin + 20, footerY - 6, {
+        url: "mailto:sales@growpro.co.in"
+      });
+      
+      doc.setTextColor(100, 100, 100);
+      doc.text("Phone:", margin, footerY);
+      doc.setTextColor(0, 0, 255);
+      doc.textWithLink("+91 859 175 3001", margin + 22, footerY, {
+        url: "tel:+918591753001"
+      });
+      
+      const rightX = pageWidth - margin;
+      
+      doc.setTextColor(100, 100, 100);
+      doc.setFont(undefined, "bold");
+      doc.text("GrowPro Solutions", rightX, footerY - 6, { align: "right" });
+      
+      doc.setFont(undefined, "normal");
+      doc.text(`Page ${totalPages} of ${totalPages}`, rightX, footerY, { align: "right" });
+    };
+
+    // Add logo to first page
+    console.log("Adding logo to first page");
+    await addLogoToPage(1);
+
+    // Title
+    console.log("Adding title at yPos:", yPos);
+    doc.setFontSize(14);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(255, 102, 0);
+    doc.text(`${selectedReport} Report`, pageWidth / 2 + 10, yPos, { align: "center" });
+    doc.setTextColor(0, 0, 0);
+    yPos += 10;
+    console.log("After title, yPos:", yPos);
+
+    // Date range
+    doc.setFontSize(11);
+    doc.setFont(undefined, "normal");
+    doc.text(`From: ${startDate}  To: ${endDate}`, margin + 30, yPos);
+    yPos += 15;
+    console.log("After date range, yPos:", yPos);
+
+    /* =====================
+       CLIENT PERFORMANCE REPORT
+       ===================== */
+    if (selectedReport === "Client Performance") {
+      console.log("Processing Client Performance Report");
+      // ... client performance code (keep as is)
+    }
+
+    /* =====================
+       RAW MATERIAL REPORT
+       ===================== */
+    else if (selectedReport === "RAW Material") {
+      console.log("Processing RAW Material Report");
+      
+      try {
+        // ===== ONSITE DATA =====
         const needNutrients = Array.isArray(data.need_nutrients) ? data.need_nutrients : [];
         const suppliedNutrients = Array.isArray(data.supplied_nutrients) ? data.supplied_nutrients : [];
         const suppliedPlants = Array.isArray(data.supplied_plants) ? data.supplied_plants : [];
         const suppliedChargeableItem = Array.isArray(data.supplied_chargeable_item) ? data.supplied_chargeable_item : [];
         const needChargeableItem = Array.isArray(data.need_chargeable_item) ? data.need_chargeable_item : [];
         
-        const groupedNeed = groupByCustomer(needNutrients);
-        const groupedSupplied = groupByCustomer(suppliedNutrients);
-        const groupedPlants = groupByCustomer(suppliedPlants);
-        const groupedChargeableItem = groupByCustomer(suppliedChargeableItem);
-        const groupedNeedChargeableItem = groupByCustomer(needChargeableItem);
+        console.log("Onsite data counts:", {
+          needNutrients: needNutrients.length,
+          suppliedNutrients: suppliedNutrients.length,
+          suppliedPlants: suppliedPlants.length,
+          suppliedChargeable: suppliedChargeableItem.length,
+          needChargeable: needChargeableItem.length
+        });
         
-        // Use the new grouping function
-        const offsiteGroups = groupOffsiteDataByCustomer();
+        // Group onsite data by customer ID
+        const groupedNeedNutrients = groupOnsiteDataByCustomer(needNutrients);
+        const groupedSuppliedNutrients = groupOnsiteDataByCustomer(suppliedNutrients);
+        const groupedSuppliedPlants = groupOnsiteDataByCustomer(suppliedPlants);
+        const groupedSuppliedChargeable = groupOnsiteDataByCustomer(suppliedChargeableItem);
+        const groupedNeedChargeable = groupOnsiteDataByCustomer(needChargeableItem);
+
+        // ===== OFFSITE DATA =====
+        const offsiteData = Array.isArray(data.offsiteData) ? data.offsiteData : [];
+        const offsitePlants = Array.isArray(data.offsiteSupplientPlantData) ? data.offsiteSupplientPlantData : [];
+        
+        console.log("Offsite data counts:", {
+          offsiteData: offsiteData.length,
+          offsitePlants: offsitePlants.length
+        });
+
+        // Create a map of offsite orders by ID
+        const offsiteOrderMap = {};
+        offsiteData.forEach(order => {
+          if (order && order.id) {
+            offsiteOrderMap[order.id] = {
+              customer_id: order.customer_id,
+              customer_name: order.name || "Unknown Customer"
+            };
+            console.log(`Mapped offsite order ${order.id} to customer ${order.customer_id}`);
+          }
+        });
+
+        // Group offsite plants by customer_id AND order_id
+        const offsitePlantsByCustomer = {};
+        offsitePlants.forEach(item => {
+          if (item && item.id && offsiteOrderMap[item.id]) {
+            const orderInfo = offsiteOrderMap[item.id];
+            const customerId = orderInfo.customer_id;
+            
+            if (!offsitePlantsByCustomer[customerId]) {
+              offsitePlantsByCustomer[customerId] = {
+                customer_id: customerId,
+                customer_name: orderInfo.customer_name,
+                plants: []
+              };
+            }
+            
+            offsitePlantsByCustomer[customerId].plants.push(item);
+            console.log(`Added offsite plant to customer ${customerId} from order ${item.id}`);
+          }
+        });
+
+        // Get all unique offsite customer IDs
+        const offsiteCustomerIds = Object.keys(offsitePlantsByCustomer);
+        console.log("Offsite customer IDs:", offsiteCustomerIds);
+
+        // Get all unique onsite customer IDs
+        const onsiteCustomerIds = new Set([
+          ...groupedNeedNutrients.map(g => g.id),
+          ...groupedSuppliedNutrients.map(g => g.id),
+          ...groupedSuppliedPlants.map(g => g.id),
+          ...groupedSuppliedChargeable.map(g => g.id),
+          ...groupedNeedChargeable.map(g => g.id)
+        ]);
+        console.log("Onsite customer IDs:", Array.from(onsiteCustomerIds));
 
         // Initialize grand totals
-        let grandTotalSuppliedNutrients = {
-          leafy: 0,
-          fruiting: 0,
-          other: 0,
-          total: 0
-        };
-        
-        let grandTotalNeedNutrients = {
-          leafy: 0,
-          fruiting: 0,
-          other: 0,
-          total: 0
-        };
-        
+        let grandTotalSuppliedNutrients = { leafy: 0, fruiting: 0, other: 0, total: 0 };
         let grandTotalSuppliedPlants = 0;
-        let grandTotalNeedPlants = 0;
         let grandTotalSuppliedChargeableItems = 0;
-        let grandTotalNeedChargeableItems = 0;
-        
-        let grandTotalOffsiteNutrients = {
-          leafy: 0,
-          fruiting: 0,
-          other: 0,
-          total: 0
-        };
-        
-        let grandTotalOffsiteChargeableItems = 0;
         let grandTotalOffsitePlants = 0;
 
-        // ========== OFFSITE DATA ==========
-        if (offsiteGroups.length > 0) {
-          if (checkPageBreak(60)) return;
+        // ========== OFFSITE DATA SECTION ==========
+        if (offsiteCustomerIds.length > 0) {
+          console.log("Rendering offsite data section");
+          
+          checkPageBreak(60);
 
           doc.setFontSize(14);
           doc.setFont(undefined, "bold");
@@ -514,83 +387,26 @@ export default function ReportTable() {
           doc.text("(Items supplied for offsite/non-hydroponic use)", pageWidth / 2 + 10, yPos, { align: "center" });
           yPos += 10;
 
-          offsiteGroups.forEach((offsiteGroup, groupIndex) => {
-            if (checkPageBreak(60)) return;
+          for (let groupIndex = 0; groupIndex < offsiteCustomerIds.length; groupIndex++) {
+            const customerId = offsiteCustomerIds[groupIndex];
+            const customerData = offsitePlantsByCustomer[customerId];
+            
+            console.log(`Rendering offsite customer ${groupIndex + 1}/${offsiteCustomerIds.length}:`, customerData.customer_name);
+            
+            checkPageBreak(60);
 
             doc.setFontSize(13);
             doc.setFont(undefined, "bold");
             doc.setTextColor(255, 102, 0);
-            doc.text(`Customer: ${offsiteGroup.customer_name}`, margin, yPos);
+            doc.text(`Customer: ${customerData.customer_name}`, margin, yPos);
             doc.setTextColor(0, 0, 0);
             yPos += 10;
 
-            // Offsite Nutrients
-            if (offsiteGroup.nutrients.length > 0) {
-              doc.setFontSize(11);
-              doc.setFont(undefined, "bold");
-              doc.setTextColor(0, 100, 0);
-              doc.text("Offsite Nutrients", margin, yPos);
-              doc.setTextColor(0, 0, 0);
-              yPos += 6;
-
-              let offsiteNutrientGroupTotal = 0;
-              const offsiteNutrientTableBody = offsiteGroup.nutrients.map((i) => {
-                const tankCap = parseFloat(i.tank_capacity) || 0;
-                const topups = parseFloat(i.topups) || 0;
-                const total = tankCap * topups;
-                const nutrientType = (i.nutrient_type || "").toLowerCase();
-
-                offsiteNutrientGroupTotal += total;
-
-                if (nutrientType === "leafy") {
-                  grandTotalOffsiteNutrients.leafy += total;
-                } else if (nutrientType === "fruiting") {
-                  grandTotalOffsiteNutrients.fruiting += total;
-                } else {
-                  grandTotalOffsiteNutrients.other += total;
-                }
-                grandTotalOffsiteNutrients.total += total;
-
-                return [
-                  i.nutrient_type || "-",
-                  tankCap ? `${tankCap} Ltr` : "-",
-                  topups || "-",
-                  total ? `${total.toFixed(2)} Ltr` : "-"
-                ];
-              });
-
-              offsiteNutrientTableBody.push([
-                { content: "Customer Total:", colSpan: 3, styles: { fontStyle: 'bold', halign: 'right' } },
-                { content: `${offsiteNutrientGroupTotal.toFixed(2)} Ltr`, styles: { fontStyle: 'bold' } }
-              ]);
-
-              autoTable(doc, {
-                startY: yPos,
-                head: [["Nutrient Type", "Tank Capacity", "Topups", "Total (Ltr)"]],
-                body: offsiteNutrientTableBody,
-                theme: "grid",
-                styles: {
-                  fontSize: 9,
-                  cellPadding: 3,
-                  lineColor: [0, 100, 0],
-                  lineWidth: 0.2
-                },
-                headStyles: {
-                  fillColor: [240, 255, 240],
-                  textColor: [0, 100, 0],
-                  fontStyle: 'bold',
-                  lineWidth: 0.2,
-                  lineColor: [0, 100, 0]
-                },
-                margin: { left: margin, right: margin }
-              });
-
-              yPos = doc.lastAutoTable.finalY + 15;
-            }
-
-            // Offsite Plants
-            if (offsiteGroup.plants.length > 0) {
-              if (checkPageBreak(40)) return;
+            // Offsite Plants - UPDATED SEQUENCE: Order ID first, then Plant Name, then Quantity
+            if (customerData.plants && customerData.plants.length > 0) {
+              console.log(`Rendering ${customerData.plants.length} offsite plants`);
+              
+              checkPageBreak(40);
 
               doc.setFontSize(11);
               doc.setFont(undefined, "bold");
@@ -599,34 +415,37 @@ export default function ReportTable() {
               doc.setTextColor(0, 0, 0);
               yPos += 6;
 
-              let offsitePlantGroupTotal = 0;
-              const offsitePlantTableBody = offsiteGroup.plants.map((i) => {
+              let offsitePlantTotal = 0;
+              const offsitePlantTableBody = customerData.plants.map((i) => {
                 const plant_name = i.plant_name;
                 const other_plant_name = i.other_plant_name || "";
                 const quantity = parseFloat(i.quantity) || 0;
 
-                offsitePlantGroupTotal += quantity;
+                offsitePlantTotal += quantity;
 
                 const displayName = plant_name === 'Others' && other_plant_name
                   ? other_plant_name
                   : plant_name || "Unknown Plant";
 
+                // SEQUENCE: Order ID, Plant Name, Quantity
                 return [
-                  displayName,
-                  quantity ? `${quantity}` : "-",
+                  `#${i.id}`,  // Order ID first
+                  displayName,   // Plant Name second
+                  quantity ? `${quantity}` : "-"  // Quantity third
                 ];
               });
 
               offsitePlantTableBody.push([
-                { content: "Customer Total:", styles: { fontStyle: 'bold' } },
-                { content: `${offsitePlantGroupTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
+                { content: "Customer Total:", colSpan: 2, styles: { fontStyle: 'bold', halign: 'right' } },
+                { content: `${offsitePlantTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
               ]);
 
-              grandTotalOffsitePlants += offsitePlantGroupTotal;
+              grandTotalOffsitePlants += offsitePlantTotal;
 
+              console.log("Rendering offsite plants table...");
               autoTable(doc, {
                 startY: yPos,
-                head: [["Plant Name", "Quantity"]],
+                head: [["Order ID", "Plant Name", "Quantity"]],  // Updated headers
                 body: offsitePlantTableBody,
                 theme: "grid",
                 styles: {
@@ -645,93 +464,41 @@ export default function ReportTable() {
                 margin: { left: margin, right: margin }
               });
 
-              yPos = doc.lastAutoTable.finalY + 15;
+              if (doc.lastAutoTable) {
+                yPos = doc.lastAutoTable.finalY + 15;
+                console.log("After offsite plants table, yPos:", yPos);
+              }
             }
 
-            // Offsite Chargeable Items
-            if (offsiteGroup.chargeable_items.length > 0) {
-              if (checkPageBreak(40)) return;
-
-              doc.setFontSize(11);
-              doc.setFont(undefined, "bold");
-              doc.setTextColor(0, 100, 0);
-              doc.text("Offsite Chargeable Items", margin, yPos);
-              doc.setTextColor(0, 0, 0);
-              yPos += 6;
-
-              let offsiteChargeableGroupTotal = 0;
-              const offsiteChargeableTableBody = offsiteGroup.chargeable_items.map((i) => {
-                const item_name = i.item_name;
-                const other_item_name = i.other_item_name || "";
-                const quantity = parseFloat(i.quantity) || 0;
-
-                offsiteChargeableGroupTotal += quantity;
-
-                const displayName = item_name === 'Others' && other_item_name
-                  ? other_item_name
-                  : item_name || "Unknown Item";
-
-                return [
-                  displayName,
-                  quantity ? `${quantity}` : "-",
-                ];
-              });
-
-              offsiteChargeableTableBody.push([
-                { content: "Customer Total:", styles: { fontStyle: 'bold' } },
-                { content: `${offsiteChargeableGroupTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
-              ]);
-
-              grandTotalOffsiteChargeableItems += offsiteChargeableGroupTotal;
-
-              autoTable(doc, {
-                startY: yPos,
-                head: [["Item Name", "Quantity"]],
-                body: offsiteChargeableTableBody,
-                theme: "grid",
-                styles: {
-                  fontSize: 9,
-                  cellPadding: 3,
-                  lineColor: [0, 100, 0],
-                  lineWidth: 0.2
-                },
-                headStyles: {
-                  fillColor: [240, 255, 240],
-                  textColor: [0, 100, 0],
-                  fontStyle: 'bold',
-                  lineWidth: 0.2,
-                  lineColor: [0, 100, 0]
-                },
-                margin: { left: margin, right: margin }
-              });
-
-              yPos = doc.lastAutoTable.finalY + 15;
-            }
-
-            if (groupIndex < offsiteGroups.length - 1) {
-              if (checkPageBreak(15)) return;
+            if (groupIndex < offsiteCustomerIds.length - 1) {
+              checkPageBreak(15);
               
-              doc.setFontSize(10);
-              doc.setFont(undefined, "bold");
-              doc.setTextColor(0, 100, 0);
-              doc.text("--- Next Customer ---", pageWidth / 2 + 10, yPos, { align: "center" });
-              doc.setTextColor(0, 0, 0);
-              yPos += 15;
+              doc.setDrawColor(0, 0, 0);
+              doc.setLineWidth(0.2);
+              doc.line(margin, yPos, pageWidth - margin, yPos);
+              yPos += 10;
             }
-          });
+          }
           
-          if (checkPageBreak(20)) return;
+          checkPageBreak(20);
           doc.setDrawColor(0, 0, 0);
           doc.setLineWidth(0.5);
           doc.line(margin, yPos, pageWidth - margin, yPos);
           yPos += 15;
+        } else {
+          console.log("No offsite data to render");
         }
 
-        // ========== REGULAR HYDROPONIC DATA ==========
-        if (groupedNeed.length > 0 || groupedSupplied.length > 0 || groupedPlants.length > 0 || 
-            groupedChargeableItem.length > 0 || groupedNeedChargeableItem.length > 0) {
+        // ========== REGULAR ONSITE DATA ==========
+        console.log("Starting onsite data section, current yPos:", yPos);
+        
+        const onsiteCustomerArray = Array.from(onsiteCustomerIds);
+        console.log("Onsite customers to render:", onsiteCustomerArray);
+        
+        if (onsiteCustomerArray.length > 0) {
+          console.log("Rendering onsite data section");
           
-          if (checkPageBreak(60)) return;
+          checkPageBreak(60);
 
           doc.setFontSize(14);
           doc.setFont(undefined, "bold");
@@ -740,31 +507,20 @@ export default function ReportTable() {
           doc.setTextColor(0, 0, 0);
           yPos += 15;
 
-          const allRegularCustomers = new Set();
-          
-          groupedNeed.forEach(c => c && c.id && allRegularCustomers.add(c.id));
-          groupedSupplied.forEach(c => c && c.id && allRegularCustomers.add(c.id));
-          groupedPlants.forEach(c => c && c.id && allRegularCustomers.add(c.id));
-          groupedChargeableItem.forEach(c => c && c.id && allRegularCustomers.add(c.id));
-          groupedNeedChargeableItem.forEach(c => c && c.id && allRegularCustomers.add(c.id));
-
-          const allRegularCustomersArray = Array.from(allRegularCustomers);
-
-          allRegularCustomersArray.forEach((customerId, customerIndex) => {
-            const customerNeed = groupedNeed.find((s) => s && s.id === customerId);
-            const customerSupplied = groupedSupplied.find((s) => s && s.id === customerId);
-            const customerPlants = groupedPlants.find((s) => s && s.id === customerId);
-            const customerChargeableItem = groupedChargeableItem.find((s) => s && s.id === customerId);
-            const customerNeedChargeableItem = groupedNeedChargeableItem.find((s) => s && s.id === customerId);
+          for (let customerIndex = 0; customerIndex < onsiteCustomerArray.length; customerIndex++) {
+            const customerId = onsiteCustomerArray[customerIndex];
+            const customerSuppliedNutrients = groupedSuppliedNutrients.find(g => g.id === customerId);
+            const customerSuppliedPlants = groupedSuppliedPlants.find(g => g.id === customerId);
+            const customerSuppliedChargeable = groupedSuppliedChargeable.find(g => g.id === customerId);
 
             let customerName = "Unknown Customer";
-            if (customerNeed) customerName = customerNeed.name;
-            else if (customerSupplied) customerName = customerSupplied.name;
-            else if (customerPlants) customerName = customerPlants.name;
-            else if (customerChargeableItem) customerName = customerChargeableItem.name;
-            else if (customerNeedChargeableItem) customerName = customerNeedChargeableItem.name;
+            if (customerSuppliedNutrients) customerName = customerSuppliedNutrients.name;
+            else if (customerSuppliedPlants) customerName = customerSuppliedPlants.name;
+            else if (customerSuppliedChargeable) customerName = customerSuppliedChargeable.name;
 
-            if (checkPageBreak(60)) return;
+            console.log(`Rendering onsite customer ${customerIndex + 1}/${onsiteCustomerArray.length}:`, customerName);
+            
+            checkPageBreak(60);
 
             doc.setFontSize(13);
             doc.setFont(undefined, "bold");
@@ -773,69 +529,11 @@ export default function ReportTable() {
             doc.setTextColor(0, 0, 0);
             yPos += 10;
 
-            // Need Chargeable Items
-            if (customerNeedChargeableItem && customerNeedChargeableItem.items && customerNeedChargeableItem.items.length > 0) {
-              if (checkPageBreak(40)) return;
-
-              doc.setFontSize(11);
-              doc.setFont(undefined, "bold");
-              doc.setTextColor(255, 102, 0);
-              doc.text("Need Chargeable Items", margin, yPos);
-              doc.setTextColor(0, 0, 0);
-              yPos += 6;
-
-              let customerNeedChargeableTotal = 0;
-              const needChargeableItemTableBody = customerNeedChargeableItem.items.map((i) => {
-                const item_name = i.item_name || "";
-                const other_item_name = i.other_item_name || "";
-                const quantity = parseFloat(i.quantity) || 0;
-
-                customerNeedChargeableTotal += quantity;
-
-                const displayName = item_name === 'Others' && other_item_name
-                  ? other_item_name
-                  : item_name || "Unknown Item";
-
-                return [
-                  displayName,
-                  quantity ? `${quantity}` : "-",
-                ];
-              });
-
-              needChargeableItemTableBody.push([
-                { content: "Customer Total:", styles: { fontStyle: 'bold' } },
-                { content: `${customerNeedChargeableTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
-              ]);
-
-              grandTotalNeedChargeableItems += customerNeedChargeableTotal;
-
-              autoTable(doc, {
-                startY: yPos,
-                head: [["Item Name", "Quantity"]],
-                body: needChargeableItemTableBody,
-                theme: "grid",
-                styles: {
-                  fontSize: 9,
-                  cellPadding: 3,
-                  lineColor: [100, 100, 100],
-                  lineWidth: 0.2
-                },
-                headStyles: {
-                  fillColor: [255, 255, 255],
-                  textColor: [0, 0, 0],
-                  fontStyle: 'bold',
-                  lineWidth: 0.2,
-                  lineColor: [100, 100, 100]
-                },
-                margin: { left: margin, right: margin }
-              });
-
-              yPos = doc.lastAutoTable.finalY + 15;
-            }
-
-            // Supplied Plants
-            if (customerPlants && customerPlants.items && customerPlants.items.length > 0) {
-              if (checkPageBreak(40)) return;
+            // Supplied Plants - Keep original sequence for onsite
+            if (customerSuppliedPlants && customerSuppliedPlants.items && customerSuppliedPlants.items.length > 0) {
+              console.log(`Rendering ${customerSuppliedPlants.items.length} supplied plants`);
+              
+              checkPageBreak(40);
 
               doc.setFontSize(11);
               doc.setFont(undefined, "bold");
@@ -845,15 +543,20 @@ export default function ReportTable() {
               yPos += 6;
 
               let customerSuppliedPlantTotal = 0;
-              const suppliedPlantTableBody = customerPlants.items.map((i) => {
+              const suppliedPlantTableBody = customerSuppliedPlants.items.map((i) => {
                 const plant_name = i.plant_name;
+                const other_plant_name = i.other_plant_name || "";
                 const quantity = parseFloat(i.quantity) || 0;
 
                 customerSuppliedPlantTotal += quantity;
 
+                const displayName = plant_name === 'Others' && other_plant_name
+                  ? other_plant_name
+                  : plant_name || "Unknown Plant";
+
                 return [
-                  plant_name ? `${plant_name}` : "-",
-                  quantity ? `${quantity}` : "-",
+                  displayName,
+                  quantity ? `${quantity}` : "-"
                 ];
               });
 
@@ -864,6 +567,7 @@ export default function ReportTable() {
 
               grandTotalSuppliedPlants += customerSuppliedPlantTotal;
 
+              console.log("Rendering supplied plants table...");
               autoTable(doc, {
                 startY: yPos,
                 head: [["Plant Name", "Quantity"]],
@@ -885,12 +589,17 @@ export default function ReportTable() {
                 margin: { left: margin, right: margin }
               });
 
-              yPos = doc.lastAutoTable.finalY + 15;
+              if (doc.lastAutoTable) {
+                yPos = doc.lastAutoTable.finalY + 15;
+                console.log("After supplied plants table, yPos:", yPos);
+              }
             }
 
             // Supplied Nutrients
-            if (customerSupplied && customerSupplied.items && customerSupplied.items.length > 0) {
-              if (checkPageBreak(40)) return;
+            if (customerSuppliedNutrients && customerSuppliedNutrients.items && customerSuppliedNutrients.items.length > 0) {
+              console.log(`Rendering ${customerSuppliedNutrients.items.length} supplied nutrients`);
+              
+              checkPageBreak(40);
 
               doc.setFontSize(11);
               doc.setFont(undefined, "bold");
@@ -900,7 +609,7 @@ export default function ReportTable() {
               yPos += 6;
 
               let customerSuppliedNutrientTotal = 0;
-              const suppliedTableBody = customerSupplied.items.map((i) => {
+              const suppliedTableBody = customerSuppliedNutrients.items.map((i) => {
                 const tankCap = parseFloat(i.tank_capacity) || 0;
                 const topups = parseFloat(i.topups) || 0;
                 const total = tankCap * topups;
@@ -930,6 +639,7 @@ export default function ReportTable() {
                 { content: `${customerSuppliedNutrientTotal.toFixed(2)} Ltr`, styles: { fontStyle: 'bold' } }
               ]);
 
+              console.log("Rendering supplied nutrients table...");
               autoTable(doc, {
                 startY: yPos,
                 head: [["Nutrient Type", "Tank Capacity", "Topups", "Total (Ltr)"]],
@@ -951,142 +661,37 @@ export default function ReportTable() {
                 margin: { left: margin, right: margin }
               });
 
-              yPos = doc.lastAutoTable.finalY + 15;
+              if (doc.lastAutoTable) {
+                yPos = doc.lastAutoTable.finalY + 15;
+                console.log("After supplied nutrients table, yPos:", yPos);
+              }
             }
 
-            // Supplied Chargeable Items
-            if (customerChargeableItem && customerChargeableItem.items && customerChargeableItem.items.length > 0) {
-              if (checkPageBreak(40)) return;
-
-              doc.setFontSize(11);
-              doc.setFont(undefined, "bold");
-              doc.setTextColor(255, 102, 0);
-              doc.text("Supplied Chargeable Items", margin, yPos);
-              doc.setTextColor(0, 0, 0);
-              yPos += 6;
-
-              let customerSuppliedChargeableTotal = 0;
-              const suppliedChargeableItemTableBody = customerChargeableItem.items.map((i) => {
-                const item_name = i.item_name;
-                const other_item_name = i.other_item_name;
-                const quantity = parseFloat(i.quantity) || 0;
-
-                customerSuppliedChargeableTotal += quantity;
-
-                const displayName = item_name === 'Others' && other_item_name
-                  ? other_item_name
-                  : item_name || "Unknown Item";
-
-                return [
-                  displayName,
-                  quantity ? `${quantity}` : "-",
-                ];
-              });
-
-              suppliedChargeableItemTableBody.push([
-                { content: "Customer Total:", styles: { fontStyle: 'bold' } },
-                { content: `${customerSuppliedChargeableTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
-              ]);
-
-              grandTotalSuppliedChargeableItems += customerSuppliedChargeableTotal;
-
-              autoTable(doc, {
-                startY: yPos,
-                head: [["Item Name", "Quantity"]],
-                body: suppliedChargeableItemTableBody,
-                theme: "grid",
-                styles: {
-                  fontSize: 9,
-                  cellPadding: 3,
-                  lineColor: [100, 100, 100],
-                  lineWidth: 0.2
-                },
-                headStyles: {
-                  fillColor: [255, 255, 255],
-                  textColor: [0, 0, 0],
-                  fontStyle: 'bold',
-                  lineWidth: 0.2,
-                  lineColor: [100, 100, 100]
-                },
-                margin: { left: margin, right: margin }
-              });
-
-              yPos = doc.lastAutoTable.finalY + 15;
-            }
-
-            // Need Nutrients
-            if (customerNeed && customerNeed.items && customerNeed.items.length > 0) {
-              if (checkPageBreak(40)) return;
-
-              doc.setFontSize(11);
-              doc.setFont(undefined, "bold");
-              doc.setTextColor(255, 102, 0);
-              doc.text("Need Nutrients", margin, yPos);
-              doc.setTextColor(0, 0, 0);
-              yPos += 6;
-
-              const needTableBody = customerNeed.items.map((i) => {
-                const tankCap = parseFloat(i.tank_capacity) || 0;
-                const topups = parseFloat(i.topups) || 0;
-                const total = tankCap * topups;
-                const nutrientType = (i.nutrient_type || "").toLowerCase();
-
-                if (nutrientType === "leafy") {
-                  grandTotalNeedNutrients.leafy += total;
-                } else if (nutrientType === "fruiting") {
-                  grandTotalNeedNutrients.fruiting += total;
-                } else {
-                  grandTotalNeedNutrients.other += total;
-                }
-                grandTotalNeedNutrients.total += total;
-
-                return [
-                  i.nutrient_type || "-",
-                  tankCap ? `${tankCap} Ltr` : "-",
-                  topups || "-",
-                  total ? `${total.toFixed(2)} Ltr` : "-"
-                ];
-              });
-
-              autoTable(doc, {
-                startY: yPos,
-                head: [["Nutrient Type", "Tank Capacity", "Topups", "Total (Ltr)"]],
-                body: needTableBody,
-                theme: "grid",
-                styles: {
-                  fontSize: 9,
-                  cellPadding: 3,
-                  lineColor: [100, 100, 100],
-                  lineWidth: 0.2
-                },
-                headStyles: {
-                  fillColor: [255, 255, 255],
-                  textColor: [0, 0, 0],
-                  fontStyle: 'bold',
-                  lineWidth: 0.2,
-                  lineColor: [100, 100, 100]
-                },
-                margin: { left: margin, right: margin }
-              });
-
-              yPos = doc.lastAutoTable.finalY + 15;
-            }
-
-            if (customerIndex < allRegularCustomersArray.length - 1) {
-              if (checkPageBreak(15)) return;
+            if (customerIndex < onsiteCustomerArray.length - 1) {
+              checkPageBreak(15);
 
               doc.setDrawColor(0, 0, 0);
               doc.setLineWidth(0.2);
               doc.line(margin, yPos, pageWidth - margin, yPos);
               yPos += 10;
             }
-          });
+          }
+        } else {
+          console.log("No onsite data to render");
+          checkPageBreak(20);
+          
+          doc.setFontSize(12);
+          doc.setFont(undefined, "italic");
+          doc.setTextColor(100, 100, 100);
+          doc.text("No regular onsite data found for the selected date range.", margin, yPos);
+          doc.setTextColor(0, 0, 0);
+          yPos += 15;
         }
         
         // ========== GRAND TOTALS ==========
-        if (checkPageBreak(120)) {
-          totalPages = currentPage;
-        }
+        console.log("Rendering grand totals, current yPos:", yPos);
+        
+        checkPageBreak(120);
 
         doc.setDrawColor(0, 0, 0);
         doc.setLineWidth(0.5);
@@ -1100,49 +705,49 @@ export default function ReportTable() {
         doc.setTextColor(0, 0, 0);
         yPos += 10;
 
-        const grandTotalsData = [
-          [{ content: "REGULAR ONSITE DATA:", colSpan: 2, styles: { fontStyle: 'bold', fontSize: 11, textColor: [255, 102, 0] } }],
-          ["Supplied Nutrients - Leafy:", `${grandTotalSuppliedNutrients.leafy.toFixed(2)} Ltr`],
-          ["Supplied Nutrients - Fruiting:", `${grandTotalSuppliedNutrients.fruiting.toFixed(2)} Ltr`],
-          ["Supplied Nutrients - Other:", `${grandTotalSuppliedNutrients.other.toFixed(2)} Ltr`],
-          ["Supplied Nutrients - TOTAL:", `${grandTotalSuppliedNutrients.total.toFixed(2)} Ltr`],
-          ["", ""],
-          ["Need Nutrients - Leafy:", `${grandTotalNeedNutrients.leafy.toFixed(2)} Ltr`],
-          ["Need Nutrients - Fruiting:", `${grandTotalNeedNutrients.fruiting.toFixed(2)} Ltr`],
-          ["Need Nutrients - Other:", `${grandTotalNeedNutrients.other.toFixed(2)} Ltr`],
-          ["Need Nutrients - TOTAL:", `${grandTotalNeedNutrients.total.toFixed(2)} Ltr`],
-          ["", ""],
-          ["Supplied Plants Total:", `${grandTotalSuppliedPlants.toFixed(2)} units`],
-          ["Need Plants Total:", `${grandTotalNeedPlants.toFixed(2)} units`],
-          ["", ""],
-          ["Supplied Chargeable Items Total:", `${grandTotalSuppliedChargeableItems.toFixed(2)} units`],
-          ["Need Chargeable Items Total:", `${grandTotalNeedChargeableItems.toFixed(2)} units`]
-        ];
+        // Build grand totals dynamically
+        const grandTotalsData = [];
 
-        // Add offsite totals if there is any offsite data
-        if (grandTotalOffsiteNutrients.total > 0 || grandTotalOffsitePlants > 0 || grandTotalOffsiteChargeableItems > 0) {
+        // Add onsite totals if they exist
+        const hasOnsiteNutrients = grandTotalSuppliedNutrients.total > 0;
+        const hasOnsitePlants = grandTotalSuppliedPlants > 0;
+
+        if (hasOnsiteNutrients || hasOnsitePlants) {
           grandTotalsData.push(
-            ["", ""],
-            [{ content: "OFFSITE DATA:", colSpan: 2, styles: { fontStyle: 'bold', fontSize: 11, textColor: [0, 100, 0] } }]
+            [{ content: "REGULAR ONSITE DATA:", colSpan: 2, styles: { fontStyle: 'bold', fontSize: 11, textColor: [255, 102, 0] } }]
           );
-          
-          if (grandTotalOffsiteNutrients.total > 0) {
+
+          if (grandTotalSuppliedNutrients.total > 0) {
             grandTotalsData.push(
-              ["Offsite Nutrients - Leafy:", `${grandTotalOffsiteNutrients.leafy.toFixed(2)} Ltr`],
-              ["Offsite Nutrients - Fruiting:", `${grandTotalOffsiteNutrients.fruiting.toFixed(2)} Ltr`],
-              ["Offsite Nutrients - Other:", `${grandTotalOffsiteNutrients.other.toFixed(2)} Ltr`],
-              ["Offsite Nutrients - TOTAL:", `${grandTotalOffsiteNutrients.total.toFixed(2)} Ltr`]
+              ["Supplied Nutrients - Leafy:", `${grandTotalSuppliedNutrients.leafy.toFixed(2)} Ltr`],
+              ["Supplied Nutrients - TOTAL:", `${grandTotalSuppliedNutrients.total.toFixed(2)} Ltr`]
             );
           }
-          
-          if (grandTotalOffsitePlants > 0) {
-            grandTotalsData.push(["Offsite Plants Total:", `${grandTotalOffsitePlants.toFixed(2)} units`]);
-          }
-          
-          if (grandTotalOffsiteChargeableItems > 0) {
-            grandTotalsData.push(["Offsite Chargeable Items Total:", `${grandTotalOffsiteChargeableItems.toFixed(2)} units`]);
+
+          if (grandTotalSuppliedPlants > 0) {
+            grandTotalsData.push(["Supplied Plants Total:", `${grandTotalSuppliedPlants.toFixed(2)} units`]);
           }
         }
+
+        // Add offsite totals if they exist
+        if (grandTotalOffsitePlants > 0) {
+          if (grandTotalsData.length > 0) {
+            grandTotalsData.push(["", ""]);
+          }
+
+          grandTotalsData.push(
+            [{ content: "OFFSITE DATA:", colSpan: 2, styles: { fontStyle: 'bold', fontSize: 11, textColor: [0, 100, 0] } }]
+          );
+
+          grandTotalsData.push(["Offsite Plants Total:", `${grandTotalOffsitePlants.toFixed(2)} units`]);
+        }
+
+        // If no data at all, show a message
+        if (grandTotalsData.length === 0) {
+          grandTotalsData.push(["No data found for the selected date range", ""]);
+        }
+
+        console.log("Grand totals data:", grandTotalsData);
 
         autoTable(doc, {
           startY: yPos,
@@ -1158,16 +763,13 @@ export default function ReportTable() {
             0: { fontStyle: 'bold', halign: 'right' },
             1: { fontStyle: 'bold', halign: 'left' }
           },
-          margin: { left: margin, right: margin },
-          didDrawPage: function (data) {
-            yPos = data.cursor.y + 15;
-            if (data.pageNumber > totalPages) {
-              totalPages = data.pageNumber;
-            }
-          }
+          margin: { left: margin, right: margin }
         });
 
-        yPos = doc.lastAutoTable.finalY + 15;
+        if (doc.lastAutoTable) {
+          yPos = doc.lastAutoTable.finalY + 15;
+          console.log("After grand totals, yPos:", yPos);
+        }
 
         // Add notes after Grand Totals
         doc.setFontSize(9);
@@ -1176,31 +778,49 @@ export default function ReportTable() {
         yPos += 5;
         doc.text("Regular data represents items for standard hydroponic systems.", margin, yPos);
         yPos += 10;
+        
+        console.log("Finished rendering all sections, yPos:", yPos);
+        
+      } catch (innerError) {
+        console.error("Error in RAW Material report rendering:", innerError);
+        console.error("Error stack:", innerError.stack);
+        throw innerError;
       }
-
-      // Update totalPages to the actual last page
-      totalPages = doc.getNumberOfPages();
-      
-      // Add footer at the bottom of the last page
-      addFooterAtBottom();
-
-      // Add logo to all pages
-      for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i);
-        if (i > 1) {
-          await addLogoToPage(i);
-        }
-      }
-
-      const safeReportName = selectedReport.replace(/\s+/g, "_").replace(/[^\w-_]/g, "");
-      doc.save(`${safeReportName}_Report_${startDate}_to_${endDate}.pdf`);
-      
-    } catch (error) {
-      console.error("PDF Generation Error:", error);
-      console.error("Error stack:", error.stack);
-      alert(`Error generating PDF: ${error.message}. Please check the console for details.`);
     }
-  };
+
+    // Update totalPages to the actual last page
+    totalPages = doc.getNumberOfPages();
+    console.log("Total pages generated:", totalPages);
+    
+    // Add footer at the bottom of the last page
+    console.log("Adding footer");
+    addFooterAtBottom();
+
+    // Add logo to all pages
+    console.log("Adding logos to all pages");
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      if (i > 1) {
+        await addLogoToPage(i);
+      }
+    }
+
+    const safeReportName = selectedReport.replace(/\s+/g, "_").replace(/[^\w-_]/g, "");
+    const fileName = `${safeReportName}_Report_${startDate}_to_${endDate}.pdf`;
+    console.log("Saving PDF as:", fileName);
+    
+    // Save the PDF
+    doc.save(fileName);
+    console.log("=== PDF GENERATION COMPLETE ===");
+    
+  } catch (error) {
+    console.error("=== PDF GENERATION ERROR ===");
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+    console.error("Error details:", error);
+    alert(`Error generating PDF: ${error.message}. Please check the console for details.`);
+  }
+};
 
   /* ---------------- HELPER FUNCTION ---------------- */
   const getRatingDescription = (rating) => {
