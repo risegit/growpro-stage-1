@@ -112,7 +112,7 @@ export default function UserTable() {
     };
   }, []);
 
-  const generatePDF = (user) => {
+const generatePDF = (user) => {
     if (!window.jspdf) {
       alert('PDF library is still loading. Please try again in a moment.');
       return;
@@ -237,6 +237,36 @@ export default function UserTable() {
     doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
     doc.text(statusText, pageWidth - 44, yPos);
     doc.setTextColor(0, 0, 0); // Reset to black
+
+    yPos += 7;
+
+    // 🔹 NEW SECTION: ORDER ID and CUSTOMER ID (below client name)
+    // Order ID
+    doc.setFont(undefined, "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100); // Gray color for secondary info
+    doc.text("Order ID:", textStartX, yPos);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(0, 0, 0);
+    // Draw line for order ID
+    doc.line(textStartX + 28, yPos + 1, textStartX + 90, yPos + 1);
+    // Add order ID text (using user.id or order_id based on your API response)
+    const orderId = user.order_id || user.id || "-";
+    doc.text(orderId.toString(), textStartX + 29, yPos);
+
+    // Customer ID on the right side
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text("Customer ID:", pageWidth - 75, yPos);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(0, 0, 0);
+    // Draw line for customer ID
+    doc.line(pageWidth - 45, yPos + 1, pageWidth - 15, yPos + 1);
+    // Add customer ID text
+    const customerId = user.customer_id || user.id || "-";
+    doc.text(customerId.toString(), pageWidth - 44, yPos);
+    
+    doc.setTextColor(0, 0, 0); // Reset color
 
     yPos += 10;
 
