@@ -68,7 +68,7 @@ switch ($method) {
                 ]);
 
             }else{
-                $sql1 = "SELECT sv.id,u.id customer_id,u.name,u.phone,u.profile_pic,cd.locality,t.name tech_name,COALESCE(mdr.delivery_status, 'no') AS delivery_status, sv.created_date, mdr.updated_date FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id INNER JOIN users t ON sv.visited_by=t.user_code LEFT JOIN material_delivery_records mdr ON sv.id=mdr.visit_id INNER JOIN customers_details cd ON cd.user_id=u.id";
+                $sql1 = "SELECT sv.id, sv.id onsite_id,u.id customer_id,u.name,u.phone,u.profile_pic,cd.locality,t.name tech_name,COALESCE(mdr.delivery_status, 'no') AS delivery_status, sv.created_date, mdr.updated_date FROM site_visit sv INNER JOIN users u ON sv.customer_id=u.id INNER JOIN users t ON sv.visited_by=t.user_code LEFT JOIN material_delivery_records mdr ON sv.id=mdr.visit_id INNER JOIN customers_details cd ON cd.user_id=u.id";
                 $result = $conn->query($sql1);
 
                 $data = [];
@@ -77,21 +77,21 @@ switch ($method) {
                     $data[]=$row;
                 }
 
-                $sql2 = "SELECT sv.id, sv.customer_id, svp.plant_name,svp.quantity,svp.other_plant_name FROM site_visit sv INNER JOIN site_visit_material_need_plants svp ON sv.id=svp.visit_id";
+                $sql2 = "SELECT sv.id onsite_id, sv.customer_id, svp.plant_name,svp.quantity,svp.other_plant_name FROM site_visit sv INNER JOIN site_visit_material_need_plants svp ON sv.id=svp.visit_id";
                 $result2 = $conn->query($sql2);
                 $plants = [];
                 while ($row = $result2->fetch_assoc()) {
                     $plants[]=$row;
                 }
 
-                $sql3 = "SELECT sv.id,sv.customer_id,svn.nutrient_type,svn.tank_capacity,svn.topups,svn.other_nutrient_name,svn.other_tank_capacity FROM site_visit sv INNER JOIN site_visit_material_need_nutrients svn ON sv.id=svn.visit_id";
+                $sql3 = "SELECT sv.id onsite_id,sv.customer_id,svn.nutrient_type,svn.tank_capacity,svn.topups,svn.other_nutrient_name,svn.other_tank_capacity FROM site_visit sv INNER JOIN site_visit_material_need_nutrients svn ON sv.id=svn.visit_id";
                 $result3 = $conn->query($sql3);
                 $nutrients = [];
                 while ($row = $result3->fetch_assoc()) {
                     $nutrients[]=$row;
                 }
 
-                $sql4 = "SELECT sv.id,sv.customer_id,svci.item_name,svci.other_item_name,svci.quantity FROM site_visit sv INNER JOIN site_visit_material_need_chargeable_items svci ON sv.id=svci.visit_id";
+                $sql4 = "SELECT sv.id onsite_id,sv.customer_id,svci.item_name,svci.other_item_name,svci.quantity FROM site_visit sv INNER JOIN site_visit_material_need_chargeable_items svci ON sv.id=svci.visit_id";
                 $result4 = $conn->query($sql4);
                 $chargeableItems = [];
                 while ($row = $result4->fetch_assoc()) {
@@ -99,21 +99,21 @@ switch ($method) {
                 }
 
                 // offsite Material Data
-                $offsiteSql1 = "SELECT omd.id, omd.customer_id, omd.delivery_status, omd.created_date, omd.created_time, omd.created_by, u.name, cd.locality, u.phone,u.profile_pic,omd.updated_date FROM offsite_material_deliver omd INNER JOIN users u ON omd.customer_id=u.id INNER JOIN customers_details cd ON omd.customer_id=cd.user_id";
+                $offsiteSql1 = "SELECT omd.id, omd.id offsite_id, omd.customer_id, omd.delivery_status, omd.created_date, omd.created_time, omd.created_by, u.name, cd.locality, u.phone,u.profile_pic,omd.updated_date FROM offsite_material_deliver omd INNER JOIN users u ON omd.customer_id=u.id INNER JOIN customers_details cd ON omd.customer_id=cd.user_id";
                 $offsiteResult1 = $conn->query($offsiteSql1);
                 $offsiteData = [];
                 while ($row = $offsiteResult1->fetch_assoc()) {
                     $offsiteData[]=$row;
                 }
 
-                $offsiteSql2 = "SELECT omd.id, omd.customer_id, omnp.plant_name, omnp.other_plant_name, omnp.quantity FROM offsite_material_need_plants omnp INNER JOIN offsite_material_deliver omd ON omd.id=omnp.offsite_id";
+                $offsiteSql2 = "SELECT omd.id offsite_id, omd.customer_id, omnp.plant_name, omnp.other_plant_name, omnp.quantity FROM offsite_material_need_plants omnp INNER JOIN offsite_material_deliver omd ON omd.id=omnp.offsite_id";
                 $offsiteResult2 = $conn->query($offsiteSql2);
                 $offsitePlants = [];
                 while ($row = $offsiteResult2->fetch_assoc()) {
                     $offsitePlants[]=$row;
                 }
 
-                $offsiteSql3 = "SELECT omnn.id, omd.customer_id, omnn.nutrient_type, omnn.tank_capacity, omnn.topups, omnn.other_nutrient_name, omnn.other_tank_capacity FROM offsite_material_need_nutrients omnn INNER JOIN offsite_material_deliver omd ON omd.id=omnn.offsite_id";
+                $offsiteSql3 = "SELECT omnn.id, omd.id offsite_id, omd.customer_id, omnn.nutrient_type, omnn.tank_capacity, omnn.topups, omnn.other_nutrient_name, omnn.other_tank_capacity FROM offsite_material_need_nutrients omnn INNER JOIN offsite_material_deliver omd ON omd.id=omnn.offsite_id";
                 $offsiteResult3 = $conn->query($offsiteSql3);
                 $offsiteNutrients = [];
                 while ($row = $offsiteResult3->fetch_assoc()) {
