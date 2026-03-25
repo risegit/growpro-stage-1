@@ -336,7 +336,7 @@ switch ($method) {
             $material_chargeable_Item_supplied = json_decode($jsonChargeableItemsSupplied, true);
             // $growerdata=var_dump($material_chargeable_Item_supplied);
             // Material Need To Deliver
-            if(!empty($materialNeedsDelivery)){
+            if($materialNeedsDelivery == 'true'){
                 $material_need_neemoil = $_POST['material_need_neemoil'] ?? '';
                 $materialsDeliveredPlantData = $_POST['materialsDeliveredPlantData'] ?? '';
                 $step5MaterialsOtherInput = $_POST['step5MaterialsOtherInput'] ?? '';
@@ -472,9 +472,9 @@ switch ($method) {
                 $updateScheduleStatus = "UPDATE `site_visit_schedule` SET `status`='completed' WHERE id='$scheduleId'";
                 $conn->query($updateScheduleStatus);
 
-                $chk=!empty($materialNeedsDelivery);
+                $chk=$materialNeedsDelivery;
                 // echo json_encode(["status" => "success", "message" => $chk]);
-                if(!empty($materialNeedsDelivery)){
+                if($materialNeedsDelivery == 'true'){
                     $sql8 = "UPDATE `site_visit` SET `material_delivered_neemoil`='$material_need_neemoil' WHERE id='$visit_id'";
                     // echo json_encode(["status" => "success", "sql8" => $sql8]);
                     if ($conn->query($sql8)){
@@ -520,7 +520,7 @@ switch ($method) {
                 // }
                 
             }
-            echo json_encode(["status" => "success", "message" => "Site visit recorded successfully"]);
+            echo json_encode(["status" => "success", "message" => "Site visit recorded successfully", "condition" => $chk]);
                
 
         break;
@@ -598,7 +598,7 @@ switch ($method) {
             // echo var_dump($material_chargeable_Item_supplied);
 
             // Material Need To Deliver
-            if(!empty($materialNeedsDelivery)){
+            if($materialNeedsDelivery == 'true'){
                 $material_need_neemoil = $_POST['material_need_neemoil'] ?? '';
                 $materialsDeliveredPlantData = $_POST['materialsDeliveredPlantData'] ?? '';
                 $step5MaterialsOtherInput = $_POST['step5MaterialsOtherInput'] ?? '';
@@ -786,9 +786,9 @@ switch ($method) {
                 $updateScheduleStatus = "UPDATE `site_visit_schedule` SET `status`='completed' WHERE id='$scheduleId'";
                 $conn->query($updateScheduleStatus);
 
-                $chk=!empty($materialNeedsDelivery);
+                // $chk=!empty($materialNeedsDelivery);
                 // echo json_encode(["status" => "success", "message" => $chk]);
-                if(!empty($materialNeedsDelivery)){
+                if($materialNeedsDelivery == 'true'){
                     $sql8 = "UPDATE `site_visit` SET `material_delivered_neemoil`='$material_need_neemoil' WHERE id='$visitId'";
                     // echo json_encode(["status" => "success", "sql8" => $sql8]);
                     if ($conn->query($sql8)){
