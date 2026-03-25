@@ -3,16 +3,23 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 
-$servername = "localhost";
-$username = "root";
-$password = "";
-$database = "growpro";
+// $servername = "localhost";
+// $username = "root";
+// $password = "";
+// $database = "growpro";
 
 // Live database credentials of app.growpro.co.in
 // $servername = "localhost";
 // $username = "growpro-app-user";
 // $password = "R0z2P[Yic)2z";
 // $database = "growpro-app";
+
+// Live Stage database credentials of app.growpro.co.in
+$servername = "localhost";
+$username = "stage_app_db_user";
+$password = "2-ub{*,p3Eey";
+$database = "stage_app_db";
+
 
 // $servername = "localhost";
 // $username = "growpro_11_Nov_User";
