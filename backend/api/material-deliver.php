@@ -150,7 +150,7 @@ switch ($method) {
                     "nutrients" => $mergedNutrients,
                     "chargeableItems" => $mergedChargeableItems
                 ]);
-            }
+            } 
         
         break;
 

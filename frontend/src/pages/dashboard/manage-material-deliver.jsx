@@ -1138,7 +1138,7 @@ const generatePDF = (user) => {
                             {user.tech_name}
                           </td>
 
-                          {/* Locality */}
+                          {/* Locality */} 
                           <td className="py-4 px-4 text-gray-700 truncate">
                             {user.locality}
                           </td>
