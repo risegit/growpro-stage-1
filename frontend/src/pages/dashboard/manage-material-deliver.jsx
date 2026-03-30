@@ -61,13 +61,19 @@ export default function UserTable() {
         const usersWithPlants = data.data.map(user => {
           // Find plants for this specific user based on customer_id
           const userPlants = data.plants.filter(plant =>
-            plant.customer_id === user.customer_id
+            plant.customer_id === user.customer_id &&
+            plant.onsite_id === user.onsite_id &&
+            (plant.plant_name != '' || plant.other_plant_name != '')
           );
           const userNutrients = data.nutrients.filter(nutrient =>
-            nutrient.customer_id === user.customer_id
+            nutrient.customer_id === user.customer_id &&
+            nutrient.onsite_id === user.onsite_id &&
+            (nutrient.nutrient_type != '' || nutrient.other_nutrient_name != '')
           );
           const userchargeableItem = data.chargeableItems.filter(chargeableItem =>
-            chargeableItem.customer_id === user.customer_id
+            chargeableItem.customer_id === user.customer_id &&
+            chargeableItem.onsite_id === user.onsite_id &&
+            (chargeableItem.item_name != '' || chargeableItem.other_item_name != '')
           );
 
           return {
@@ -838,11 +844,27 @@ const generatePDF = (user) => {
 
   // 🔹 Filter users based on search
   const filteredUsers = useMemo(() => {
-    if (!searchQuery.trim()) return sortedUsers;
-
+    if (!searchQuery.trim()) {
+      // Filter out users without plants, nutrients, or chargeable items
+      return sortedUsers.filter((user) => {
+        const hasData = 
+          (user.plants?.length > 0) ||
+          (user.nutrients?.length > 0) ||
+          (user.chargeableItems?.length > 0);
+        return hasData;
+      });
+    }
     const query = searchQuery.toLowerCase();
-
+    
     return sortedUsers.filter((user) => {
+      // First check if user has any data
+      const hasData = 
+        (user.plants?.length > 0) ||
+        (user.nutrients?.length > 0) ||
+        (user.chargeableItems?.length > 0);
+      
+      if (!hasData) return false;
+
       // Convert query to check for onsite/offsite
       const isOnsiteQuery = query.includes('onsite');
       const isOffsiteQuery = query.includes('offsite');
@@ -855,8 +877,8 @@ const generatePDF = (user) => {
         user.order_type?.toLowerCase().includes(query) ||
 
         // Search for onsite/offsite status
-        (isOnsiteQuery && user.tech_name) || // If query has "onsite" and user has tech_name
-        (isOffsiteQuery && !user.tech_name) || // If query has "offsite" and user has no tech_name
+        (isOnsiteQuery && user.tech_name) ||
+        (isOffsiteQuery && !user.tech_name) ||
 
         // Also search the derived string value
         (user.tech_name ? 'onsite' : 'offsite').includes(query)
@@ -1116,13 +1138,14 @@ const generatePDF = (user) => {
                             {user.tech_name}
                           </td>
 
-                          {/* Locality */}
+                          {/* Locality */} 
                           <td className="py-4 px-4 text-gray-700 truncate">
                             {user.locality}
                           </td>
 
                           {/* Materials */}
                           <td className="py-4 px-4 text-gray-700">
+                            {user.id}
                             {user.plants?.length > 0 && "Plants"}
                             {user.nutrients?.length > 0 && (user.plants?.length > 0 ? ", Nutrients" : "Nutrients")}
                             {user.chargeableItems?.length > 0 &&
