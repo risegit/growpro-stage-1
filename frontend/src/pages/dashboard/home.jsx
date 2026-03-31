@@ -57,9 +57,9 @@ export function Home() {
           if (!user.user_code.startsWith("TC")) {
             if (updatedCards[1]) {
               updatedCards[1].value = stats.active_amc;
-              updatedCards[1].footer.value = stats.renew_amc_30_days;
+              updatedCards[1].footer.value = renewalAmcData.length;
               updatedCards[1].footer.label = "renewals in 30 days";
-              updatedCards[1].footer.value1 = stats.expired_amc;
+              updatedCards[1].footer.value1 = expiredAmcData.length;
               updatedCards[1].footer.label1 = "expired AMC";
               
               // Add click handlers
