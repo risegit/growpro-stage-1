@@ -63,14 +63,10 @@ switch ($method) {
                 ";
 
             $expiredAMCDetailsSql = "
-                SELECT c.id AS customer_id, c.name AS customer_name, a.validity_upto, a.id AS amc_id, a.visits_per_month,a.validity_from,a.validity_upto,a.amc_free_paid
-                FROM amc_details a
-                LEFT JOIN users c ON a.customer_id = c.id
-                WHERE a.validity_upto < CURRENT_DATE
-                ORDER BY a.validity_upto ASC";
+                SELECT c.id AS customer_id, c.name AS customer_name, a.id AS amc_id, a.visits_per_month, a.validity_from, a.validity_upto, a.amc_free_paid FROM amc_details a INNER JOIN ( SELECT customer_id, MAX(validity_upto) AS max_validity FROM amc_details GROUP BY customer_id ) latest ON a.customer_id = latest.customer_id AND a.validity_upto = latest.max_validity LEFT JOIN users c ON a.customer_id = c.id WHERE a.validity_upto < CURRENT_DATE ORDER BY a.validity_upto ASC;";
 
             $expiredAMC7DaysDetailsSql = "
-                SELECT c.id AS customer_id, c.name AS customer_name, a.id AS amc_id, a.visits_per_month, a.validity_from, a.validity_upto, a.amc_free_paid FROM amc_details a LEFT JOIN users c ON a.customer_id = c.id WHERE a.validity_upto BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY) ORDER BY a.validity_upto ASC";
+                SELECT c.id AS customer_id, c.name AS customer_name, a.id AS amc_id, a.visits_per_month, a.validity_from, a.validity_upto, a.amc_free_paid FROM amc_details a INNER JOIN ( SELECT customer_id, MAX(id) AS latest_amc_id FROM amc_details GROUP BY customer_id ) latest ON a.id = latest.latest_amc_id LEFT JOIN users c ON a.customer_id = c.id WHERE a.validity_upto BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY) ORDER BY a.validity_upto ASC;";
         }
 
         $result = $conn->query($summarySql);
