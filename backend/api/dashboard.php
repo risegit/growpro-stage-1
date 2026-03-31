@@ -52,14 +52,13 @@ switch ($method) {
 
             // Admin / Manager → See everything
             $summarySql = "
-                SELECT 
-                (SELECT COUNT(*) FROM users WHERE status='active') AS active_customers,
-                (SELECT COUNT(*) FROM amc_details WHERE validity_upto >= CURRENT_DATE) AS active_amc,
-                (SELECT COUNT(*) FROM amc_details WHERE validity_upto < CURRENT_DATE) AS expired_amc,
-                (SELECT COUNT(*) FROM site_visit_schedule WHERE visit_date = CURRENT_DATE) AS today_scheduled,
-                (SELECT COUNT(*) FROM site_visit_schedule WHERE MONTH(created_date)=MONTH(CURRENT_DATE)) AS monthly_visits,
-                (SELECT COUNT(DISTINCT technician_id) FROM site_visit_schedule WHERE visit_date = CURRENT_DATE) AS technicians_today,
-                (SELECT COUNT(*) FROM amc_details WHERE validity_upto BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY)) AS renew_amc_30_days
+                SELECT (SELECT COUNT(*) FROM users WHERE status = 'active') AS active_customers, (SELECT COUNT(*) FROM amc_details a INNER JOIN ( SELECT customer_id, MAX(validity_upto) AS max_validity FROM amc_details GROUP BY customer_id ) latest ON a.customer_id = latest.customer_id AND a.validity_upto = latest.max_validity WHERE a.validity_upto >= CURRENT_DATE ) AS active_amc,
+                
+                (SELECT COUNT(*) FROM amc_details a INNER JOIN ( SELECT customer_id, MAX(validity_upto) AS max_validity FROM amc_details GROUP BY customer_id ) latest ON a.customer_id = latest.customer_id AND a.validity_upto = latest.max_validity WHERE a.validity_upto < CURRENT_DATE ) AS expired_amc,
+                
+                (SELECT COUNT(*) FROM site_visit_schedule WHERE visit_date = CURRENT_DATE ) AS today_scheduled, (SELECT COUNT(*) FROM site_visit_schedule WHERE MONTH(visit_date) = MONTH(CURRENT_DATE) AND YEAR(visit_date) = YEAR(CURRENT_DATE) ) AS monthly_visits, (SELECT COUNT(DISTINCT technician_id) FROM site_visit_schedule WHERE visit_date = CURRENT_DATE ) AS technicians_today,
+                
+                (SELECT COUNT(*) FROM amc_details a INNER JOIN ( SELECT customer_id, MAX(validity_upto) AS max_validity FROM amc_details GROUP BY customer_id ) latest ON a.customer_id = latest.customer_id AND a.validity_upto = latest.max_validity WHERE a.validity_upto BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY) ) AS renew_amc_30_days
                 ";
 
             $expiredAMCDetailsSql = "
