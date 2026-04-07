@@ -2092,73 +2092,90 @@ const StepperCustomerForm = () => {
 
           {/* Buttons Section */}
           <div className="mt-6 px-6">
-            {currentStep === 2 ? (
-              <div className="flex flex-col sm:flex-row flex-wrap justify-between items-center gap-3">
-                {/* Add / Remove Grower Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={addGrower}
-                    className="bg-[#9FC762] hover:bg-[#8DB350] text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
-                  >
-                    + Add Grower(उत्पादक जोड़ें)
-                  </button>
-                </div>
+       {currentStep === 2 ? (
+  <div className="flex flex-col sm:flex-row flex-wrap justify-between items-center gap-3">
+    {/* Add / Remove Grower Buttons */}
+    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+      <button
+        type="button"
+        onClick={addGrower}
+        className="bg-[#9FC762] hover:bg-[#8DB350] text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
+      >
+        + Add Grower (उत्पादक जोड़ें)
+      </button>
+      
+      {/* Only show Remove button if there's more than one grower */}
+      {growers.length > 1 && (
+        <button
+          type="button"
+          onClick={removeGrower}
+          className="bg-red-500 hover:bg-red-600 text-white font-medium px-6 py-2 rounded-lg w-full sm:w-auto transition"
+        >
+          - Remove Grower (उत्पादक हटाएं)
+        </button>
+      )}
+    </div>
 
-                {/* Navigation Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={prevStep}
-                    className="btn-primary ml-auto"
-                  >
-                    Previous(पिछला)
-                  </button>
+    {/* Navigation Buttons */}
+    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+      <button
+        type="button"
+        onClick={prevStep}
+        className="btn-primary text-white font-medium px-6 py-2 rounded-lg transition"
+      >
+        Previous (पिछला)
+      </button>
 
-                  <button
-                    type="button"
-                    onClick={nextStep}
-                    disabled={phoneExists}
-                    className={`btn-primary ml-auto ${phoneExists ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    Next(आगे)
-                  </button>
-                </div>
-              </div>
-            ) : (
-              // Other Step Buttons
-              <div className="flex flex-col md:flex-row justify-between w-full gap-3">
-                {currentStep > 1 && (
-                  <button
-                    type="button"
-                    onClick={prevStep}
-                    className="btn-primary "
-                  >
-                    Previous(पिछला)
-                  </button>
-                )}
+      <button
+        type="button"
+        onClick={nextStep}
+        disabled={phoneExists}
+        className={`btn-primary text-white font-medium px-6 py-2 rounded-lg transition ${
+          phoneExists ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
+      >
+        Next (आगे)
+      </button>
+    </div>
+  </div>
+) : (
+  // Other Step Buttons
+  <div className="flex flex-col md:flex-row justify-between w-full gap-3">
+    {currentStep > 1 && (
+      <button
+        type="button"
+        onClick={prevStep}
+        className="btn-primary font-medium px-6 py-2 rounded-lg transition"
+      >
+        Previous (पिछला)
+      </button>
+    )}
 
-                {currentStep < 3 ? (
-                  <button
-                    type="button"
-                    onClick={nextStep}
-                    disabled={currentStep === 1 && phoneExists}
-                    className={`btn-primary ml-auto ${currentStep === 1 && phoneExists ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    Next (आगे)
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={handleSubmit}
-                    className={`btn-primary ${loading ? "opacity-60 cursor-not-allowed" : ""}`}
-                  >
-                    {loading ? "Please wait..." : "Submit(जमा करें)"}
-                  </button>
-                )}
-              </div>
-            )}
+    {currentStep < 3 ? (
+      <button
+        type="button"
+        onClick={nextStep}
+        disabled={currentStep === 1 && phoneExists}
+        className={`btn-primary text-white font-medium px-6 py-2 rounded-lg ml-auto transition ${
+          currentStep === 1 && phoneExists ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
+      >
+        Next (आगे)
+      </button>
+    ) : (
+      <button
+        type="button"
+        disabled={loading}
+        onClick={handleSubmit}
+        className={`bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-lg transition ${
+          loading ? "opacity-60 cursor-not-allowed" : ""
+        }`}
+      >
+        {loading ? "Please waiting..." : "Submit (जमा करें)"}
+      </button>
+    )}
+  </div>
+)}
           </div>
         </div>
       </div>

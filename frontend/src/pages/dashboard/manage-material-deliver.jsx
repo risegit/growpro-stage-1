@@ -1185,7 +1185,7 @@ const generatePDF = (user) => {
                               {/* Action */}
                               <td className="py-4 px-4 text-right">
                                 <button
-                                  onClick={() => handleEdit(user.id, user.tech_name ? 'onsite' : 'offsite')}
+                                  onClick={() => handleEdit(user.onsite_id || user.offsite_id, user.tech_name ? 'onsite' : 'offsite')}
                                   className="px-4 py-2 btn-primary"
                                 >
                                   Edit
