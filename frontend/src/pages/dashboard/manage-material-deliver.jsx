@@ -1145,7 +1145,6 @@ const generatePDF = (user) => {
 
                           {/* Materials */}
                           <td className="py-4 px-4 text-gray-700">
-                            {user.id}
                             {user.plants?.length > 0 && "Plants"}
                             {user.nutrients?.length > 0 && (user.plants?.length > 0 ? ", Nutrients" : "Nutrients")}
                             {user.chargeableItems?.length > 0 &&
