@@ -1145,7 +1145,6 @@ const generatePDF = (user) => {
 
                           {/* Materials */}
                           <td className="py-4 px-4 text-gray-700">
-                            {user.id}
                             {user.plants?.length > 0 && "Plants"}
                             {user.nutrients?.length > 0 && (user.plants?.length > 0 ? ", Nutrients" : "Nutrients")}
                             {user.chargeableItems?.length > 0 &&
@@ -1185,7 +1184,7 @@ const generatePDF = (user) => {
                               {/* Action */}
                               <td className="py-4 px-4 text-right">
                                 <button
-                                  onClick={() => handleEdit(user.id, user.tech_name ? 'onsite' : 'offsite')}
+                                  onClick={() => handleEdit(user.onsite_id || user.offsite_id, user.tech_name ? 'onsite' : 'offsite')}
                                   className="px-4 py-2 btn-primary"
                                 >
                                   Edit
