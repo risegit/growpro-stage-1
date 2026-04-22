@@ -120,7 +120,7 @@ switch ($method) {
                     $offsiteNutrients[]=$row;
                 }
 
-                $offsiteSql4 = "SELECT omnc.id, omd.customer_id, omnc.item_name, omnc.quantity FROM offsite_material_need_chargeable_items omnc INNER JOIN offsite_material_deliver omd ON omd.id=omnc.offsite_id";
+                $offsiteSql4 = "SELECT omnc.id, omd.id offsite_id, omd.customer_id, omnc.item_name, omnc.quantity FROM offsite_material_need_chargeable_items omnc INNER JOIN offsite_material_deliver omd ON omd.id=omnc.offsite_id";
                 $offsiteResult4 = $conn->query($offsiteSql4);
                 $offsiteChargeableItems = [];
                 while ($row = $offsiteResult4->fetch_assoc()) {
@@ -129,6 +129,8 @@ switch ($method) {
 
                 $mergedData = array_merge($data, $offsiteData);
                 $mergedPlants = array_merge($plants, $offsitePlants);
+                $onsitePlant = $plants;
+                $offSitePlant = $offsitePlants;
                 $mergedNutrients = array_merge($nutrients, $offsiteNutrients);
                 $mergedChargeableItems = array_merge($chargeableItems, $offsiteChargeableItems);
 
@@ -148,7 +150,9 @@ switch ($method) {
                     "data" => $mergedData,
                     "plants" => $mergedPlants,
                     "nutrients" => $mergedNutrients,
-                    "chargeableItems" => $mergedChargeableItems
+                    "chargeableItems" => $mergedChargeableItems,
+                    "onsitePlant" => $onsitePlant,
+                    "offSitePlant" => $offSitePlant
                 ]);
             } 
         
