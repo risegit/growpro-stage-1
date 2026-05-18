@@ -148,6 +148,34 @@ const generatePDF = (user) => {
       return (capacity * topup).toFixed(2);
     };
 
+    // Helper function to wrap text and calculate lines
+    const getWrappedText = (text, maxWidth) => {
+      if (!text) return [""];
+      const lines = [];
+      let currentLine = "";
+      
+      // Split by words (spaces) but also handle commas as potential break points
+      const words = text.split(/(?<=[, ])/g);
+      
+      for (let word of words) {
+        const testLine = currentLine + word;
+        const testWidth = doc.getTextWidth(testLine);
+        
+        if (testWidth > maxWidth && currentLine.length > 0) {
+          lines.push(currentLine.trim());
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      
+      if (currentLine.trim().length > 0) {
+        lines.push(currentLine.trim());
+      }
+      
+      return lines;
+    };
+
     /* -------------------------------------------------------
        🔹 DETERMINE ORDER TYPE AND FILTER ITEMS
     --------------------------------------------------------*/
@@ -369,7 +397,7 @@ const generatePDF = (user) => {
     doc.setFontSize(11);
 
     /* -------------------------------------------------------
-       🔹 PLANTS DELIVERED (FILTERED BY ORDER)
+       🔹 PLANTS DELIVERED (WITH TEXT WRAPPING)
     --------------------------------------------------------*/
     if (yPos > 200 && filteredPlants.length > 0) {
       doc.addPage();
@@ -405,6 +433,13 @@ const generatePDF = (user) => {
       doc.setFont(undefined, "normal");
       doc.setTextColor(0, 0, 0);
 
+      // Define column widths (in mm)
+      const serialWidth = 15; // # column width
+      const plantNameX = 35; // Plant name start X position
+      const plantNameMaxWidth = 80; // Max width for plant name text before wrapping
+      const quantityX = 120; // Quantity X position
+      const lineHeight = 5; // Line height for wrapped text
+
       filteredPlants.forEach((plant, index) => {
         if (yPos > 250) {
           doc.addPage();
@@ -418,16 +453,30 @@ const generatePDF = (user) => {
           : plant.plant_name || "-";
         const quantity = plant.quantity || "-";
 
-        doc.text(serialNo.toString(), 25, yPos);
-        doc.text(plantName, 35, yPos);
-        doc.text(quantity.toString(), 120, yPos);
-
-        yPos += 8;
-
+        // Wrap the plant name text
+        const wrappedLines = getWrappedText(plantName, plantNameMaxWidth);
+        
+        // Calculate total height needed for this row
+        const rowHeight = wrappedLines.length * lineHeight;
+        
+        // Draw serial number (center aligned vertically for multi-line)
+        doc.text(serialNo.toString(), serialWidth, yPos + (rowHeight / 2) - 2);
+        
+        // Draw each line of wrapped plant name
+        wrappedLines.forEach((line, lineIndex) => {
+          doc.text(line, plantNameX, yPos + (lineIndex * lineHeight));
+        });
+        
+        // Draw quantity (aligned with the first line)
+        doc.text(quantity.toString(), quantityX, yPos);
+        
+        // Move y position down by the row height
+        yPos += rowHeight + 3;
+        
+        // Draw separator line after this item (except last)
         if (index < filteredPlants.length - 1) {
           doc.setLineWidth(0.1);
-          doc.line(35, yPos, 180, yPos);
-          yPos += 5;
+          doc.line(35, yPos - 2, 180, yPos - 2);
         }
       });
 
